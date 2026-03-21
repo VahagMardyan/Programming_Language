@@ -19,11 +19,12 @@ class Parser {
         Tokenizer& tokenizer;
         ParserState state;
         SymbolTable& symTable;
-        std::stack<char> operators;
+        std::stack<std::string> ops;
+
         std::stack<std::shared_ptr<ASTNode>> nodes;
-        int precedence(char op) const;
-        void processOperatorStack(char currentOp);
-        void createNodeFromOp(char op);
+        int precedence(const std::string& op) const;
+        void processOperatorStack(const std::string& currentOp);
+        void createNodeFromOp();
     public:
         Parser(Tokenizer& tok, SymbolTable& st);
         std::shared_ptr<ASTNode> parse();

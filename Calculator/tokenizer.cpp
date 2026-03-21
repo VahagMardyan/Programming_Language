@@ -1,6 +1,18 @@
 #include "tokenizer.h"
 
+const std::unordered_map<std::string, TokenType> operations = {
+    {"+", TokenType::Operator}, {"-", TokenType::Operator},
+    {"*", TokenType::Operator}, {"/", TokenType::Operator},
+    {"&", TokenType::Operator}, {"|", TokenType::Operator},
+    {"^", TokenType::Operator}, {"%", TokenType::Operator},
+    {">>", TokenType::Operator}, {"<<", TokenType::Operator},
+};
+
 Tokenizer::Tokenizer(Lexer& l) : lexer(l) {}
+
+bool Tokenizer::isOperator(const std::string& s) const {
+    return operations.find(s) != operations.end();
+}
 
 Token Tokenizer::getNextToken() {
     while(!lexer.isEOF() && isspace(lexer.peek())) {
@@ -12,6 +24,20 @@ Token Tokenizer::getNextToken() {
         };
     }
     char current = static_cast<char>(lexer.peek());
+
+    if(current == '(') {
+        lexer.advance();
+        return {
+            TokenType::OpenParen, "("
+        };
+    }
+    if(current == ')') {
+        lexer.advance();
+        return {
+            TokenType::CloseParen, ")"
+        };
+    }
+
     if(isdigit(current) || current == '.') {
         std::string val;
         bool hasDot = false;
@@ -37,23 +63,26 @@ Token Tokenizer::getNextToken() {
             TokenType::Name, name
         };
     }
+
+    std::string op;
+    op += current;
     lexer.advance();
-    if(current == '+' || current == '-' || current == '/' || current == '*') {
+
+    if(!lexer.isEOF()) {
+        char next = static_cast<char>(lexer.peek());
+        if( (current == '<' && next == '<') || (current == '>' && next == '>')) {
+            op += next;
+            lexer.advance();
+        }
+    }
+
+    if(isOperator(op)) {
         return {
-            TokenType::Operator, std::string(1, current)
+            TokenType::Operator, op
         };
     }
-    if(current == '(') {
-        return {
-            TokenType::OpenParen, "("
-        };
-    }
-    if(current == ')') {
-        return {
-            TokenType::CloseParen, ")"
-        };
-    }
+
     return {
-        TokenType::Error, std::string(1, current)
-    };
+        TokenType::Error, op
+    };    
 }

@@ -4,6 +4,7 @@
 *.o
 *.out
 *.bin
+*.pdb
 
 # Python related
 __pycache__

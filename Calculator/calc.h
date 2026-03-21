@@ -4,6 +4,7 @@
 class Calculate {
     private:
         std::vector<Instruction> program;
+        std::vector<double> registers;
         int tempSize = 0;
         int finalIdx = 0;
         bool debug_mode = false;
