@@ -48,7 +48,7 @@ This layer is responsible for scanning the raw input string and breaking it into
 
 Defines the hierarchical structure of the parsed expression.
 
-* **`ast.h`**:
+* **`ast.h / ast.cpp`**:
 * `enum class OpCode`: Instruction set for the Virtual Machine (`ADD`, `SUB`, `MUL`, `DIV`, `UNARY`, `LOAD_CONST`, `LOAD_VAR`).
 * `struct Instruction`: The core bytecode unit containing an `OpCode`, operand addresses, and destination index.
 

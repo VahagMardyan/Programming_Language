@@ -143,7 +143,7 @@ double Calculate::execute(const SymbolTable& symTable) {
             break;
         }
     }
-    return registers[finalIdx];
+    return registers[finalIdx] == -0.0 ? 0.0 : registers[finalIdx];
 }
 
 void Calculate::compile(const std::string& expr, SymbolTable& symTable) {
