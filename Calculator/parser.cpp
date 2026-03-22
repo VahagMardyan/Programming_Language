@@ -89,6 +89,19 @@ std::shared_ptr<ASTNode> Parser::parse() {
                     } else {
                         state = ParserState::Error;
                     }
+                } else if(token.type == TokenType::Number || token.type == TokenType::Name || token.type == TokenType::OpenParen) {
+                    processOperatorStack("*");
+                    ops.push("*");
+                    if(token.type == TokenType::Number) {
+                        nodes.push(std::make_shared<NumberNode>(std::stod(token.value)));
+                        state = ParserState::ExpectOperator;
+                    } else if(token.type == TokenType::Name) {
+                        nodes.push(std::make_shared<VariableNode>(symTable.getAddress(token.value), symTable));
+                        state = ParserState::ExpectOperator;
+                    } else if(token.type == TokenType::OpenParen) {
+                        ops.push("(");
+                        state = ParserState::ExpectOperand;
+                    }
                 } else {
                     state = ParserState::Error;
                 }

@@ -10,8 +10,9 @@ int main() {
     Calculate calc;
 
     std::string expr = "(x*x + y*y + z*z) * (-0.5 + x*y / 100)";
-    // expr = "((x & y) + (x | z) - (y ^ z)) * 2 / (x % 10) + -z";
-    // expr = "(10+20)*x";
+    // expr = "(((x & y) + (x | z) - (y ^ z)) * 2 / (x % 10) + -z)<<1";
+    // expr = "y << z"; // 2 * 2³
+    expr = "(x+5*y/z-y>>1 + 4&x --8>>(8^6)) | 14";
     calc.compile(expr, st);
     double result = calc.execute(st);
     std::cout << "Result: " << result << std::endl;

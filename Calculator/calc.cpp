@@ -23,51 +23,51 @@ void Calculate::visualize() {
                 break;
             case OpCode::LOAD_VAR:
                 std::cout << "LOAD_VAR" << std::setw(6) << inst.left << std::setw(6) << "-"
-                          << std::setw(6) << inst.dest << "*var";
+                          << std::setw(6) << inst.dest << "*(" << inst.dest << ")";
                 break;
             case OpCode::ADD:
                 std::cout << "ADD" << std::setw(6) << inst.left << std::setw(6) << inst.right 
-                          << std::setw(6) << inst.dest << "?";
+                          << std::setw(6) << inst.dest << "*(" << inst.left << ") + (" << "*" << inst.right << ")";
                 break;
             case OpCode::SUB:
                 std::cout << "SUB" << std::setw(6) << inst.left << std::setw(6) << inst.right 
-                          << std::setw(6) << inst.dest << "?";
+                          << std::setw(6) << inst.dest << "*(" << inst.left << ") - (" << "*" << inst.right << ")";
                 break;
             case OpCode::MUL:
                 std::cout << "MUL" << std::setw(6) << inst.left << std::setw(6) << inst.right 
-                          << std::setw(6) << inst.dest << "?";
+                          << std::setw(6) << inst.dest << "*(" << inst.left << ") * (" << "*" << inst.right << ")";
                 break;
             case OpCode::DIV:
                 std::cout << "DIV" << std::setw(6) << inst.left << std::setw(6) << inst.right 
-                          << std::setw(6) << inst.dest << "?";
+                          << std::setw(6) << inst.dest << "*(" << inst.left << ") / (" << "*" << inst.right << ")";
                 break;
             case OpCode::UNARY:
                 std::cout << "NEG" << std::setw(6) << inst.left << std::setw(6) << "-" 
-                          << std::setw(6) << inst.dest << "-";
+                          << std::setw(6) << inst.dest << "-" << inst.dest;
                 break;
             case OpCode::AND:
                 std::cout << std::setw(12) << "AND" << std::setw(6) << inst.left << std::setw(6)
-                        << inst.right << std::setw(6) << inst.dest << "&";
+                        << inst.right << std::setw(6) << inst.dest << "*(" << inst.left << ") & (" << "*" << inst.right << ")";
                 break;
             case OpCode::OR:
                 std::cout << std::setw(12) << "OR" << std::setw(6) << inst.left << std::setw(6)
-                        << inst.right << std::setw(6) << inst.dest << "|";
+                        << inst.right << std::setw(6) << inst.dest << "*(" << inst.left << ") | (" << "*" << inst.right << ")";
                 break;
             case OpCode::XOR:
                 std::cout << std::setw(12) << "XOR" << std::setw(6) << inst.left << std::setw(6)
-                        << inst.right << std::setw(6) << inst.dest << "^";
+                        << inst.right << std::setw(6) << inst.dest << "*(" << inst.left << ") ^ (" << "*" << inst.right << ")";
                 break;
             case OpCode::MODULO:
                 std::cout << std::setw(12) << "MODULO" << std::setw(6) << inst.left << std::setw(6)
-                        << inst.right << std::setw(6) << inst.dest << "%";
+                        << inst.right << std::setw(6) << inst.dest << "*(" << inst.left << ") % (" << "*" << inst.right << ")";
                 break;
             case OpCode::LSHIFT:
                 std::cout << std::setw(12) << "LSHIFT" << std::setw(6) << inst.left << std::setw(6)
-                        << inst.right << std::setw(6) << inst.dest << "<<";
+                        << inst.right << std::setw(6) << inst.dest << "*(" << inst.left << ") << (" << "*" << inst.right << ")";;
                 break;
             case OpCode::RSHIFT:
                 std::cout << std::setw(12) << "RSHIFT" << std::setw(6) << inst.left << std::setw(6)
-                        << inst.right << std::setw(6) << inst.dest << ">>";
+                        << inst.right << std::setw(6) << inst.dest << "*(" << inst.left << ") >> (" << "*" << inst.right << ")";
                 break;
         }
         std::cout << std::endl;
