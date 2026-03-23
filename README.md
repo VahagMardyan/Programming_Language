@@ -1,4 +1,4 @@
-**Please don't take this `README.md` too seriously - I'll update it once the project is finished.**
+**Please don't take this `README.md` too seriously - I'll update it once the project is finished.🙂**
 
 # 🧮 Math Expression Compiler
 
