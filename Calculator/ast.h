@@ -9,7 +9,7 @@ enum class OpCode {
     UNDEFINED,
 };
 
-class ASTNode : public std::enable_shared_from_this<ASTNode> {
+class ASTNode {
     public:
         virtual ~ASTNode() = default;        
         virtual void print(std::string prefix = "", bool isLast = true) const = 0;
