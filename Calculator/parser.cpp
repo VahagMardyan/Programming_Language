@@ -1,7 +1,41 @@
 #include "parser.h"
 #include <iostream>
 
-Parser::Parser(Tokenizer& tok, SymbolTable& st) : tokenizer(tok), symTable(st), state(ParserState::ExpectOperand) {}
+std::shared_ptr<ASTNode> Parser::createBinaryNode(const std::string& op, std::shared_ptr<ASTNode> left, 
+                std::shared_ptr<ASTNode> right) {
+
+    auto leftNum = std::dynamic_pointer_cast<NumberNode>(left);
+    auto rightNum = std::dynamic_pointer_cast<NumberNode>(right);
+    if(leftNum && rightNum) {
+        double lVal = leftNum -> getValue();
+        double rVal = rightNum -> getValue();
+
+        if(op == "+") return std::make_shared<NumberNode>(lVal + rVal);
+        if (op == "-") return std::make_shared<NumberNode>(lVal - rVal);
+        if (op == "*") return std::make_shared<NumberNode>(lVal * rVal);
+        if (op == "/") return std::make_shared<NumberNode>(rVal != 0 ? lVal / rVal : 0);
+
+        long long lInt = static_cast<long long>(lVal);
+        long long rInt = static_cast<long long>(rVal);
+        if (op == "&") return std::make_shared<NumberNode>(static_cast<double>(lInt & rInt));
+        if (op == "|") return std::make_shared<NumberNode>(static_cast<double>(lInt | rInt));
+        if (op == "^") return std::make_shared<NumberNode>(static_cast<double>(lInt ^ rInt));
+        if (op == "<<") return std::make_shared<NumberNode>(static_cast<double>(lInt << rInt));
+        if (op == ">>") return std::make_shared<NumberNode>(static_cast<double>(lInt >> rInt));
+        if (op == "%") return std::make_shared<NumberNode>(static_cast<double>(lInt % rInt));
+    }
+    return std::make_shared<BinaryOpNode>(op, left, right);
+}
+
+std::shared_ptr<ASTNode> Parser::createUnaryNode(const std::string& op, std::shared_ptr<ASTNode>child) {
+    auto num = std::dynamic_pointer_cast<NumberNode>(child);
+    if(num) {
+        double val = num -> getValue();
+        if(op == "-" || op == "_") return std::make_shared<NumberNode>(-val);
+        if(op == "+" || op == "#") return num;
+    }
+    return std::make_shared<UnaryOpNode>(op, child);
+}
 
 int Parser::precedence(const std::string& op) const {
     if(op == "|" || op == "^") return 1;
@@ -14,18 +48,29 @@ int Parser::precedence(const std::string& op) const {
 }
 
 void Parser::createNodeFromOp() {
+    if(ops.empty()) return;
     std::string op = ops.top();
     ops.pop();
+
     if(op == "_" || op == "#") {
+        if(nodes.empty()) {
+            state = ParserState::Error;
+            return;
+        }
         auto operand = nodes.top();
         nodes.pop();
-        nodes.push(std::make_shared<UnaryOpNode>(op, operand));
+
+        nodes.push(createUnaryNode(op, operand));
     } else {
+        if(nodes.size() < 2) {
+            state = ParserState::Error;
+            return;
+        }
         auto right = nodes.top();
         nodes.pop();
         auto left = nodes.top();
         nodes.pop();
-        nodes.push(std::make_shared<BinaryOpNode>(op, left, right));
+        nodes.push(createBinaryNode(op, left, right));
     }
 }
 
@@ -39,16 +84,17 @@ void Parser::processOperatorStack(const std::string& currentOp) {
 std::shared_ptr<ASTNode> Parser::parse() {
     while(state != ParserState::Done && state != ParserState::Error) {
         Token token = tokenizer.getNextToken();
-
         if(token.type == TokenType::EndOfExpr) {
             while(!ops.empty()) {
                 if(ops.top() == "(") {
-                    state = ParserState::Error; 
-                    break; 
+                    state = ParserState::Error;
+                    break;
                 }
                 createNodeFromOp();
             }
-            if(state != ParserState::Error) state = ParserState::Done;
+            if(state != ParserState::Error) {
+                state = ParserState::Done;
+            }
             break;
         }
 
@@ -57,13 +103,13 @@ std::shared_ptr<ASTNode> Parser::parse() {
             break;
         }
 
-        switch(state) {
-            case ParserState::ExpectOperand:
+        switch (state) {
+            case ParserState::ExpectOperand: {
                 if(token.type == TokenType::Number) {
                     nodes.push(std::make_shared<NumberNode>(std::stod(token.value)));
                     state = ParserState::ExpectOperator;
                 } else if(token.type == TokenType::Name) {
-                    nodes.push(std::make_shared<VariableNode>(symTable.getAddress(token.value), symTable));
+                    nodes.push(std::make_shared<VariableNode>(symTable.getAddress(token.value)));
                     state = ParserState::ExpectOperator;
                 } else if(token.type == TokenType::OpenParen) {
                     ops.push("(");
@@ -72,9 +118,10 @@ std::shared_ptr<ASTNode> Parser::parse() {
                 } else {
                     state = ParserState::Error;
                 }
+            }
             break;
 
-            case ParserState::ExpectOperator:
+            case ParserState::ExpectOperator: {
                 if(token.type == TokenType::Operator) {
                     processOperatorStack(token.value);
                     ops.push(token.value);
@@ -96,22 +143,21 @@ std::shared_ptr<ASTNode> Parser::parse() {
                         nodes.push(std::make_shared<NumberNode>(std::stod(token.value)));
                         state = ParserState::ExpectOperator;
                     } else if(token.type == TokenType::Name) {
-                        nodes.push(std::make_shared<VariableNode>(symTable.getAddress(token.value), symTable));
+                        nodes.push(std::make_shared<VariableNode>(symTable.getAddress(token.value)));
                         state = ParserState::ExpectOperator;
                     } else if(token.type == TokenType::OpenParen) {
                         ops.push("(");
                         state = ParserState::ExpectOperand;
+                    } else {
+                        state = ParserState::Error;
                     }
-                } else {
-                    state = ParserState::Error;
                 }
+            }
             break;
         }
     }
-
-    if (state == ParserState::Error) {
+    if(state == ParserState::Error || nodes.empty()) {
         return nullptr;
     }
-    
-    return nodes.empty() ? nullptr : nodes.top();
+    return nodes.top();
 }

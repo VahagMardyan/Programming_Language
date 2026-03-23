@@ -1,7 +1,106 @@
-#include "calc.h"
+#include "vm.h"
 
-void Calculate::visualize() {
-    std::cout << "\n[SYMBOLIC Visualization]" << std::endl;
+void VirtualMachine::load(const std::string& expr, SymbolTable& symtable) {
+    std::cout << "Loading expression: " << expr << std::endl;
+    program.clear();
+    std::istringstream stream(expr);
+    Lexer lexer(stream);
+    Tokenizer tokenizer(lexer);
+    Parser parser(tokenizer, symtable);
+    
+    auto root = parser.parse();
+    if(!root) {
+        throw std::runtime_error("Parsing failed!");
+    }
+    Compiler compiler;
+    program = compiler.compile(root);
+
+    int maxReg = 0;
+    for(const auto& inst : program) {
+        maxReg = std::max({maxReg, inst.left, inst.right, inst.dest});
+    }
+
+    registers.assign(maxReg + 1, 0.0);
+
+    finalIdx = program.empty() ? 0 : program.back().dest;
+
+    if(debug_mode) {
+        root -> print();
+        visualize();
+    }
+}
+
+double VirtualMachine::run(const SymbolTable& symTable) {
+    if (program.empty()) return 0.0;
+
+    for (const auto& inst : program) {
+        switch (inst.op) {
+            case OpCode::LOAD_CONST:
+                registers[inst.dest] = inst.value;
+                break;
+            case OpCode::LOAD_VAR:
+                registers[inst.dest] = symTable.getValueByAddress(inst.left);
+                break;
+            case OpCode::ADD:
+                registers[inst.dest] = registers[inst.left] + registers[inst.right];
+                break;
+            case OpCode::SUB:
+                registers[inst.dest] = registers[inst.left] - registers[inst.right];
+                break;
+            case OpCode::MUL:
+                registers[inst.dest] = registers[inst.left] * registers[inst.right];
+                break;
+            case OpCode::DIV:
+                if (registers[inst.right] == 0) throw std::runtime_error("Division by zero");
+                registers[inst.dest] = registers[inst.left] / registers[inst.right];
+                break;
+            case OpCode::UNARY:
+                registers[inst.dest] = -registers[inst.left];
+                break;
+            case OpCode::MODULO:
+                registers[inst.dest] = static_cast<double>(
+                    static_cast<long long>(registers[inst.left]) % 
+                    static_cast<long long>(registers[inst.right]));
+                break;
+
+            case OpCode::AND: 
+                registers[inst.dest] = static_cast<double>(
+                    static_cast<long long>(registers[inst.left]) & 
+                    static_cast<long long>(registers[inst.right]));   
+            break;
+
+            case OpCode::OR: 
+                registers[inst.dest] = static_cast<double>(
+                    static_cast<long long>(registers[inst.left]) | 
+                    static_cast<long long>(registers[inst.right]));   
+            break;
+            
+            case OpCode::XOR: 
+                registers[inst.dest] = static_cast<double>(
+                    static_cast<long long>(registers[inst.left]) ^ 
+                    static_cast<long long>(registers[inst.right]));   
+            break;
+
+            case OpCode::LSHIFT: 
+                registers[inst.dest] = static_cast<double>(
+                    static_cast<long long>(registers[inst.left]) << 
+                    static_cast<long long>(registers[inst.right]));   
+            break;
+
+            case OpCode::RSHIFT: 
+                registers[inst.dest] = static_cast<double>(
+                    static_cast<long long>(registers[inst.left]) >>
+                    static_cast<long long>(registers[inst.right]));   
+            break;
+
+            default: break;
+        }
+    }
+    return registers[finalIdx] == -0.0 ? 0.0 : registers[finalIdx];
+}
+
+void VirtualMachine::visualize() const {
+    std::cout << "\n[VM Bytecode Visualization]" << std::endl;
     std::cout << std::left << std::setw(6)  << "Addr" 
               << std::setw(12) << "OpCode" 
               << std::setw(6)  << "L" 
@@ -71,107 +170,5 @@ void Calculate::visualize() {
                 break;
         }
         std::cout << std::endl;
-    }
-    std::cout << std::string(45, '-') << std::endl;
-}
-
-double Calculate::execute(const SymbolTable& symTable) {
-    if(program.empty()) return 0.0;
-        
-    for(const auto& inst : program) {
-        switch(inst.op) {
-            case OpCode::LOAD_CONST : 
-                registers[inst.dest] = inst.value;
-            break;
-            case OpCode::LOAD_VAR : 
-                registers[inst.dest] = symTable.getValueByAddress(inst.left);
-            break;
-            case OpCode::ADD: 
-                registers[inst.dest] = registers[inst.left] + registers[inst.right];
-            break;
-            case OpCode::SUB: 
-                registers[inst.dest] = registers[inst.left] - registers[inst.right];
-            break;
-            case OpCode::DIV: {
-                if(registers[inst.right] == 0) {
-                    throw std::runtime_error("Division by zero.");
-                }
-                registers[inst.dest] = registers[inst.left] / registers[inst.right];
-            }
-            break;
-            case OpCode::MUL: 
-                registers[inst.dest] = registers[inst.left] * registers[inst.right];
-            break;
-            case OpCode::UNARY:
-                registers[inst.dest] = -registers[inst.left];
-            break;
-            case OpCode::AND: {
-                long long l_val = static_cast<long long>(registers[inst.left]);
-                long long r_val = static_cast<long long>(registers[inst.right]);
-                registers[inst.dest] = static_cast<double>(l_val & r_val);
-            }
-            break;
-            case OpCode::OR: {
-                long long l_val = static_cast<long long>(registers[inst.left]);
-                long long r_val = static_cast<long long>(registers[inst.right]);
-                registers[inst.dest] = static_cast<double>(l_val | r_val);
-            }
-            break;
-            case OpCode::XOR: {
-                long long l_val = static_cast<long long>(registers[inst.left]);
-                long long r_val = static_cast<long long>(registers[inst.right]);
-                registers[inst.dest] = static_cast<double>(l_val ^ r_val);
-            }
-            break;
-            case OpCode::MODULO: {
-                long long l_val = static_cast<long long>(registers[inst.left]);
-                long long r_val = static_cast<long long>(registers[inst.right]);
-                registers[inst.dest] = static_cast<double>(l_val % r_val);
-            }
-            break;
-            case OpCode::LSHIFT: {
-                long long l_val = static_cast<long long>(registers[inst.left]);
-                long long r_val = static_cast<long long>(registers[inst.right]);
-                registers[inst.dest] = static_cast<double>(l_val << r_val);
-            }
-            break;
-            case OpCode::RSHIFT: {
-                long long l_val = static_cast<long long>(registers[inst.left]);
-                long long r_val = static_cast<long long>(registers[inst.right]);
-                registers[inst.dest] = static_cast<double>(l_val >> r_val);
-            }
-            break;
-        }
-    }
-    return registers[finalIdx] == -0.0 ? 0.0 : registers[finalIdx];
-}
-
-void Calculate::compile(const std::string& expr, SymbolTable& symTable) {
-
-    std::cout<<"Compiling expression: "<<expr<<std::endl;
-    program.clear();
-
-    std::istringstream stream(expr);
-    Lexer lexer(stream);
-    Tokenizer tokenizer(lexer);
-    Parser parser(tokenizer, symTable);
-
-    auto root = parser.parse();
-    if(!root) {
-        std::cerr << "Compilation failed!" << std::endl;
-        return;
-    }
-
-    root = root -> fold();
-    CompileContext ctx;
-    int tempCounter = 0;
-    finalIdx = root -> transform(program, tempCounter, ctx);
-
-    registers.assign(tempCounter, 0.0);
-
-    if(debug_mode) {
-        root -> print();
-        std::cout<<"\nTransformed AST:"<<std::endl;
-        visualize();
     }
 }

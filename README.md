@@ -1,3 +1,5 @@
+**Please don't take this `README.md` too seriously - I'll update it once the project is finished.**
+
 # 🧮 Math Expression Compiler
 
 A high-performance C++ mathematical expression evaluator that follows a full compiler pipeline: from lexical analysis to Abstract Syntax Tree (AST) construction, and finally to bytecode execution via a Register-based Virtual Machine.

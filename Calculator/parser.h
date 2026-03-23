@@ -25,8 +25,10 @@ class Parser {
         int precedence(const std::string& op) const;
         void processOperatorStack(const std::string& currentOp);
         void createNodeFromOp();
+        std::shared_ptr<ASTNode> createBinaryNode(const std::string& op, std::shared_ptr<ASTNode> left, 
+                std::shared_ptr<ASTNode> right);
+        std::shared_ptr<ASTNode> createUnaryNode(const std::string& op, std::shared_ptr<ASTNode>child);
     public:
-        Parser(Tokenizer& tok, SymbolTable& st);
+        Parser(Tokenizer& tok, SymbolTable& st) : tokenizer(tok), symTable(st), state(ParserState::ExpectOperand) {}
         std::shared_ptr<ASTNode> parse();
-        
 };
