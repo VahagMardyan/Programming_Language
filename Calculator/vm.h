@@ -13,13 +13,15 @@
 
 class VirtualMachine {
     private:
-        std::vector<Instruction> program;
         std::vector<double> registers;
-        int finalIdx = 0;
+        std::vector<Instruction> current_program;
+        std::vector<double> current_consants;
         bool debug_mode;
-        void visualize() const;
+        void visualize(const std::vector<Instruction>& program) const;
     public:
-        VirtualMachine(bool dm = false) : debug_mode(dm) {}
-        void load(const std::string& expr, SymbolTable& symTable);
-        double run(const SymbolTable& symtable); 
+        VirtualMachine(bool dm = false) : debug_mode(dm) {
+            registers.resize(256, 0.0);
+        }
+        void load(const std::string& expr, SymbolTable& st);
+        double run(SymbolTable& st);
 };

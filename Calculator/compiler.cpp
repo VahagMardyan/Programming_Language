@@ -23,58 +23,119 @@ std::vector<std::shared_ptr<ASTNode>> Compiler::postOrderTraverse(std::shared_pt
     return postOrder;
 }
 
+std::shared_ptr<ASTNode> Compiler::optimize(std::shared_ptr<ASTNode> node) {
+    if(!node) {
+        return nullptr;
+    }
+    if(auto bin = std::dynamic_pointer_cast<BinaryOpNode>(node)) {
+        auto left = optimize(bin -> getLeft());
+        auto right = optimize(bin -> getRight());
+
+        auto leftNum = std::dynamic_pointer_cast<NumberNode>(left);
+        auto rightNum = std::dynamic_pointer_cast<NumberNode>(right);
+
+        if(leftNum && rightNum) {
+            double v1 = leftNum -> getValue();
+            double v2 = rightNum -> getValue();
+            double result = 0;
+            switch(bin -> getOpCode()) {
+                case OpCode::ADD: result = v1 + v2; break;
+                case OpCode::SUB: result = v1 - v2; break;
+                case OpCode::MUL: result = v1 * v2; break;
+                case OpCode::DIV: result = (v2 == 0) ? 0 : v1 / v2; break;
+                case OpCode::AND: 
+                    result = static_cast<double>(static_cast<long long>(v1) & static_cast<long long>(v2));
+                break;
+                case OpCode::OR: 
+                    result = static_cast<double>(static_cast<long long>(v1) | static_cast<long long>(v2));
+                break;
+                case OpCode::XOR: 
+                    result = static_cast<double>(static_cast<long long>(v1) ^ static_cast<long long>(v2));
+                break;
+                case OpCode::MODULO: 
+                    result = static_cast<double>(static_cast<long long>(v1) % static_cast<long long>(v2));
+                break;
+                case OpCode::LSHIFT: 
+                    result = static_cast<double>(static_cast<long long>(v1) << static_cast<long long>(v2));
+                break;
+                case OpCode::RSHIFT: 
+                    result = static_cast<double>(static_cast<long long>(v1) >> static_cast<long long>(v2));
+                break;
+                default: break;
+            }
+            return std::make_shared<NumberNode>(result);
+        }
+
+        if (auto leftBin = std::dynamic_pointer_cast<BinaryOpNode>(left)) {
+            auto leftRightNum = std::dynamic_pointer_cast<NumberNode>(leftBin->getRight());
+            if (leftRightNum && rightNum && bin->getOpCode() == OpCode::ADD && leftBin->getOpCode() == OpCode::ADD) {
+                double sum = leftRightNum->getValue() + rightNum->getValue();
+                return std::make_shared<BinaryOpNode>(bin->getOp(), leftBin->getLeft(), std::make_shared<NumberNode>(sum));
+            }
+        }
+        return std::make_shared<BinaryOpNode>(bin -> getOp(), left, right);
+    }
+    return node;
+}
+
+ByteCode Compiler::compile(std::shared_ptr<ASTNode> root) {
+    auto optimizedRoot = optimize(root);
+
+    auto postOrder = postOrderTraverse(optimizedRoot);
+    std::vector<Instruction> insts = generateByteCode(postOrder);
+    return {
+        insts, constantPool
+    };
+}
+
 std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::shared_ptr<ASTNode>>& nodes) {
     std::vector<Instruction> code;
     std::stack<int> storage;
     CompileContext ctx;
     nextTempIndex = 0;
-    for(const auto& node : nodes) {
+    constantPool.clear();
+    for(const auto& node: nodes) {
         if(auto num = std::dynamic_pointer_cast<NumberNode>(node)) {
             double val = num -> getValue();
             if(ctx.consts.find(val) == ctx.consts.end()) {
-                int target = nextTempIndex++;
+                int reg = nextTempIndex++;
+                int constIdx = (int)constantPool.size();
+                constantPool.push_back(val);
+                
                 code.push_back({
-                    OpCode::LOAD_CONST, -1, -1, target, val
+                    (uint32_t)OpCode::LOAD_CONST, (uint32_t)reg, (uint32_t)constIdx, 0
                 });
-                ctx.consts[val] = target;
+                ctx.consts[val] = reg;
             }
             storage.push(ctx.consts[val]);
         } else if(auto var = std::dynamic_pointer_cast<VariableNode>(node)) {
             size_t addr = var -> get_address();
             if(ctx.vars.find(addr) == ctx.vars.end()) {
-                int target = nextTempIndex++;
+                int reg = nextTempIndex++;
                 code.push_back({
-                    OpCode::LOAD_VAR, (int)addr, -1, target, 0
+                    (uint32_t)OpCode::LOAD_VAR, (uint32_t)reg, (uint32_t)addr, 0
                 });
-                ctx.vars[addr] = target;
+                ctx.vars[addr] = reg;
             }
             storage.push(ctx.vars[addr]);
         } else if(auto bin = std::dynamic_pointer_cast<BinaryOpNode>(node)) {
-            int r = storage.top();
-            storage.pop();
-            int l = storage.top();
-            storage.pop();
+            int r = storage.top(); storage.pop();
+            int l = storage.top(); storage.pop();
             int target = nextTempIndex++;
             code.push_back({
-                bin -> getOpCode(), l, r, target, 0
+                (uint32_t)bin -> getOpCode(), (uint32_t)target, (uint32_t)l, (uint32_t)r
             });
             storage.push(target);
         } else if(auto un = std::dynamic_pointer_cast<UnaryOpNode>(node)) {
-            int childIdx = storage.top();
-            storage.pop();
+            int childIdx = storage.top(); storage.pop();
             int target = nextTempIndex++;
             code.push_back({
-                OpCode::UNARY, childIdx, -1, target, 0
+                (uint32_t)OpCode::UNARY, (uint32_t)target, (uint32_t)childIdx, 0
             });
             storage.push(target);
         }
     }
     return code;
-}
-
-std::vector<Instruction> Compiler::compile(std::shared_ptr<ASTNode> root) {
-    auto postOrder = postOrderTraverse(root);
-    return generateByteCode(postOrder);
 }
 
 void Compiler::printByteCode(const std::vector<Instruction>& code) const {
@@ -84,7 +145,7 @@ void Compiler::printByteCode(const std::vector<Instruction>& code) const {
         std::cout << "Op: " << (int)inst.op 
                 << " | L: " << inst.left 
                 << " | R: " << inst.right 
-                << " | Dest: " << inst.dest 
-                << " | Val: " << inst.value << std::endl;
+                << " | Dest: " << inst.dst
+                << " | Val: " << constantPool[inst.left] << std::endl;
     }
 }

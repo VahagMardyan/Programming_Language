@@ -1,12 +1,13 @@
 #pragma once
 #include <iostream>
 #include <map>
+#include <cstdint>
 #include "symbol_table.h"
 
-enum class OpCode {
+enum class OpCode : uint8_t {
     ADD, SUB, MUL, DIV, AND, OR, XOR, MODULO, 
     LSHIFT, RSHIFT, UNARY, LOAD_CONST, LOAD_VAR,
-    UNDEFINED,
+    UNDEFINED
 };
 
 class ASTNode {
@@ -53,6 +54,15 @@ class BinaryOpNode : public ASTNode {
         op(o), left(std::move(l)), right(std::move(r)) {}
         void print(std::string prefix, bool isLast) const override;
         OpCode getOpCode() const;
+        
+        std::shared_ptr<ASTNode> getLeft() const {
+            return left;
+        }
+
+        std::shared_ptr<ASTNode> getRight() const {
+            return right;
+        }
+        
         std::string getOp() const {
             return op;
         }
