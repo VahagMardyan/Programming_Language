@@ -127,23 +127,23 @@ void VirtualMachine::visualize(const std::vector<Instruction>& program) const {
                 break;
             case OpCode::LOAD_VAR:
                 std::cout << "LOAD_VAR" << std::setw(6) << inst.left << std::setw(6) << "-"
-                          << std::setw(6) << inst.dst << "*(" << inst.dst << ")";
+                          << std::setw(6) << inst.dst << "(r" << inst.dst << ")";
                 break;
             case OpCode::ADD:
                 std::cout << "ADD" << std::setw(6) << inst.left << std::setw(6) << inst.right 
-                          << std::setw(6) << inst.dst << "*(" << inst.left << ") + (" << "*" << inst.right << ")";
+                          << std::setw(6) << inst.dst << "(r" << inst.left << ") + (" << "r" << inst.right << ")";
                 break;
             case OpCode::SUB:
                 std::cout << "SUB" << std::setw(6) << inst.left << std::setw(6) << inst.right 
-                          << std::setw(6) << inst.dst << "*(" << inst.left << ") - (" << "*" << inst.right << ")";
+                          << std::setw(6) << inst.dst << "(r" << inst.left << ") - (" << "r" << inst.right << ")";
                 break;
             case OpCode::MUL:
                 std::cout << "MUL" << std::setw(6) << inst.left << std::setw(6) << inst.right 
-                          << std::setw(6) << inst.dst << "*(" << inst.left << ") * (" << "*" << inst.right << ")";
+                          << std::setw(6) << inst.dst << "(r" << inst.left << ") * (" << "r" << inst.right << ")";
                 break;
             case OpCode::DIV:
                 std::cout << "DIV" << std::setw(6) << inst.left << std::setw(6) << inst.right 
-                          << std::setw(6) << inst.dst << "*(" << inst.left << ") / (" << "*" << inst.right << ")";
+                          << std::setw(6) << inst.dst << "(r" << inst.left << ") / (" << "r" << inst.right << ")";
                 break;
             case OpCode::UNARY:
                 std::cout << "NEG" << std::setw(6) << inst.left << std::setw(6) << "-" 
@@ -151,29 +151,29 @@ void VirtualMachine::visualize(const std::vector<Instruction>& program) const {
                 break;
             case OpCode::AND:
                 std::cout << std::setw(12) << "AND" << std::setw(6) << inst.left << std::setw(6)
-                        << inst.right << std::setw(6) << inst.dst << "*(" << inst.left << ") & (" << "*" << inst.right << ")";
+                        << inst.right << std::setw(6) << inst.dst << "r(" << inst.left << ") & (" << "r" << inst.right << ")";
                 break;
             case OpCode::OR:
                 std::cout << std::setw(12) << "OR" << std::setw(6) << inst.left << std::setw(6)
-                        << inst.right << std::setw(6) << inst.dst << "*(" << inst.left << ") | (" << "*" << inst.right << ")";
+                        << inst.right << std::setw(6) << inst.dst << "r(" << inst.left << ") | (" << "r" << inst.right << ")";
                 break;
             case OpCode::XOR:
                 std::cout << std::setw(12) << "XOR" << std::setw(6) << inst.left << std::setw(6)
-                        << inst.right << std::setw(6) << inst.dst << "*(" << inst.left << ") ^ (" << "*" << inst.right << ")";
+                        << inst.right << std::setw(6) << inst.dst << "r(" << inst.left << ") ^ (" << "r" << inst.right << ")";
                 break;
             case OpCode::MODULO:
                 std::cout << std::setw(12) << "MODULO" << std::setw(6) << inst.left << std::setw(6)
-                        << inst.right << std::setw(6) << inst.dst << "*(" << inst.left << ") % (" << "*" << inst.right << ")";
+                        << inst.right << std::setw(6) << inst.dst << "r(" << inst.left << ") % (" << "r" << inst.right << ")";
                 break;
             case OpCode::LSHIFT:
                 std::cout << std::setw(12) << "LSHIFT" << std::setw(6) << inst.left << std::setw(6)
-                        << inst.right << std::setw(6) << inst.dst << "*(" << inst.left << ") << (" << "*" << inst.right << ")";;
+                        << inst.right << std::setw(6) << inst.dst << "(r" << inst.left << ") << (" << "r" << inst.right << ")";;
                 break;
             case OpCode::RSHIFT:
                 std::cout << std::setw(12) << "RSHIFT" << std::setw(6) << inst.left << std::setw(6)
-                        << inst.right << std::setw(6) << inst.dst << "*(" << inst.left << ") >> (" << "*" << inst.right << ")";
+                        << inst.right << std::setw(6) << inst.dst << "(r" << inst.left << ") >> (" << "r" << inst.right << ")";
                 break;
-        }
-        std::cout << std::endl;
+            }
+        std::cout<<std::endl;
     }
 }
