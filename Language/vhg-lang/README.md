@@ -8,7 +8,7 @@ This setup allows VS Code to recognize `.vhg` files as a formal language, enabli
    `%USERPROFILE%\.vscode\extensions` (on Windows).
 3. Create a new folder named `vhg-lang`.
 
-* Or you can just simply copy and paste this folder into `%USERPROFILE%\.vscode\extensions` (without this instruction of course).
+* Or you can just simply copy and paste this folder into `%USERPROFILE%\.vscode\extensions` (without this README of course).
 ---
 
 ### Step 2: Create the Configuration Files
