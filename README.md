@@ -222,61 +222,61 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 ```
-##Program example **Use '.vhg' extension (But you can use any extension).**
-```txt
-    x = 10;
-    y = 3;
-    z = 0;
-    total = 0;
-    count = 5; $ $ Count for while loop
+## Program example. Use '.vhg' extension (Theoritically you can use any extension).
+```vhg
+x = 10;
+y = 3;
+z = 0;
+total = 0;
+count = 5; # # Count for while loop
 
-    $ $ Single line comment
+# # Single line comment
 
-    $* 
-        Multi
-        Line
-        Comment
-    *$
+#* 
+    Multi
+    Line
+    Comment
+*#
 
-    while(count > 0) {
-        total = total + count;
-        count = count - 1;
-    }
+while(count > 0) {
+    total = total + count;
+    count = count - 1;
+}
 
-    if(total > 20) {
-        z = 100;
+if(total > 20) {
+    z = 100;
+} else {
+    if(total > 10) {
+        z = 50;
     } else {
-        if(total > 10) {
-            z = 50;
-        } else {
-            z = 0;
-        }
+        z = 0;
     }
+}
 
-    x = x & 7;
-    y = y | 4;
-    z = z ^ 1;
-    x = x << 1;
-    y = y >> 1;
-    z = z % 3;
+x = x & 7;
+y = y | 4;
+z = z ^ 1;
+x = x << 1;
+y = y >> 1;
+z = z % 3;
 
-    total = total + -1;
+total = total + -1;
 
     if(x == 4) {
-        if(y > 2) {
-            total = total + 10;
-        } else {
-            total = total + 5;
-        }
+    if(y > 2) {
+        total = total + 10;
     } else {
-        if(x != 0) {
-            total = total * 2;
-        } else {
-            total = 0;
-        }
+        total = total + 5;
     }
+} else {
+    if(x != 0) {
+        total = total * 2;
+    } else {
+        total = 0;
+    }
+}
 
-    result = (x + y) * z - total % 4 + 1;
+result = (x + y) * z - total % 4 + 1;
 
-    print(x, y, z, total, result);
+print(x, y, z, total, result);
 ```

@@ -24,16 +24,19 @@ Token Tokenizer::getNextToken() {
             continue;
         }
 
-        if (current == '$') {
-            lexer.advance(); // Skip '$'
-            
+        if (current == '#') {
+            lexer.advance(); // Skip '#'
+
             if (!lexer.isEOF() && lexer.peek() == '*') {
                 lexer.advance(); // Skip '*'
+        
+                bool foundEnd = false;
                 while (!lexer.isEOF()) {
                     if (lexer.peek() == '*') {
-                        lexer.advance();
-                        if (!lexer.isEOF() && lexer.peek() == '$') {
-                            lexer.advance(); // Skip '$'
+                        lexer.advance(); // Skip '*'
+                        if (!lexer.isEOF() && lexer.peek() == '#') {
+                            lexer.advance(); // Skip '#'
+                            foundEnd = true;
                             break;
                         }
                     } else {

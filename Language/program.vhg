@@ -2,15 +2,15 @@ x = 10;
 y = 3;
 z = 0;
 total = 0;
-count = 5; $ $ Count for while loop
+count = 5; # # Count for while loop
 
-$ $ Single line comment
+# # Single line comment
 
-$* 
+#* 
     Multi
     Line
     Comment
-*$
+*#
 
 while(count > 0) {
     total = total + count;

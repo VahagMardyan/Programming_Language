@@ -1,0 +1,16 @@
+{
+    "name": "vhg-lang",
+    "version": "0.1.0",
+    "engines": {
+        "vscode": "^1.105.0"
+    },
+    "contributes": {
+        "languages": [
+            {
+                "id": "vhg",
+                "extensions": [".vhg"],
+                "configuration": "./language-configuration.json"
+            }
+        ]
+    }
+}
