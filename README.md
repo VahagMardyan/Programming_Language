@@ -199,7 +199,7 @@ cl /EHsc /O2 /W4 *.cpp /Fe:out.exe && out.exe ./file_name.txt
 
 int main(int argc, char* argv[]) {
     if(argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <filename>" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <filename.vhg>" << std::endl;
         return 1;
     }
     std::ifstream file(argv[1]);
@@ -222,7 +222,7 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 ```
-##Program example
+##Program example **Use '.vhg' extension (But you can use any extension).**
 ```txt
     x = 10;
     y = 3;
