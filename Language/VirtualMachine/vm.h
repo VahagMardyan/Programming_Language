@@ -5,11 +5,11 @@
 #include <iomanip>
 #include <sstream>
 #include <algorithm>
-#include "compiler.h"
-#include "symbol_table.h"
-#include "lexer.h"
-#include "tokenizer.h"
-#include "parser.h"
+#include "../Compiler/compiler.h"
+#include "../SymbolTable/symbol_table.h"
+#include "../Lexer/lexer.h"
+#include "../Tokenizer/tokenizer.h"
+#include "../Parser/parser.h"
 
 class VirtualMachine {
     private:

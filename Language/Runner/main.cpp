@@ -3,12 +3,12 @@
 #include <sstream>
 #include <string>
 #include <filesystem>
-#include "vm.h"
-#include "symbol_table.h"
+#include "../VirtualMachine/vm.h"
+#include "../SymbolTable/symbol_table.h"
 
 int main(int argc, char* argv[]) {
     if(argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <filename>" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <filename.vhg>" << std::endl;
         return 1;
     }
     std::string filename = argv[1];

@@ -162,18 +162,29 @@ g++ -O3 *.cpp -static -o out.exe && ./out.exe ./file_name.txt
 cl /EHsc /O2 /W4 *.cpp /Fe:out.exe && out.exe ./file_name.txt
 # Or you can create a function in PowerShell or bash
 ```shell
-    function run {
-	param([string] $inputFile)
-	cl /EHsc /O2 /W4 *.cpp /Fe:out.exe
-	if($?) {
-		if($inputFIle) {
-			./out.exe $inputFile	
-		} else {
-			./out.exe	
-		}
-	} else {
- 		Write-Host "Compilation failed!" -ForegroundColor Red
-	}
+    function run_vhg {
+    param([string]$inputFile)
+
+    Write-Host "Compiling VHG Language..." -ForegroundColor Cyan
+
+    $sourceFiles = Get-ChildItem -Recurse *.cpp | Select-Object -ExpandProperty FullName
+
+    cl /EHsc /O2 /W4 /std:c++20 $sourceFiles /I. /I./Compiler /I./AST /I./VirtualMachine /I./Lexer /I./Parser /I./SymbolTable /I./Tokenizer /I./Runner /Fe:out.exe
+
+    if($?) {
+        Write-Host "`nCompilation successful!`n" -ForegroundColor Green
+        if($inputFile) {
+            if(Test-Path $inputFile) {
+                ./out.exe $inputFile    
+            } else {
+                Write-Host "Error: Input file '$inputFile' not found!" -ForegroundColor Red
+            }
+        } else {
+            ./out.exe    
+        }
+    } else {
+        Write-Host "`nCompilation failed!" -ForegroundColor Red
+    }
 }
 ```
 ```

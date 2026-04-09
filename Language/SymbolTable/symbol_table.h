@@ -18,6 +18,6 @@ class SymbolTable {
         void setValueByAddress(size_t, double);
         double getValueByAddress(size_t) const;
         void setVariable(const std::string&, double);
-        double SymbolTable::getValue(const std::string& name) const;
+        double getValue(const std::string& name) const;
 };
 

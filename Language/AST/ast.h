@@ -2,7 +2,7 @@
 #include <iostream>
 #include <map>
 #include <cstdint>
-#include "symbol_table.h"
+#include "../SymbolTable/symbol_table.h"
 
 enum class OpCode : uint8_t {
     ADD, SUB, MUL, DIV, AND, OR, XOR, MODULO,

@@ -1,5 +1,5 @@
 #pragma once
-#include "lexer.h"
+#include "../Lexer/lexer.h"
 #include <unordered_map>
 
 enum class TokenType {

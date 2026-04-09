@@ -2,9 +2,9 @@
 #include <stack>
 #include <memory>
 #include <string>
-#include "tokenizer.h"
-#include "ast.h"
-#include "symbol_table.h"
+#include "../Tokenizer/tokenizer.h"
+#include "../AST/ast.h"
+#include "../SymbolTable/symbol_table.h"
 
 enum class ParserState { ExpectOperand, ExpectOperator, Done, Error };
 
