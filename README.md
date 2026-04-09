@@ -194,19 +194,28 @@ cl /EHsc /O2 /W4 *.cpp /Fe:out.exe && out.exe ./file_name.txt
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <filesystem>
 #include "vm.h"
 #include "symbol_table.h"
 
 int main(int argc, char* argv[]) {
     if(argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <filename.vhg>" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <filename>" << std::endl;
         return 1;
     }
-    std::ifstream file(argv[1]);
+    std::string filename = argv[1];
+    
+    if(filename.length() < 5 || filename.substr(filename.length() - 4) != ".vhg") {
+        std::cerr << "Error: Only '.vhg' files are supported!" << std::endl;
+        return 1;
+    }
+
+    std::ifstream file(filename);
     if(!file.is_open()) {
-        std::cerr << "Error: Cannot open file '" << argv[1] << "'" << std::endl;
+        std::cerr << "Error: Cannot open file '" << filename <<"'" << std::endl;
         return 1;
     }
+
     std::ostringstream ss;
     ss << file.rdbuf();
 
