@@ -15,6 +15,45 @@ bool Tokenizer::isOperator(const std::string& s) const {
 }
 
 Token Tokenizer::getNextToken() {
+
+    while (!lexer.isEOF()) {
+        char current = static_cast<char>(lexer.peek());
+
+        if (isspace(current)) {
+            lexer.advance();
+            continue;
+        }
+
+        if (current == '$') {
+            lexer.advance(); // Skip '$'
+            
+            if (!lexer.isEOF() && lexer.peek() == '*') {
+                lexer.advance(); // Skip '*'
+                while (!lexer.isEOF()) {
+                    if (lexer.peek() == '*') {
+                        lexer.advance();
+                        if (!lexer.isEOF() && lexer.peek() == '$') {
+                            lexer.advance(); // Skip '$'
+                            break;
+                        }
+                    } else {
+                        lexer.advance();
+                    }
+                }
+            } else {
+                while (!lexer.isEOF() && lexer.peek() != '\n') {
+                    lexer.advance();
+                }
+            }
+            continue;
+        }
+        break;
+    }
+
+    if(lexer.isEOF()) {
+        return {TokenType::EndOfExpr, ""};
+    }
+
     while(!lexer.isEOF() && isspace(lexer.peek())) {
         lexer.advance();
     }

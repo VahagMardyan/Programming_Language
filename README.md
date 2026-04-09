@@ -148,7 +148,7 @@ To compile and run the project, use the following commands depending on your com
 ### **Using g++ (Linux / MinGW)**
 
 ```bash
-g++ -O3 *.cpp -static -o out.exe && ./out.exe
+g++ -O3 *.cpp -static -o out.exe && ./out.exe ./file_name.txt
 ```
 #### **g++ Flag Definitions:**
 * `-O3` ➡️ Enables the highest level of optimization for speed. The compiler performs aggressive code              transformations to make the VM run as fast as possible. 
@@ -159,7 +159,23 @@ g++ -O3 *.cpp -static -o out.exe && ./out.exe
 ### **Using MSVC (Windows - Developer Command Prompt)**
 
 ```bash
-cl /EHsc /O2 /W4 *.cpp /Fe:out.exe && out.exe
+cl /EHsc /O2 /W4 *.cpp /Fe:out.exe && out.exe ./file_name.txt
+# Or you can create a function in PowerShell or bash
+```shell
+    function run {
+	param([string] $inputFile)
+	cl /EHsc /O2 /W4 *.cpp /Fe:out.exe
+	if($?) {
+		if($inputFIle) {
+			./out.exe $inputFile	
+		} else {
+			./out.exe	
+		}
+	} else {
+ 		Write-Host "Compilation failed!" -ForegroundColor Red
+	}
+}
+```
 ```
 
 #### **MSVC Flag Definitions:**
@@ -171,22 +187,96 @@ cl /EHsc /O2 /W4 *.cpp /Fe:out.exe && out.exe
 * `/Fe:out.exe` ➡️ Specifies the output executable file name.
 ---
 
-## 🛠️ Usage Example (main.cpp)
+## 🛠️ (main.cpp)
 
 ```cpp
-SymbolTable st;
-st.setVariable("x", 1.0);
-st.setVariable("y", 2.0);
-st.setVariable("z", 3.0);
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include "vm.h"
+#include "symbol_table.h"
 
-Calculate calc; // This won't call root -> print() and calc.visualize() methods
-// Calculate calc(true); // This will print parse's output (The AST) and visualize its transformation (calc.visualize());
+int main(int argc, char* argv[]) {
+    if(argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " <filename>" << std::endl;
+        return 1;
+    }
+    std::ifstream file(argv[1]);
+    if(!file.is_open()) {
+        std::cerr << "Error: Cannot open file '" << argv[1] << "'" << std::endl;
+        return 1;
+    }
+    std::ostringstream ss;
+    ss << file.rdbuf();
 
-std::string expr = "(x*x + y*y + z*z) * (-0.5 + x*y / 100)";
-
-calc.compile(expr, st);
-double result = calc.execute(st);
-std::cout<< "Result: " <<result<<std::endl;
-return 0;
+    SymbolTable st;
+    VirtualMachine vm(false);
+    try {
+        vm.load(ss.str(), st);
+        vm.run(st);
+    } catch(const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
+    }
+    return 0;
+}
 ```
+##Program example
+```txt
+    x = 10;
+    y = 3;
+    z = 0;
+    total = 0;
+    count = 5; $ $ Count for while loop
 
+    $ $ Single line comment
+
+    $* 
+        Multi
+        Line
+        Comment
+    *$
+
+    while(count > 0) {
+        total = total + count;
+        count = count - 1;
+    }
+
+    if(total > 20) {
+        z = 100;
+    } else {
+        if(total > 10) {
+            z = 50;
+        } else {
+            z = 0;
+        }
+    }
+
+    x = x & 7;
+    y = y | 4;
+    z = z ^ 1;
+    x = x << 1;
+    y = y >> 1;
+    z = z % 3;
+
+    total = total + -1;
+
+    if(x == 4) {
+        if(y > 2) {
+            total = total + 10;
+        } else {
+            total = total + 5;
+        }
+    } else {
+        if(x != 0) {
+            total = total * 2;
+        } else {
+            total = 0;
+        }
+    }
+
+    result = (x + y) * z - total % 4 + 1;
+
+    print(x, y, z, total, result);
+```

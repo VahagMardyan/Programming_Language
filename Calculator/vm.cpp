@@ -1,7 +1,7 @@
 #include "vm.h"
 
 void VirtualMachine::load(const std::string& expr, SymbolTable& symtable) {
-    std::cout << "Loading expression: " << expr << std::endl;
+    // std::cout << "Loading expression: " << expr << std::endl; // For Debugging
     std::istringstream stream(expr);
     Lexer lexer(stream);
     Tokenizer tokenizer(lexer);
