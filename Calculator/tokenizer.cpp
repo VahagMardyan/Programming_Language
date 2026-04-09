@@ -37,6 +37,30 @@ Token Tokenizer::getNextToken() {
             TokenType::CloseParen, ")"
         };
     }
+    if(current == '{') {
+        lexer.advance();
+        return {
+            TokenType::OpenBrace, "{"
+        };
+    }
+    if(current == '}') {
+        lexer.advance();
+        return {
+            TokenType::CloseBrace, "}"
+        };
+    }
+    if(current == ';') {
+        lexer.advance();
+        return {
+            TokenType::Semicolon, ";"
+        };
+    }
+    if(current == ',') {
+        lexer.advance();
+        return {
+            TokenType::Comma, ","
+        };
+    }
 
     if(isdigit(current) || current == '.') {
         std::string val;
@@ -59,6 +83,10 @@ Token Tokenizer::getNextToken() {
             name += (char)lexer.peek();
             lexer.advance();
         }
+        if (name == "if") return {TokenType::If, name};
+        if (name == "else") return {TokenType::Else, name};
+        if (name == "while") return {TokenType::While, name};
+        if (name == "print") return {TokenType::Print, name};
         return {
             TokenType::Name, name
         };
@@ -70,10 +98,25 @@ Token Tokenizer::getNextToken() {
 
     if(!lexer.isEOF()) {
         char next = static_cast<char>(lexer.peek());
-        if( (current == '<' && next == '<') || (current == '>' && next == '>')) {
-            op += next;
+        if((current == '=' && next == '=') || // ==
+           (current == '!' && next == '=') || // !=
+           (current == '<' && next == '=') || // <=
+           (current == '>' && next == '=') || // >=
+           (current == '<' && next == '<') || // <<
+           (current == '>' && next == '>')) { // >>
+            op+=next;
             lexer.advance();
         }
+    }
+
+    if(op == "=") {
+        return {TokenType::Assign, op};
+    }
+
+    if(op == "==" || op == "!=" || op == ">" || op == "<" || op == ">=" || op == "<=") {
+        return {
+            TokenType::CompareOp, op
+        };
     }
 
     if(isOperator(op)) {

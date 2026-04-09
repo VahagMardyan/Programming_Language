@@ -28,3 +28,11 @@ void SymbolTable::setVariable(const std::string& name, double value) {
     size_t addr = getAddress(name);
     memory[addr] = value;
 }
+
+double SymbolTable::getValue(const std::string& name) const {
+    auto it = nameToIndex.find(name);
+    if(it != nameToIndex.end()) {
+        return memory[it -> second];
+    }
+    throw std::runtime_error("Variable not found: " + name);
+}

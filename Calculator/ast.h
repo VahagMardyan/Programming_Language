@@ -5,88 +5,119 @@
 #include "symbol_table.h"
 
 enum class OpCode : uint8_t {
-    ADD, SUB, MUL, DIV, AND, OR, XOR, MODULO, 
+    ADD, SUB, MUL, DIV, AND, OR, XOR, MODULO,
     LSHIFT, RSHIFT, UNARY, LOAD_CONST, LOAD_VAR,
-    UNDEFINED
+    UNDEFINED,
+    CMP_GT, CMP_LT, CMP_GET, CMP_LET, CMP_EQ, CMP_NEQ,
+    JMP, JZ, JNZ,
+    STORE_VAR,
+    PRINT,
 };
 
 class ASTNode {
-    public:
-        virtual ~ASTNode() = default;        
-        virtual void print(std::string prefix = "", bool isLast = true) const = 0;
-        virtual std::vector<std::shared_ptr<ASTNode>> getChildren() const = 0;
+public:
+    virtual ~ASTNode() = default;
+    virtual void print(std::string prefix = "", bool isLast = true) const = 0;
+    virtual std::vector<std::shared_ptr<ASTNode>> getChildren() const = 0;
 };
 
 class NumberNode : public ASTNode {
-    private:
-        double value;
-    public:
-        NumberNode(double val) : value(val) {}
-        double getValue() const {
-            return value;
-        };
-        void print(std::string prefix, bool isLast) const override;
-        virtual std::vector<std::shared_ptr<ASTNode>> getChildren() const override {
-            return {};
-        }
+    double value;
+public:
+    NumberNode(double val) : value(val) {}
+    double getValue() const { return value; }
+    void print(std::string prefix, bool isLast) const override;
+    std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 
 class VariableNode : public ASTNode {
-    private:
-        size_t address;
-    public:
-        VariableNode(size_t addr) : address(addr){}
-        void print(std::string prefix, bool isLast) const override;
-        size_t get_address() const {
-            return address;
-        }
-        std::vector<std::shared_ptr<ASTNode>> getChildren() const override {
-            return {};
-        }
+    size_t address;
+public:
+    VariableNode(size_t addr) : address(addr) {}
+    void print(std::string prefix, bool isLast) const override;
+    size_t get_address() const { return address; }
+    std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 
 class BinaryOpNode : public ASTNode {
-    private:
-        std::string op;
-        std::shared_ptr<ASTNode> left, right;
-    public:
-        BinaryOpNode(const std::string& o, std::shared_ptr<ASTNode> l, std::shared_ptr<ASTNode> r) :
-        op(o), left(std::move(l)), right(std::move(r)) {}
-        void print(std::string prefix, bool isLast) const override;
-        OpCode getOpCode() const;
-        
-        std::shared_ptr<ASTNode> getLeft() const {
-            return left;
-        }
-
-        std::shared_ptr<ASTNode> getRight() const {
-            return right;
-        }
-        
-        std::string getOp() const {
-            return op;
-        }
-        std::vector<std::shared_ptr<ASTNode>> getChildren() const override {
-            return {left, right};
-        }
+    std::string op;
+    std::shared_ptr<ASTNode> left, right;
+public:
+    BinaryOpNode(const std::string& o, std::shared_ptr<ASTNode> l, std::shared_ptr<ASTNode> r)
+        : op(o), left(std::move(l)), right(std::move(r)) {}
+    void print(std::string prefix, bool isLast) const override;
+    OpCode getOpCode() const;
+    std::shared_ptr<ASTNode> getLeft() const { return left; }
+    std::shared_ptr<ASTNode> getRight() const { return right; }
+    std::string getOp() const { return op; }
+    std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {left, right}; }
 };
 
 class UnaryOpNode : public ASTNode {
-    private:
-        std::string op; // '-' -> minus, '#' -> plus
-        std::shared_ptr<ASTNode> child;
-    public:
-        UnaryOpNode(const std::string& o, std::shared_ptr<ASTNode> c) : op(o), child(std::move(c)) {}
-        UnaryOpNode(std::shared_ptr<ASTNode> c) : op("_"), child(std::move(c)) {}
-
-        void print(std::string prefix, bool isLast) const override;
-
-        std::string getOp() const {
-            return op;
-        }
-        
-        std::vector<std::shared_ptr<ASTNode>> getChildren() const override {
-            return {child};
-        }
+    std::string op;
+    std::shared_ptr<ASTNode> child;
+public:
+    UnaryOpNode(const std::string& o, std::shared_ptr<ASTNode> c) : op(o), child(std::move(c)) {}
+    void print(std::string prefix, bool isLast) const override;
+    std::string getOp() const { return op; }
+    std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {child}; }
 };
 
+class StatementNode : public ASTNode {
+public:
+    virtual ~StatementNode() = default;
+    virtual void print(std::string prefix, bool isLast) const = 0;
+    std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
+};
+
+class BlockCode : public StatementNode {
+    std::vector<std::shared_ptr<StatementNode>> statements;
+public:
+    void addStatement(std::shared_ptr<StatementNode> stmt) { statements.push_back(stmt); }
+    void print(std::string prefix, bool isLast) const override;
+    std::vector<std::shared_ptr<StatementNode>> getStatements() const { return statements; }
+};
+
+class AssignmentNode : public StatementNode {
+    size_t address;
+    std::shared_ptr<ASTNode> expression;
+public:
+    AssignmentNode(size_t addr, std::shared_ptr<ASTNode> expr)
+        : address(addr), expression(std::move(expr)) {}
+    void print(std::string prefix, bool isLast) const override;
+    std::shared_ptr<ASTNode> getExpression() const { return expression; }
+    size_t getAddress() const { return address; }
+};
+
+class IfStatementNode : public StatementNode {
+    std::shared_ptr<ASTNode> condition;
+    std::shared_ptr<StatementNode> thenBranch, elseBranch;
+public:
+    IfStatementNode(std::shared_ptr<ASTNode> cond,
+                    std::shared_ptr<StatementNode> thenBr,
+                    std::shared_ptr<StatementNode> elseBr = nullptr)
+        : condition(cond), thenBranch(thenBr), elseBranch(elseBr) {}
+    void print(std::string prefix, bool isLast) const override;
+    std::shared_ptr<ASTNode> getCondition() const { return condition; }
+    std::shared_ptr<StatementNode> getThenBr() const { return thenBranch; }
+    std::shared_ptr<StatementNode> getElseBr() const { return elseBranch; }
+};
+
+class WhileStatementNode : public StatementNode {
+    std::shared_ptr<ASTNode> condition;
+    std::shared_ptr<StatementNode> body;
+public:
+    WhileStatementNode(std::shared_ptr<ASTNode> cond, std::shared_ptr<StatementNode> b)
+        : condition(std::move(cond)), body(std::move(b)) {}
+    void print(std::string prefix, bool isLast) const override;
+    std::shared_ptr<ASTNode> getCondition() const { return condition; }
+    std::shared_ptr<StatementNode> getBody() const { return body; }
+};
+
+class PrintNode : public StatementNode {
+    std::vector<std::shared_ptr<ASTNode>> expressions;
+public:
+    PrintNode(std::vector<std::shared_ptr<ASTNode>> exprs) : expressions(std::move(exprs)) {}
+    const std::vector<std::shared_ptr<ASTNode>>& getExpressions() const { return expressions; }
+    void print(std::string prefix, bool isLast) const override;
+};

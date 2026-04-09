@@ -3,7 +3,14 @@
 #include <unordered_map>
 
 enum class TokenType {
-    Number, Name, Operator, OpenParen, CloseParen, EndOfExpr, Error
+    Number, Name, Operator, OpenParen, CloseParen, EndOfExpr, Error,
+    If, Else, While,
+    OpenBrace, CloseBrace, // {, }
+    Semicolon, // ;
+    CompareOp, // == != > < >= <=
+    Assign, // =
+    Comma, // ,
+    Print,
 };
 
 struct Token {
