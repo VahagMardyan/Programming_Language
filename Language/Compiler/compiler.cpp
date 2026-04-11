@@ -127,7 +127,8 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
         } else if(auto un = std::dynamic_pointer_cast<UnaryOpNode>(node)) {
             int childIdx = storage.top(); storage.pop();
             int target = nextTempIndex++;
-            code.push_back({(uint32_t)OpCode::UNARY, (uint32_t)target, (uint32_t)childIdx, 0});
+            OpCode opcode = (un -> getOp() == "not") ? OpCode::LOGICAL_NOT : OpCode::UNARY;
+            code.push_back({(uint32_t)opcode, (uint32_t)target, (uint32_t)childIdx, 0});
             storage.push(target);
         } else if(auto strNode = std::dynamic_pointer_cast<StringNode>(node)) {
             int strIdx = (int)stringPool.size();

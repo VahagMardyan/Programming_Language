@@ -66,13 +66,22 @@
 # }
 
 x = "vahag";
-if(x) {
+print(x, "\n");
+x = 0;
+if(not x) {
     x = 18;
     print("x=", x, "\n");
 } else {
-    print("Nothing to print.")
+    print("Nothing to print.", "\n");
 }
 
 for(i = 0; i<10; i = i+1) {
     print(i, ": Hello World!\n");
 }
+
+testVar = 20;
+while(testVar <= 25) {
+    testVar = testVar + 1;
+    print("testVar: ",testVar,", ")
+}
+

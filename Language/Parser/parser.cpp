@@ -165,7 +165,7 @@ std::shared_ptr<StatementNode> Parser::parsePrint() {
         if(currentToken.type == TokenType::Comma) {
             nextToken();
             if(currentToken.value != ")") {
-                args.push_back(std::make_shared<StringNode>()); // add default separator if you want
+                args.push_back(std::make_shared<StringNode>()); // Default separator is
             }
         }
     }
