@@ -13,7 +13,8 @@
 
 class VirtualMachine {
     private:
-        std::vector<double> registers;
+        std::vector<Value> registers;
+        std::vector<std::string> current_strings;
         std::vector<Instruction> current_program;
         std::vector<double> current_consants;
         bool debug_mode;

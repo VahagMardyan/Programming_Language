@@ -33,6 +33,8 @@ std::shared_ptr<ASTNode> Compiler::optimize(std::shared_ptr<ASTNode> node) {
                 case OpCode::MODULO: result = (double)((long long)v1 % (long long)v2); break;
                 case OpCode::LSHIFT: result = (double)((long long)v1 << (long long)v2); break;
                 case OpCode::RSHIFT: result = (double)((long long)v1 >> (long long)v2); break;
+                case OpCode::LOGICAL_AND: result = (v1 != 0 && v2 != 0) ? 1.0 : 0.0; break;
+                case OpCode::LOGICAL_OR: result = (v1 != 0 || v2 != 0) ? 1.0 : 0.0; break;
                 default: break;
             }
             return std::make_shared<NumberNode>(result);
@@ -70,6 +72,16 @@ std::shared_ptr<ASTNode> Compiler::optimize(std::shared_ptr<ASTNode> node) {
         for(const auto& e : printStmt->getExpressions()) exprs.push_back(optimize(e));
         return std::make_shared<PrintNode>(std::move(exprs));
     }
+    if(auto forStmt = std::dynamic_pointer_cast<ForStatementNode>(node)) {
+        auto init = std::dynamic_pointer_cast<StatementNode>(optimize(forStmt -> getInit()));
+        auto cond = optimize(forStmt -> getCondition());
+        auto update = std::dynamic_pointer_cast<StatementNode>(optimize(forStmt -> getUpdate()));
+        auto body = std::dynamic_pointer_cast<StatementNode>(optimize(forStmt -> getBody()));
+        return std::make_shared<ForStatementNode>(init, cond, update, body);
+    }
+    if(auto strNode = std::dynamic_pointer_cast<StringNode>(node)) {
+        return strNode;
+    }
     return node;
 }
 
@@ -82,7 +94,7 @@ ByteCode Compiler::compile(std::shared_ptr<ASTNode> root) {
     auto stmt = std::dynamic_pointer_cast<StatementNode>(optimizedRoot);
     if(stmt) compileStatement(stmt, insts);
     else { auto po = postOrderTraverse(optimizedRoot); insts = generateByteCode(po); }
-    return {insts, constantPool};
+    return {insts ,constantPool, stringPool};
 }
 
 std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::shared_ptr<ASTNode>>& nodes) {
@@ -117,6 +129,14 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
             int target = nextTempIndex++;
             code.push_back({(uint32_t)OpCode::UNARY, (uint32_t)target, (uint32_t)childIdx, 0});
             storage.push(target);
+        } else if(auto strNode = std::dynamic_pointer_cast<StringNode>(node)) {
+            int strIdx = (int)stringPool.size();
+            stringPool.push_back(strNode -> getValue());
+            int reg = nextTempIndex++;
+            code.push_back({
+                (uint32_t)OpCode::LOAD_STR, (uint32_t)reg, (uint32_t)strIdx, 0
+            });
+            storage.push(reg);
         }
     }
     return code;
@@ -158,12 +178,45 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         for(auto& s : block->getStatements()) compileStatement(s, code);
     } else if(auto printStmt = std::dynamic_pointer_cast<PrintNode>(stmt)) {
         for(const auto& expr : printStmt->getExpressions()) {
-            globalCtx.consts.clear(); globalCtx.vars.clear();
-            auto exprCode = generateByteCode(postOrderTraverse(expr));
-            code.insert(code.end(), exprCode.begin(), exprCode.end());
-            int lastReg = exprCode.empty() ? 0 : exprCode.back().dst;
-            code.push_back({(uint32_t)OpCode::PRINT, (uint32_t)lastReg, 0, 0});
+            // String Literal
+            if(auto strNode = std::dynamic_pointer_cast<StringNode>(expr)) {
+                int strIdx = (int)stringPool.size();
+                stringPool.push_back(strNode -> getValue());
+                code.push_back({(uint32_t)OpCode::PRINT_STR, (uint32_t)strIdx, 0, 0});
+            } else {
+                // Number / expression
+                globalCtx.consts.clear(); globalCtx.vars.clear();
+                auto exprCode = generateByteCode(postOrderTraverse(expr));
+                code.insert(code.end(), exprCode.begin(), exprCode.end());
+                int lastReg = exprCode.empty() ? 0 : exprCode.back().dst;
+                code.push_back({(uint32_t)OpCode::PRINT, (uint32_t)lastReg, 0, 0});
+            }
         }
+    } else if(auto forStmt = std::dynamic_pointer_cast<ForStatementNode>(stmt)) {
+        // init
+        compileStatement(forStmt -> getInit(), code);
+
+        // loop start
+        size_t startAddr = code.size();
+        globalCtx.consts.clear();
+        globalCtx.vars.clear();
+
+        // condition
+        auto condCode = generateByteCode(postOrderTraverse(forStmt -> getCondition()));
+        code.insert(code.end(), condCode.begin(), condCode.end());
+        int condReg = condCode.empty() ? 0 : condCode.back().dst;
+
+        size_t jzIdx = code.size();
+        code.push_back({(uint32_t)OpCode::JZ, (uint32_t)condReg, 0, 0});
+
+        // body
+        compileStatement(forStmt -> getBody(), code);
+
+        // update
+        compileStatement(forStmt -> getUpdate(), code);
+
+        code.push_back({(uint32_t)OpCode::JMP, 0, (uint32_t)startAddr, 0});
+        code[jzIdx].left = (uint32_t)code.size();
     }
 }
 

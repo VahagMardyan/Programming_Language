@@ -21,12 +21,14 @@ struct CompileContext {
 struct ByteCode {
     std::vector<Instruction> instructions;
     std::vector<double> constants;
+    std::vector<std::string> strings;
 };
 
 class Compiler {
     int nextTempIndex = 0;
     CompileContext globalCtx;
     std::vector<double> constantPool;
+    std::vector<std::string> stringPool;
     std::vector<std::shared_ptr<ASTNode>> postOrderTraverse(std::shared_ptr<ASTNode> root);
     std::vector<Instruction> generateByteCode(const std::vector<std::shared_ptr<ASTNode>>& nodes);
 public:
@@ -34,4 +36,7 @@ public:
     void printByteCode(const std::vector<Instruction>& code) const;
     std::shared_ptr<ASTNode> optimize(std::shared_ptr<ASTNode> node);
     void compileStatement(std::shared_ptr<StatementNode> stmt, std::vector<Instruction>& code);
+    const std::vector<std::string>& getStringPool() const {
+        return stringPool;
+    }
 };

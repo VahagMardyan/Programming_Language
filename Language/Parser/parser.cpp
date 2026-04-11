@@ -17,6 +17,12 @@ std::shared_ptr<ASTNode> Parser::createBinaryNode(const std::string& op,
         if(op == "<<") return std::make_shared<NumberNode>((double)(li << ri));
         if(op == ">>") return std::make_shared<NumberNode>((double)(li >> ri));
         if(op == "%")  return std::make_shared<NumberNode>((double)(li % ri));
+        if(op == "and") {
+            return std::make_shared<NumberNode>((l != 0 && r != 0) ? 1.0 : 0.0);
+        }
+        if(op == "or") {
+            return std::make_shared<NumberNode>((l != 0 || r != 0) ? 1.0 : 0.0);
+        }
     }
     return std::make_shared<BinaryOpNode>(op, left, right);
 }
@@ -28,24 +34,30 @@ std::shared_ptr<ASTNode> Parser::createUnaryNode(const std::string& op,
         if(op == "-" || op == "_") return std::make_shared<NumberNode>(-num->getValue());
         if(op == "+" || op == "#") return num;
     }
+    if(op == "not") {
+        if(num) return std::make_shared<NumberNode>(num -> getValue() == 0 ? 1.0 : 0.0);
+        return std::make_shared<UnaryOpNode>("not", child);
+    }
     return std::make_shared<UnaryOpNode>(op, child);
 }
 
 int Parser::precedence(const std::string& op) const {
-    if(op == "==" || op == "!=" || op == ">" || op == "<" || op == ">=" || op == "<=") return 0;
-    if(op == "|" || op == "^") return 1;
-    if(op == "&") return 2;
-    if(op == "<<" || op == ">>") return 3;
-    if(op == "+" || op == "-") return 4;
-    if(op == "*" || op == "/" || op == "%") return 5;
-    if(op == "_" || op == "#") return 6;
+    if(op == "or") return 0;
+    if(op == "and") return 1;
+    if(op == "==" || op == "!=" || op == ">" || op == "<" || op == ">=" || op == "<=") return 2;
+    if(op == "|" || op == "^") return 3;
+    if(op == "&") return 4;
+    if(op == "<<" || op == ">>") return 5;
+    if(op == "+" || op == "-") return 6;
+    if(op == "*" || op == "/" || op == "%") return 7;
+    if(op == "not" || op == "_" || op == "#") return 8;
     return -1;
 }
 
 void Parser::createNodeFromOp() {
     if(ops.empty()) return;
     std::string op = ops.top(); ops.pop();
-    if(op == "_" || op == "#") {
+    if(op == "_" || op == "#" || op == "not") {
         if(nodes.empty()) { state = ParserState::Error; return; }
         auto operand = nodes.top(); nodes.pop();
         nodes.push(createUnaryNode(op, operand));
@@ -81,6 +93,7 @@ std::shared_ptr<StatementNode> Parser::parseStatement() {
         case TokenType::OpenBrace: return parseBlock();
         case TokenType::Print:     return parsePrint();
         case TokenType::Name:      return parseAssignment();
+        case TokenType::For:       return parseFor();
         default:
             parseExpression();
             if(currentToken.type == TokenType::Semicolon) nextToken();
@@ -143,8 +156,18 @@ std::shared_ptr<StatementNode> Parser::parsePrint() {
     nextToken();
     std::vector<std::shared_ptr<ASTNode>> args;
     while(currentToken.value != ")" && currentToken.type != TokenType::EndOfExpr) {
-        args.push_back(parseExpression());
-        if(currentToken.type == TokenType::Comma) nextToken();
+        if(currentToken.type == TokenType::StringLiteral) {
+            args.push_back(std::make_shared<StringNode>(currentToken.value));
+            nextToken(); 
+        } else {
+            args.push_back(parseExpression());
+        }
+        if(currentToken.type == TokenType::Comma) {
+            nextToken();
+            if(currentToken.value != ")") {
+                args.push_back(std::make_shared<StringNode>()); // add default separator if you want
+            }
+        }
     }
     if(currentToken.value != ")") { state = ParserState::Error; return nullptr; }
     nextToken();
@@ -175,11 +198,16 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                 } else if(token.type == TokenType::Name) {
                     nodes.push(std::make_shared<VariableNode>(symTable.getAddress(token.value)));
                     state = ParserState::ExpectOperator; nextToken();
+                } else if(token.type == TokenType::StringLiteral) {
+                    nodes.push(std::make_shared<StringNode>(token.value));
+                    nextToken();
                 } else if(token.type == TokenType::OpenParen) {
                     ops.push("("); nextToken();
                 } else if(token.type == TokenType::Operator &&
                           (token.value == "-" || token.value == "+")) {
                     ops.push(token.value == "-" ? "_" : "#"); nextToken();
+                } else if(token.type == TokenType::Not) {
+                    ops.push("not"); nextToken();
                 } else {
                     state = ParserState::Error;
                 }
@@ -187,7 +215,8 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
 
             case ParserState::ExpectOperator:
                 if(token.type == TokenType::Operator ||
-                   token.type == TokenType::CompareOp) {
+                   token.type == TokenType::CompareOp || 
+                   token.value == "and" || token.value == "or") {
                     processOperatorStack(token.value);
                     ops.push(token.value);
                     state = ParserState::ExpectOperand; nextToken();
@@ -220,4 +249,36 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
     }
     while(!ops.empty()) createNodeFromOp();
     return nodes.empty() ? nullptr : nodes.top();
+}
+
+std::shared_ptr<StatementNode> Parser::parseFor() {
+    nextToken(); // skip 'for'
+    if(currentToken.value != "(") {
+        state = ParserState::Error;
+        return nullptr;
+    }
+    nextToken(); // skip '('
+    // init: i = start
+    auto init = parseAssignment();
+    // condition
+    auto cond = parseExpression();
+    if(currentToken.type == TokenType::Semicolon) nextToken(); // skip ';'
+    // update
+    std::string name = currentToken.value;
+    size_t addr = symTable.getAddress(name);
+    nextToken(); // skip variable name
+    if(currentToken.type != TokenType::Assign) {
+        state = ParserState::Error;
+        return nullptr;
+    }
+    nextToken(); // skip '='
+    auto updateExpr = parseExpression();
+    auto update = std::make_shared<AssignmentNode>(addr, updateExpr);
+    if(currentToken.value != ")") {
+        state = ParserState::Error;
+        return nullptr;
+    }
+    nextToken(); // skip ')'
+    auto body = parseStatement();
+    return std::make_shared<ForStatementNode>(init, cond, update, body);
 }

@@ -93,28 +93,52 @@ Now, tell VS Code to use this new "vhg" language for your files.
 ### Step 4: Custom Syntax Highlighting (Colors)
 To apply colors to your language, add the following block to your `settings.json` under the `highlight.regexes` section. This ensures keywords, numbers, and comments are colored specifically for the `vhg` language:
 ```json
-"highlight.regexes": {
-    // Multi-line and Single-line Comments (Green)
-    "(#\\*(?:.|\\n|\\r)*?\\*#)|(#[^*\\n].*)": {
+    "highlight.regexes": {
+        // 1. Strings 
+        "\"[^\"]*\"" : {
+            "filterFileRegex": ".*\\.vhg$",
+            "decorations": [{
+                "color": "rgb(206, 119, 76)"
+            }]
+        },
+        // 2. Multi-line and Single-line comments
+        "(#[*](?:.|\\n|\\r)*?[*][#])": {
+            "filterFileRegex": ".*\\.vhg$",
+            "decorations": [
+                {
+                    "color": "#6A9955", "fontStyle": "italic"
+                }
+            ]
+        },
+        "(#[^*\\n].*)": {
+            "filterFileRegex": ".*\\.vhg$",
+            "decorations": [{ "color": "#6A9955", "fontStyle": "italic" }]
+        },
+        // 3. Keywords (if, else, for, while, print)
+        "(?<![\"\\w])\\b(if|else|while|print|for)\\b(?![\"\\w])": {
+            "filterFileRegex": ".*\\.vhg$",
+            "decorations": [{ "color": "#C586C0" }]
+        },
+        // 4. logical operators (and, or, not)
+        "(?<![\"\\w])\\b(and|or|not)\\b(?![\"\\w])": {
         "filterFileRegex": ".*\\.vhg$",
-        "decorations": [{ "color": "#6A9955", "fontStyle": "italic" }]
+        "decorations": [{"color": "#0b4da3"}]
     },
-    // Logic Keywords (Purple)
-    "(?<!#.*)\\b(if|else|while|print)\\b": {
+    // 5. Variables
+    "\\b(?!(?:if|else|while|print|for|and|or|not)\\b)[a-zA-Z_][a-zA-Z0-9_]*\\b": {
         "filterFileRegex": ".*\\.vhg$",
-        "decorations": [{ "color": "#C586C0", "fontWeight": "bold" }]
+        "decorations": [{ "color": "#9CDCFE" }] 
     },
-    // Numbers (Light Green)
-    "\\b(\\d+(\\.\\d+)?)\\b": {
-        "filterFileRegex": ".*\\.vhg$",
-        "decorations": [{ "color": "#B5CEA8" }]
-    },
-    // Symbols/Brackets (Grey)
+    // 6. Symbols and numbers
     "[\\(\\)\\{\\};]": {
         "filterFileRegex": ".*\\.vhg$",
         "decorations": [{ "color": "#D4D4D4" }] 
+    },
+    "\\b(\\d+(\\.\\d+)?)\\b": {
+        "filterFileRegex": ".*\\.vhg$",
+        "decorations": [{ "color": "#B5CEA8" }]
     }
-}
+    },
 ```
 
 ### Step 5: Finalize

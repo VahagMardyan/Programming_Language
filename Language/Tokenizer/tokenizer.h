@@ -4,13 +4,17 @@
 
 enum class TokenType {
     Number, Name, Operator, OpenParen, CloseParen, EndOfExpr, Error,
-    If, Else, While,
+    If, Else, While, For,
     OpenBrace, CloseBrace, // {, }
     Semicolon, // ;
     CompareOp, // == != > < >= <=
     Assign, // =
     Comma, // ,
-    Print,
+    Print, // print function
+    StringLiteral, // string
+    And, // &&
+    Or, // ||
+    Not, // !
 };
 
 struct Token {

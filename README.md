@@ -299,4 +299,16 @@ total = total + -1;
 result = (x + y) * z - total % 4 + 1;
 
 print(x, y, z, total, result);
+
+x = "vahag";
+if(x) {
+    x = 18;
+    print("x=", x, "\n");
+} else {
+    print("Nothing to print.")
+}
+
+for(i = 0; i<10; i = i+1) {
+    print(i, ": Hello World!\n");
+}
 ```

@@ -6,12 +6,13 @@
 
 enum class OpCode : uint8_t {
     ADD, SUB, MUL, DIV, AND, OR, XOR, MODULO,
-    LSHIFT, RSHIFT, UNARY, LOAD_CONST, LOAD_VAR,
+    LSHIFT, RSHIFT, UNARY, LOAD_CONST, LOAD_VAR, LOAD_STR,
     UNDEFINED,
     CMP_GT, CMP_LT, CMP_GET, CMP_LET, CMP_EQ, CMP_NEQ,
     JMP, JZ, JNZ,
     STORE_VAR,
-    PRINT,
+    PRINT, PRINT_STR,
+    LOGICAL_AND, LOGICAL_OR, LOGICAL_NOT,
 };
 
 class ASTNode {
@@ -121,3 +122,37 @@ public:
     const std::vector<std::shared_ptr<ASTNode>>& getExpressions() const { return expressions; }
     void print(std::string prefix, bool isLast) const override;
 };
+
+class ForStatementNode : public StatementNode {
+    private:
+        std::shared_ptr<StatementNode> init; // i = start
+        std::shared_ptr<ASTNode> condition; // i < 10
+        std::shared_ptr<StatementNode> update; // i = i+1
+        std::shared_ptr<StatementNode> body; // i = i+1
+    public:
+        ForStatementNode(std::shared_ptr<StatementNode> in, 
+                         std::shared_ptr<ASTNode> cond, 
+                         std::shared_ptr<StatementNode> updt,
+                         std::shared_ptr<StatementNode> bdy)
+        : init(std::move(in)), condition(std::move(cond)), update(std::move(updt)), body(std::move(bdy)) {}
+        void print(std::string prefix, bool isLast) const override;
+        std::shared_ptr<StatementNode> getInit()      const { return init; }
+    std::shared_ptr<ASTNode>       getCondition() const { return condition; }
+    std::shared_ptr<StatementNode> getUpdate()    const { return update; }
+    std::shared_ptr<StatementNode> getBody()      const { return body; }
+};
+
+class StringNode : public ASTNode {
+    private:
+        std::string value;
+    public:
+        StringNode(const std::string& val = "") : value(val) {}
+        const std::string getValue() const {
+            return value;
+        }
+        void print(std::string prefix, bool isLast) const override {
+            std::cout << prefix << (isLast ? "└── " : "├── ") << "String: \"" << value << "\"" << std::endl;
+        }
+        std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
+};
+

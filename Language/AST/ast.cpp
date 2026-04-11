@@ -25,6 +25,9 @@ OpCode BinaryOpNode::getOpCode() const {
     if(op == "<=") return OpCode::CMP_LET;
     if(op == "==") return OpCode::CMP_EQ;
     if(op == "!=") return OpCode::CMP_NEQ;
+    if(op == "and") return OpCode::LOGICAL_AND;
+    if(op == "or") return OpCode::LOGICAL_OR;
+    if(op == "not") return OpCode::LOGICAL_NOT;
     return OpCode::UNDEFINED;
 }
 
@@ -70,4 +73,13 @@ void PrintNode::print(std::string prefix, bool isLast) const {
     std::cout << prefix << (isLast ? "└── " : "├── ") << "Print" << std::endl;
     for(size_t i = 0; i < expressions.size(); ++i)
         expressions[i]->print(prefix + (isLast ? "    " : "│   "), i == expressions.size()-1);
+}
+
+void ForStatementNode::print(std::string prefix, bool isLast) const {
+    std::cout << prefix << (isLast ? "└── " : "├── ") << "For" << std::endl;
+    std::string p = prefix + (isLast ? "    " : "│   ");
+    init->print(p, false);
+    condition->print(p, false);
+    update->print(p, false);
+    body->print(p, true);
 }

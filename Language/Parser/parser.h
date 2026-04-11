@@ -36,4 +36,5 @@ public:
     std::shared_ptr<StatementNode> parseAssignment();
     std::shared_ptr<StatementNode> parsePrint();
     std::shared_ptr<ASTNode> parseExpression();
+    std::shared_ptr<StatementNode> parseFor();
 };

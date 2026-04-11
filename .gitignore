@@ -24,3 +24,5 @@ Thumbs.db
 out/
 build/
 bin/
+
+test.cpp

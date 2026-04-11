@@ -14,6 +14,7 @@ void VirtualMachine::load(const std::string& expr, SymbolTable& symtable) {
     ByteCode bc = compiler.compile(root);
     current_program  = bc.instructions;
     current_consants = bc.constants;
+    current_strings = bc.strings;
 
     int maxReg = 0;
     for(const auto& inst : current_program)
@@ -37,34 +38,51 @@ double VirtualMachine::run(SymbolTable& st) {
         switch(op) {
             case OpCode::LOAD_CONST: registers[inst.dst] = current_consants[inst.left]; break;
             case OpCode::LOAD_VAR:   registers[inst.dst] = st.getValueByAddress(inst.left); break;
+            case OpCode::LOAD_STR: registers[inst.dst] = current_strings[inst.left]; break;
             case OpCode::STORE_VAR:  st.setValueByAddress(inst.left, registers[inst.right]); break;
-            case OpCode::ADD:    registers[inst.dst] = registers[inst.left] + registers[inst.right]; break;
-            case OpCode::SUB:    registers[inst.dst] = registers[inst.left] - registers[inst.right]; break;
-            case OpCode::MUL:    registers[inst.dst] = registers[inst.left] * registers[inst.right]; break;
+            case OpCode::ADD:    registers[inst.dst] = asNumber(registers[inst.left]) + asNumber(registers[inst.right]); break;
+            case OpCode::SUB:    registers[inst.dst] = asNumber(registers[inst.left]) - asNumber(registers[inst.right]); break;
+            case OpCode::MUL:    registers[inst.dst] = asNumber(registers[inst.left]) * asNumber(registers[inst.right]); break;
             case OpCode::DIV:
-                if(registers[inst.right] == 0) throw std::runtime_error("Division by zero");
-                registers[inst.dst] = registers[inst.left] / registers[inst.right]; break;
-            case OpCode::UNARY:  registers[inst.dst] = -registers[inst.left]; break;
-            case OpCode::MODULO: registers[inst.dst] = (double)((long long)registers[inst.left] % (long long)registers[inst.right]); break;
-            case OpCode::AND:    registers[inst.dst] = (double)((long long)registers[inst.left] & (long long)registers[inst.right]); break;
-            case OpCode::OR:     registers[inst.dst] = (double)((long long)registers[inst.left] | (long long)registers[inst.right]); break;
-            case OpCode::XOR:    registers[inst.dst] = (double)((long long)registers[inst.left] ^ (long long)registers[inst.right]); break;
-            case OpCode::LSHIFT: registers[inst.dst] = (double)((long long)registers[inst.left] << (long long)registers[inst.right]); break;
-            case OpCode::RSHIFT: registers[inst.dst] = (double)((long long)registers[inst.left] >> (long long)registers[inst.right]); break;
-            case OpCode::CMP_GT:  registers[inst.dst] = registers[inst.left] >  registers[inst.right] ? 1.0 : 0.0; break;
-            case OpCode::CMP_LT:  registers[inst.dst] = registers[inst.left] <  registers[inst.right] ? 1.0 : 0.0; break;
-            case OpCode::CMP_GET: registers[inst.dst] = registers[inst.left] >= registers[inst.right] ? 1.0 : 0.0; break;
-            case OpCode::CMP_LET: registers[inst.dst] = registers[inst.left] <= registers[inst.right] ? 1.0 : 0.0; break;
+                if(asNumber(registers[inst.right]) == 0) throw std::runtime_error("Division by zero");
+                registers[inst.dst] = asNumber(registers[inst.left]) / asNumber(registers[inst.right]); break;
+            case OpCode::UNARY:  registers[inst.dst] = -asNumber(registers[inst.left]); break;
+            case OpCode::MODULO: registers[inst.dst] = (double)((long long) asNumber(registers[inst.left]) % (long long) asNumber(registers[inst.right])); break;
+            case OpCode::AND:    registers[inst.dst] = (double)((long long) asNumber(registers[inst.left]) & (long long) asNumber(registers[inst.right])); break;
+            case OpCode::OR:     registers[inst.dst] = (double)((long long) asNumber(registers[inst.left]) | (long long) asNumber(registers[inst.right])); break;
+            case OpCode::XOR:    registers[inst.dst] = (double)((long long) asNumber(registers[inst.left]) ^ (long long) asNumber(registers[inst.right])); break;
+            case OpCode::LSHIFT: registers[inst.dst] = (double)((long long) asNumber(registers[inst.left]) << (long long) asNumber(registers[inst.right])); break;
+            case OpCode::RSHIFT: registers[inst.dst] = (double)((long long) asNumber(registers[inst.left]) >> (long long) asNumber(registers[inst.right])); break;
+            case OpCode::CMP_GT:  registers[inst.dst] = asNumber(registers[inst.left]) >  asNumber(registers[inst.right]) ? 1.0 : 0.0; break;
+            case OpCode::CMP_LT:  registers[inst.dst] = asNumber(registers[inst.left]) <  asNumber(registers[inst.right]) ? 1.0 : 0.0; break;
+            case OpCode::CMP_GET: registers[inst.dst] = asNumber(registers[inst.left]) >= asNumber(registers[inst.right]) ? 1.0 : 0.0; break;
+            case OpCode::CMP_LET: registers[inst.dst] = asNumber(registers[inst.left]) <= asNumber(registers[inst.right]) ? 1.0 : 0.0; break;
             case OpCode::CMP_EQ:  registers[inst.dst] = registers[inst.left] == registers[inst.right] ? 1.0 : 0.0; break;
             case OpCode::CMP_NEQ: registers[inst.dst] = registers[inst.left] != registers[inst.right] ? 1.0 : 0.0; break;
-            case OpCode::JZ:  if(registers[inst.dst] == 0) { pc = inst.left; jumped = true; } break;
+            case OpCode::JZ: {
+                if(isFalsy(registers[inst.dst])) {
+                    pc = inst.left;
+                    jumped = true;
+                }
+            }
+            break;
             case OpCode::JMP: pc = inst.left; jumped = true; break;
-            case OpCode::PRINT: std::cout << registers[inst.dst] << " "; break;
+            case OpCode::PRINT: 
+                std::visit([](auto&& val){std::cout<<val;}, registers[inst.dst]);
+            break;
+            case OpCode::PRINT_STR: std::cout<<current_strings[inst.dst]; break;
+            
+            case OpCode::LOGICAL_AND: registers[inst.dst] = (asNumber(registers[inst.left]) != 0 && asNumber(registers[inst.right]) != 0) ? 1.0 : 0.0; break;
+            case OpCode::LOGICAL_OR: registers[inst.dst] = (asNumber(registers[inst.left]) != 0 || asNumber(registers[inst.right]) !=0 ) ? 1.0 : 0.0; break;
+            case OpCode::LOGICAL_NOT: registers[inst.dst] = (asNumber(registers[inst.left]) != 0) ? 0.0 : 1.0; break;
             default: break;
         }
         if(!jumped) pc++;
     }
-    return registers[lastDest] == -0.0 ? 0.0 : registers[lastDest];
+    if(isNumber(registers[lastDest])) {
+        return asNumber(registers[lastDest]) == -0.0 ? 0.0 : asNumber(registers[lastDest]);
+    }
+    return 0.0;
 }
 
 void VirtualMachine::visualize(const std::vector<Instruction>& program) const {
