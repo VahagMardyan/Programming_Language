@@ -143,11 +143,25 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
     std::string name = currentToken.value;
     size_t addr = symTable.getAddress(name);
     nextToken();
-    if(currentToken.type != TokenType::Assign) { state = ParserState::Error; return nullptr; }
-    nextToken();
-    auto expr = parseExpression();
-    if(currentToken.type == TokenType::Semicolon) nextToken();
-    return std::make_shared<AssignmentNode>(addr, expr);
+    if(currentToken.type == TokenType::Assign) {
+        nextToken();
+        auto expr = parseExpression();
+        if(currentToken.type == TokenType::Semicolon) nextToken();
+        return std::make_shared<AssignmentNode>(addr, expr);
+    }
+    if(currentToken.type == TokenType::CompoundAssign) {
+        std::string op = currentToken.value; // +=, -=, ...
+        nextToken();
+        auto rhs = parseExpression();
+        if(currentToken.type == TokenType::Semicolon) nextToken();
+        // x+=5 -> x = x+5;
+        std::string baseOp = op.substr(0,1); // "+" from "+="
+        auto varNode = std::make_shared<VariableNode>(addr);
+        auto expr = std::make_shared<BinaryOpNode>(baseOp, varNode, rhs);
+        return std::make_shared<AssignmentNode>(addr, expr);
+    }
+    state = ParserState::Error;
+    return nullptr;
 }
 
 std::shared_ptr<StatementNode> Parser::parsePrint() {
@@ -195,6 +209,11 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
             case ParserState::ExpectOperand:
                 if(token.type == TokenType::Number) {
                     nodes.push(std::make_shared<NumberNode>(std::stod(token.value)));
+                    state = ParserState::ExpectOperator;
+                    nextToken();
+                } else if(token.type == TokenType::Boolean) {
+                    double val = (token.value == "true") ? 1.0 : 0.0;
+                    nodes.push(std::make_shared<NumberNode>(val));
                     state = ParserState::ExpectOperator;
                     nextToken();
                 } else if(token.type == TokenType::Name) {
@@ -264,32 +283,19 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
 
 std::shared_ptr<StatementNode> Parser::parseFor() {
     nextToken(); // skip 'for'
-    if(currentToken.value != "(") {
-        state = ParserState::Error;
-        return nullptr;
-    }
+    if(currentToken.value != "(") { state = ParserState::Error; return nullptr; }
     nextToken(); // skip '('
-    // init: i = start
+
     auto init = parseAssignment();
-    // condition
+
     auto cond = parseExpression();
-    if(currentToken.type == TokenType::Semicolon) nextToken(); // skip ';'
-    // update
-    std::string name = currentToken.value;
-    size_t addr = symTable.getAddress(name);
-    nextToken(); // skip variable name
-    if(currentToken.type != TokenType::Assign) {
-        state = ParserState::Error;
-        return nullptr;
-    }
-    nextToken(); // skip '='
-    auto updateExpr = parseExpression();
-    auto update = std::make_shared<AssignmentNode>(addr, updateExpr);
-    if(currentToken.value != ")") {
-        state = ParserState::Error;
-        return nullptr;
-    }
-    nextToken(); // skip ')'
+    if(currentToken.type == TokenType::Semicolon) nextToken();
+
+    auto update = parseAssignment();
+
+    if(currentToken.value != ")") { state = ParserState::Error; return nullptr; }
+    nextToken();
+
     auto body = parseStatement();
     return std::make_shared<ForStatementNode>(init, cond, update, body);
 }

@@ -160,6 +160,7 @@ To apply colors to your language, add the following block to your `settings.json
     "textMateRules": [
         { "scope": "keyword.control.vhg", "settings": { "foreground": "#C586C0" } },
         { "scope": "keyword.operator.logical.vhg", "settings": { "foreground": "#0b4da3" } },
+        { "scope": "keyword.control_boolean.vhg", "settings": {"foreground": "#1e73ea",} },
         { "scope": "string.quoted.double.vhg", "settings": { "foreground": "#CE7744" } },
         { "scope": "string.quoted.single.vhg", "settings": { "foreground": "#CE7744" } },
         { "scope": "constant.numeric.vhg", "settings": { "foreground": "#B5CEA8" } },
@@ -167,7 +168,7 @@ To apply colors to your language, add the following block to your `settings.json
         { "scope": "comment.line.vhg", "settings": { "foreground": "#6A9955", "fontStyle": "italic" } },
         { "scope": "comment.block.vhg", "settings": { "foreground": "#6A9955", "fontStyle": "italic" } }
     ]
-    }
+    },
 ```
 
 ### Step 5: Finalize

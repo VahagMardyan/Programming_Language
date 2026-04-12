@@ -100,6 +100,7 @@ Token Tokenizer::getNextToken() {
         if(name == "and")   return {TokenType::And,   name};
         if(name == "or")    return {TokenType::Or,    name};
         if(name == "not")   return {TokenType::Not,   name};
+        if(name == "true" || name == "false") return {TokenType::Boolean, name};
         return {TokenType::Name, name};
     }
 
@@ -114,14 +115,25 @@ Token Tokenizer::getNextToken() {
            (current == '<' && next == '=') ||
            (current == '>' && next == '=') ||
            (current == '<' && next == '<') ||
-           (current == '>' && next == '>')) {
+           (current == '>' && next == '>') ||
+           (current == '+' && next == '=') ||
+           (current == '-' && next == '=') ||
+           (current == '/' && next == '=') ||
+           (current == '*' && next == '=') ||
+           (current == '%' && next == '=') ||
+           (current == '^' && next == '=')) {
             op += next;
             lexer.advance();
         }
     }
     if(op == "=")  return {TokenType::Assign, op};
-    if(op == "==" || op == "!=" || op == ">" || op == "<" || op == ">=" || op == "<=")
+    if(op == "==" || op == "!=" || op == ">" || op == "<" || op == ">=" || op == "<=") {
         return {TokenType::CompareOp, op};
+    }
+    
+    if(op == "+=" || op == "-=" || op == "/=" || op == "*=" || op == "%=") {
+        return {TokenType::CompoundAssign, op};
+    }
     if(isOperator(op)) return {TokenType::Operator, op};
 
     return {TokenType::Error, op};

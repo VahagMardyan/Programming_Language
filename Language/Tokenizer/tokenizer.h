@@ -15,6 +15,8 @@ enum class TokenType {
     And, // &&
     Or, // ||
     Not, // !
+    CompoundAssign, // +=, -=, *=, /=, %= and ^=
+    Boolean, // true/false
 };
 
 struct Token {

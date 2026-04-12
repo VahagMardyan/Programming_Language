@@ -5,6 +5,7 @@
         { "include": "#comments" },
         { "include": "#strings" },
         { "include": "#keywords" },
+        { "include": "#boolean"},
         { "include": "#logical_operators" },
         { "include": "#numbers" },
         { "include": "#variables" }
@@ -49,6 +50,10 @@
             "match": "\\b(if|else|while|for|print|function|return)\\b",
             "name": "keyword.control.vhg"
         },
+        "boolean": {
+            "match": "\\b(true|false)\\b",
+            "name": "keyword.control_boolean.vhg"
+        },
         "logical_operators": {
             "match": "\\b(and|or|not)\\b",
             "name": "keyword.operator.logical.vhg"
@@ -61,5 +66,9 @@
             "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b",
             "name": "variable.other.vhg"
         }
+    },
+    "operators" : {
+        "match" : "(\\+|-|\\*|/|%|&|\\||\\^|<<|>>)?=",
+        "name" : "keyword.operator.assignment.vhg"
     }
 }
