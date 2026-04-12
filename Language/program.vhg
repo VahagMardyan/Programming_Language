@@ -101,6 +101,16 @@
 # x /= 8;
 # print(x); # # 0.5
 
-# for(i=0; i<=10; i += 2) {
-#     print(i,' ');
-# }
+# # print even numbers
+for(i=0; i<=10; i += 2) {
+    print(i,' ');
+}
+
+print('\n');
+
+# # print odd numbers
+odd = 1;
+while(odd <= 10) {
+    print(odd, " ");
+    odd += 2;
+}

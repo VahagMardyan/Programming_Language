@@ -24,11 +24,7 @@ class Parser {
         std::shared_ptr<ASTNode> left, std::shared_ptr<ASTNode> right);
     std::shared_ptr<ASTNode> createUnaryNode(const std::string& op,
         std::shared_ptr<ASTNode> child);
-public:
-    Parser(Tokenizer& tok, SymbolTable& st)
-        : tokenizer(tok), symTable(st), state(ParserState::ExpectOperand) { nextToken(); }
 
-    std::shared_ptr<StatementNode> parseProgram();
     std::shared_ptr<StatementNode> parseStatement();
     std::shared_ptr<StatementNode> parseIf();
     std::shared_ptr<StatementNode> parseWhile();
@@ -37,4 +33,9 @@ public:
     std::shared_ptr<StatementNode> parsePrint();
     std::shared_ptr<ASTNode> parseExpression();
     std::shared_ptr<StatementNode> parseFor();
+public:
+    Parser(Tokenizer& tok, SymbolTable& st)
+        : tokenizer(tok), symTable(st), state(ParserState::ExpectOperand) { nextToken(); }
+
+    std::shared_ptr<StatementNode> parseProgram();
 };
