@@ -1,0 +1,21 @@
+{
+    "name": "vhg-language",
+    "displayName": "VHG Language",
+    "version": "0.0.1",
+    "engines": { "vscode": "^1.60.0" },
+    "categories": ["Programming Languages"],
+    "publisher": "Vahagn Mardyan",
+    "contributes": {
+        "languages": [{
+            "id": "vhg",
+            "aliases": ["VHG"],
+            "extensions": [".vhg"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "vhg",
+            "scopeName": "source.vhg",
+            "path": "./syntaxes/vhg.tmLanguage.json"
+        }]
+    }
+}

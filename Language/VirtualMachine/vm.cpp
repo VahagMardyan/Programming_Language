@@ -40,7 +40,16 @@ double VirtualMachine::run(SymbolTable& st) {
             case OpCode::LOAD_VAR:   registers[inst.dst] = st.getValueByAddress(inst.left); break;
             case OpCode::LOAD_STR: registers[inst.dst] = current_strings[inst.left]; break;
             case OpCode::STORE_VAR:  st.setValueByAddress(inst.left, registers[inst.right]); break;
-            case OpCode::ADD:    registers[inst.dst] = asNumber(registers[inst.left]) + asNumber(registers[inst.right]); break;
+            
+            case OpCode::ADD:  {
+                if(isString(registers[inst.left]) || isString(registers[inst.right])) {
+                    registers[inst.dst] = valueToString(registers[inst.left]) + valueToString(registers[inst.right]);
+                } else {
+                    registers[inst.dst] = asNumber(registers[inst.left]) + asNumber(registers[inst.right]); 
+                }
+            }
+            break;
+
             case OpCode::SUB:    registers[inst.dst] = asNumber(registers[inst.left]) - asNumber(registers[inst.right]); break;
             case OpCode::MUL:    registers[inst.dst] = asNumber(registers[inst.left]) * asNumber(registers[inst.right]); break;
             case OpCode::DIV:
@@ -108,6 +117,10 @@ void VirtualMachine::visualize(const std::vector<Instruction>& program) const {
             case OpCode::LOAD_VAR:
                 std::cout << "LOAD_VAR" << std::setw(6) << inst.left << std::setw(6) << "-"
                           << std::setw(6) << inst.dst; break;
+            case OpCode::LOAD_STR:
+                std::cout << "LOAD_STR" << std::setw(6) << inst.left << std::setw(6) << "-"
+                          << std::setw(6) << inst.dst << "\"" << current_strings[inst.left] << "\""; 
+            break;
             case OpCode::STORE_VAR:
                 std::cout << "STORE_VAR" << std::setw(6) << inst.left << std::setw(6) << inst.right
                           << std::setw(6) << "-" << "mem[" << inst.left << "] = r" << inst.right; break;

@@ -185,7 +185,8 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
            currentToken.type == TokenType::Comma       ||
            currentToken.type == TokenType::CloseBrace  ||
            currentToken.type == TokenType::Else) {
-            state = ParserState::Done; break;
+            state = ParserState::Done;
+            break;
         }
         if(currentToken.type == TokenType::EndOfExpr) break;
 
@@ -194,15 +195,19 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
             case ParserState::ExpectOperand:
                 if(token.type == TokenType::Number) {
                     nodes.push(std::make_shared<NumberNode>(std::stod(token.value)));
-                    state = ParserState::ExpectOperator; nextToken();
+                    state = ParserState::ExpectOperator;
+                    nextToken();
                 } else if(token.type == TokenType::Name) {
                     nodes.push(std::make_shared<VariableNode>(symTable.getAddress(token.value)));
-                    state = ParserState::ExpectOperator; nextToken();
+                    state = ParserState::ExpectOperator;
+                    nextToken();
                 } else if(token.type == TokenType::StringLiteral) {
                     nodes.push(std::make_shared<StringNode>(token.value));
+                    state = ParserState::ExpectOperator;
                     nextToken();
                 } else if(token.type == TokenType::OpenParen) {
-                    ops.push("("); nextToken();
+                    ops.push("("); 
+                    nextToken();
                 } else if(token.type == TokenType::Operator &&
                           (token.value == "-" || token.value == "+")) {
                     ops.push(token.value == "-" ? "_" : "#"); nextToken();
@@ -220,6 +225,12 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                     processOperatorStack(token.value);
                     ops.push(token.value);
                     state = ParserState::ExpectOperand; nextToken();
+                } else if(token.type == TokenType::StringLiteral) {
+                    processOperatorStack("+");
+                    ops.push("+");
+                    nodes.push(std::make_shared<StringNode>(token.value));
+                    state = ParserState::ExpectOperator; 
+                    nextToken();
                 } else if(token.type == TokenType::CloseParen) {
                     while(!ops.empty() && ops.top() != "(") createNodeFromOp();
                     if(!ops.empty() && ops.top() == "(") {

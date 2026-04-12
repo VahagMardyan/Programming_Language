@@ -42,10 +42,11 @@ Token Tokenizer::getNextToken() {
     char current = static_cast<char>(lexer.peek());
 
     // 2. String literal
-    if(current == '"') {
+    if(current == '"' || current == '\'') {
+        char openQuote = current;
         lexer.advance();
         std::string str;
-        while(!lexer.isEOF() && lexer.peek() != '"') {
+        while(!lexer.isEOF() && lexer.peek() != openQuote) {
             char c = (char)lexer.peek();
             if(c == '\\') {
                 lexer.advance();

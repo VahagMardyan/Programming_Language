@@ -42,6 +42,16 @@ inline bool isTruthy(const Value& v) {
     return !isFalsy(v);
 }
 
+inline std::string valueToString (const Value& v) {
+    if(isString(v)) return asString(v);
+    double d = asNumber(v);
+    if(d == (long long)d) return std::to_string((long long)d);
+    std::string s = std::to_string(d);
+    s.erase(s.find_last_not_of('0') + 1);
+    if(s.back() == '.') s.pop_back();
+    return s;
+};
+
 class SymbolTable {
     private:
         std::unordered_map<std::string, size_t> nameToIndex;

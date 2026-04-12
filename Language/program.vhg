@@ -65,23 +65,35 @@
 #     x = x * 12;
 # }
 
-x = "vahag";
-print(x, "\n");
-x = 0;
-if(not x) {
-    x = 18;
-    print("x=", x, "\n");
-} else {
-    print("Nothing to print.", "\n");
-}
+# x = "vahag";
+# print(x, "\n");
+# x = 0;
+# if(not x) {
+#     x = 18;
+#     print("x=", x, "\n");
+# } else {
+#     print("Nothing to print.", "\n");
+# }
 
-for(i = 0; i<10; i = i+1) {
-    print(i, ": Hello World!\n");
-}
+# for(i = 0; i<10; i = i+1) {
+#     print(i, ": Hello World!\n");
+# }
 
-testVar = 20;
-while(testVar <= 25) {
-    testVar = testVar + 1;
-    print("testVar: ",testVar,", ")
-}
+# testVar = 20;
+# while(testVar <= 25) {
+#     testVar = testVar + 1;
+#     print("testVar: ",testVar,", ")
+# }
+
+variable = 'dfe';
+x = "a";
+x = x + " " + 2.8;
+y = "a";
+y = y + "b";
+y = y + "c channel";
+y = y + " " + 2;
+print("x: ", x, "\n", "y: ", y);
+
+x = 'absfefrpgoirdkgiprk';
+print(x);
 
