@@ -102,15 +102,88 @@
 # print(x); # # 0.5
 
 # # print even numbers
-for(i=0; i<=10; i += 2) {
-    print(i,' ');
+# for(i=0; i<=10; i += 2) {
+#     print(i,' ');
+# }
+
+# print('\n');
+
+# # # print odd numbers
+# odd = 1;
+# while(odd <= 10) {
+#     print(odd, " ");
+#     odd += 2;
+# }
+
+# function add(a) {
+#    # if(a % 2 == 0) {
+#    #    return a + 4;
+#    # } else {
+#    #    return a - 4;
+#    # }
+#    print(a + 5);
+# }
+# x = add(3);
+# print(x);
+# add(3);
+
+# function addOne(n) {
+#     return n + 1;
+# }
+
+# x = 10;
+# y = addOne(x);
+# print(y);
+
+# function add(a,b) {
+#     return a + b;
+# }
+
+# x = add(2,4);
+# print("output: ",x);
+
+# x = 3;
+
+# function check(x) {
+#     if(x > 4) {
+#         x += 2;
+#     } else {
+#         x *= 2;
+#     }
+#     return x;
+# }
+
+# a = check(28);
+# print(a);
+
+# print(x);
+
+# x = 2 + 4;
+# print("output: ",x,'\n');
+
+# function factorial(n) {
+#     x = 1;
+#     for(i=2;i<=n;i+=1) {
+#         x *= i;
+#     }
+#     return x;
+# }
+
+# x = factorial(5);
+# print(x);
+
+function foo() {
+    a = 5;
+    if(a < 3) { # # will execute this one
+        a += 2;
+    } else if(a == 5){
+        a = a ** 3;
+    } else {
+        a /= 2;
+    }
+    return a;
 }
 
-print('\n');
+x = foo();
+print(x);
 
-# # print odd numbers
-odd = 1;
-while(odd <= 10) {
-    print(odd, " ");
-    odd += 2;
-}

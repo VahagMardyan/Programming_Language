@@ -6,6 +6,7 @@ const std::unordered_map<std::string, TokenType> operations = {
     {"&", TokenType::Operator}, {"|", TokenType::Operator},
     {"^", TokenType::Operator}, {"%", TokenType::Operator},
     {">>", TokenType::Operator}, {"<<", TokenType::Operator},
+    {"**", TokenType::Operator},
 };
 
 Tokenizer::Tokenizer(Lexer& l) : lexer(l) {}
@@ -101,6 +102,8 @@ Token Tokenizer::getNextToken() {
         if(name == "or")    return {TokenType::Or,    name};
         if(name == "not")   return {TokenType::Not,   name};
         if(name == "true" || name == "false") return {TokenType::Boolean, name};
+        if(name == "function") return {TokenType::Function, name};
+        if(name == "return") return {TokenType::Return, name};
         return {TokenType::Name, name};
     }
 
@@ -110,18 +113,19 @@ Token Tokenizer::getNextToken() {
     lexer.advance();
     if(!lexer.isEOF()) {
         char next = static_cast<char>(lexer.peek());
-        if((current == '=' && next == '=') ||
-           (current == '!' && next == '=') ||
-           (current == '<' && next == '=') ||
-           (current == '>' && next == '=') ||
-           (current == '<' && next == '<') ||
-           (current == '>' && next == '>') ||
-           (current == '+' && next == '=') ||
-           (current == '-' && next == '=') ||
-           (current == '/' && next == '=') ||
-           (current == '*' && next == '=') ||
-           (current == '%' && next == '=') ||
-           (current == '^' && next == '=')) {
+        if((current == '=' && next == '=') || // ==
+           (current == '!' && next == '=') || // !=
+           (current == '<' && next == '=') || // <=
+           (current == '>' && next == '=') || // >=
+           (current == '<' && next == '<') || // <<
+           (current == '>' && next == '>') || // >>
+           (current == '*' && next == '*') || // **
+           (current == '+' && next == '=') || // +=
+           (current == '-' && next == '=') || // -=
+           (current == '/' && next == '=') || // /=
+           (current == '*' && next == '=') || // *=
+           (current == '%' && next == '=') || // %=
+           (current == '^' && next == '=')) { // ^=
             op += next;
             lexer.advance();
         }
