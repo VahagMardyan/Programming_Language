@@ -9,6 +9,7 @@ std::shared_ptr<ASTNode> Parser::createBinaryNode(const std::string& op,
         if(op == "+") return std::make_shared<NumberNode>(l + r);
         if(op == "-") return std::make_shared<NumberNode>(l - r);
         if(op == "*") return std::make_shared<NumberNode>(l * r);
+        if(op == "**") return std::make_shared<NumberNode>(std::pow(l,r));
         if(op == "/") return std::make_shared<NumberNode>(r != 0 ? l / r : 0);
         long long li = (long long)l, ri = (long long)r;
         if(op == "&")  return std::make_shared<NumberNode>((double)(li & ri));
@@ -50,7 +51,8 @@ int Parser::precedence(const std::string& op) const {
     if(op == "<<" || op == ">>") return 5;
     if(op == "+" || op == "-") return 6;
     if(op == "*" || op == "/" || op == "%") return 7;
-    if(op == "not" || op == "_" || op == "#") return 8;
+    if(op == "**") return 8;
+    if(op == "not" || op == "_" || op == "#") return 9;
     return -1;
 }
 
@@ -77,9 +79,13 @@ void Parser::processOperatorStack(const std::string& currentOp) {
 
 std::shared_ptr<StatementNode> Parser::parseProgram() {
     auto block = std::make_shared<BlockCode>();
+    int stmtCount = 0;
     while(currentToken.type != TokenType::EndOfExpr) {
         auto stmt = parseStatement();
-        if(stmt) block->addStatement(stmt);
+        if(stmt) {
+            block->addStatement(stmt);
+            stmtCount++;
+        } 
         else if(state == ParserState::Error) break;
         else nextToken();
     }
@@ -114,7 +120,13 @@ std::shared_ptr<StatementNode> Parser::parseIf() {
     std::shared_ptr<StatementNode> elseBr = nullptr;
     if(currentToken.type == TokenType::Else) {
         nextToken();
-        elseBr = parseStatement();
+        // Check if this is "else if"
+        if(currentToken.type == TokenType::If) {
+            // else if -> recursively parse as nested if
+            elseBr = parseIf();
+        } else {
+            elseBr = parseStatement();
+        }
     }
     return std::make_shared<IfStatementNode>(cond, thenBr, elseBr);
 }
@@ -143,7 +155,7 @@ std::shared_ptr<StatementNode> Parser::parseBlock() {
 
 std::shared_ptr<StatementNode> Parser::parseAssignment() {
     std::string name = currentToken.value;
-    size_t addr = symTable.getAddress(name);
+    size_t addr = symTable.getOffset(name);
     nextToken();
 
     // Function call statement: foo(args);
@@ -200,21 +212,69 @@ std::shared_ptr<StatementNode> Parser::parsePrint() {
     return std::make_shared<PrintNode>(std::move(args));
 }
 
-std::shared_ptr<ASTNode> Parser::parseExpression() {
-    state = ParserState::ExpectOperand;
-    nodes = std::stack<std::shared_ptr<ASTNode>>();
-    ops   = std::stack<std::string>();
+std::shared_ptr<ASTNode> Parser::parsePrimary() {
+    Token token = currentToken;
+    if (token.type == TokenType::Operator && (token.value == "-" || token.value == "+")) {
+        std::string op = token.value;
+        nextToken();
+        auto child = parsePrimary();
+        return createUnaryNode(op == "-" ? "_" : "#", child);
+    }
+    if (token.type == TokenType::Not) {
+        nextToken();
+        auto child = parsePrimary();
+        return createUnaryNode("not", child);
+    }
+    if(token.type == TokenType::Number) {
+        nextToken();
+        return std::make_shared<NumberNode>(std::stod(token.value));
+    } else if(token.type == TokenType::Boolean) {
+        nextToken();
+        double val = (token.value == "true") ? 1.0 : 0.0;
+        return std::make_shared<NumberNode>(val);
+    } else if(token.type == TokenType::StringLiteral) {
+        nextToken();
+        return std::make_shared<StringNode>(token.value);
+    } else if(token.type == TokenType::Name) {
+        std::string name = token.value;
+        nextToken();
+        if(currentToken.type == TokenType::OpenParen) {
+            return parseFunctionCall(name);
+        } else {
+            size_t offset = symTable.getOffset(name);
+            return std::make_shared<VariableNode>(offset);
+        }
+    } else if(token.type == TokenType::OpenParen) {
+        nextToken();
+        auto expr = parseExpression();
+        if(currentToken.type != TokenType::CloseParen) {
+            state = ParserState::Error;
+            return nullptr;
+        }
+        nextToken();
+        return expr;
+    }
+    state = ParserState::Error;
+    return nullptr;
+}
 
-    while(state != ParserState::Done && state != ParserState::Error) {
-        if(currentToken.type == TokenType::Semicolon  ||
-           currentToken.type == TokenType::Comma       ||
-           currentToken.type == TokenType::CloseBrace  ||
-           currentToken.type == TokenType::Else) {
-            state = ParserState::Done;
+std::shared_ptr<ASTNode> Parser::parseExpression() {
+    std::stack<std::shared_ptr<ASTNode>> localNodes;
+    std::stack<std::string> localOps;
+    ParserState localState = ParserState::ExpectOperand;
+
+    while (localState != ParserState::Done && localState != ParserState::Error) {
+        // Stop tokens
+        if (currentToken.type == TokenType::Semicolon  ||
+            currentToken.type == TokenType::Comma       ||
+            currentToken.type == TokenType::CloseBrace  ||
+            currentToken.type == TokenType::Else        ||
+            currentToken.type == TokenType::EndOfExpr) {
+            localState = ParserState::Done;
             break;
         }
-        if(currentToken.type == TokenType::EndOfExpr) break;
 
+<<<<<<< HEAD
         Token token = currentToken;
         switch(state) {
             case ParserState::ExpectOperand:
@@ -249,10 +309,89 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                     ops.push(token.value == "-" ? "_" : "#"); nextToken();
                 } else if(token.type == TokenType::Not) {
                     ops.push("not"); nextToken();
-                } else {
-                    state = ParserState::Error;
-                }
+=======
+        if (localState == ParserState::ExpectOperand) {
+            auto primary = parsePrimary();
+            if (!primary) {
+                localState = ParserState::Error;
                 break;
+            }
+            localNodes.push(primary);
+            localState = ParserState::ExpectOperator;
+        }
+        else if (localState == ParserState::ExpectOperator) {
+            Token token = currentToken;
+
+            // Binary operator
+            if (token.type == TokenType::Operator ||
+                token.type == TokenType::CompareOp ||
+                token.value == "and" || token.value == "or") {
+                // Apply higher precedence operators
+                while (!localOps.empty() && localOps.top() != "(" &&
+                       precedence(localOps.top()) >= precedence(token.value)) {
+                    std::string op = localOps.top(); localOps.pop();
+                    if (op == "_" || op == "#" || op == "not") {
+                        auto operand = localNodes.top(); localNodes.pop();
+                        localNodes.push(createUnaryNode(op, operand));
+                    } else {
+                        auto right = localNodes.top(); localNodes.pop();
+                        auto left = localNodes.top(); localNodes.pop();
+                        localNodes.push(createBinaryNode(op, left, right));
+                    }
+                }
+                localOps.push(token.value);
+                nextToken();
+                localState = ParserState::ExpectOperand;
+            }
+            // Implicit multiplication: when we see a primary (number, name, string, open paren, not, unary +-)
+            else if (token.type == TokenType::Number ||
+                     token.type == TokenType::Name ||
+                     token.type == TokenType::StringLiteral ||
+                     token.type == TokenType::OpenParen ||
+                     token.type == TokenType::Not ||
+                     (token.type == TokenType::Operator && (token.value == "-" || token.value == "+"))) {
+                // Apply higher precedence operators (including '*')
+                while (!localOps.empty() && localOps.top() != "(" &&
+                       precedence(localOps.top()) >= precedence("*")) {
+                    std::string op = localOps.top(); localOps.pop();
+                    if (op == "_" || op == "#" || op == "not") {
+                        auto operand = localNodes.top(); localNodes.pop();
+                        localNodes.push(createUnaryNode(op, operand));
+                    } else {
+                        auto right = localNodes.top(); localNodes.pop();
+                        auto left = localNodes.top(); localNodes.pop();
+                        localNodes.push(createBinaryNode(op, left, right));
+                    }
+                }
+                localOps.push("*");
+                localState = ParserState::ExpectOperand;
+            }
+            else if (token.type == TokenType::CloseParen) {
+                // Apply all operators until '('
+                while (!localOps.empty() && localOps.top() != "(") {
+                    std::string op = localOps.top(); localOps.pop();
+                    if (op == "_" || op == "#" || op == "not") {
+                        auto operand = localNodes.top(); localNodes.pop();
+                        localNodes.push(createUnaryNode(op, operand));
+                    } else {
+                        auto right = localNodes.top(); localNodes.pop();
+                        auto left = localNodes.top(); localNodes.pop();
+                        localNodes.push(createBinaryNode(op, left, right));
+                    }
+                }
+                if (!localOps.empty() && localOps.top() == "(") {
+                    localOps.pop();
+>>>>>>> 37c62253fa08934c2bae054db3a95e11c543af6e
+                } else {
+                    localState = ParserState::Error;
+                    break;
+                }
+                nextToken(); // consume ')'
+            }
+            else {
+                localState = ParserState::Error;
+                break;
+<<<<<<< HEAD
 
             case ParserState::ExpectOperator:
                 if(token.type == TokenType::Operator ||
@@ -302,10 +441,26 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                 }
                 break;
             default: break;
+=======
+            }
+>>>>>>> 37c62253fa08934c2bae054db3a95e11c543af6e
         }
     }
-    while(!ops.empty()) createNodeFromOp();
-    return nodes.empty() ? nullptr : nodes.top();
+
+    // Apply remaining operators
+    while (!localOps.empty()) {
+        std::string op = localOps.top(); localOps.pop();
+        if (op == "_" || op == "#" || op == "not") {
+            auto operand = localNodes.top(); localNodes.pop();
+            localNodes.push(createUnaryNode(op, operand));
+        } else {
+            auto right = localNodes.top(); localNodes.pop();
+            auto left = localNodes.top(); localNodes.pop();
+            localNodes.push(createBinaryNode(op, left, right));
+        }
+    }
+
+    return localNodes.empty() ? nullptr : localNodes.top();
 }
 
 std::shared_ptr<StatementNode> Parser::parseFor() {

@@ -6,6 +6,7 @@ const std::unordered_map<std::string, TokenType> operations = {
     {"&", TokenType::Operator}, {"|", TokenType::Operator},
     {"^", TokenType::Operator}, {"%", TokenType::Operator},
     {">>", TokenType::Operator}, {"<<", TokenType::Operator},
+    {"**", TokenType::Operator},
 };
 
 Tokenizer::Tokenizer(Lexer& l) : lexer(l) {}
@@ -112,18 +113,19 @@ Token Tokenizer::getNextToken() {
     lexer.advance();
     if(!lexer.isEOF()) {
         char next = static_cast<char>(lexer.peek());
-        if((current == '=' && next == '=') ||
-           (current == '!' && next == '=') ||
-           (current == '<' && next == '=') ||
-           (current == '>' && next == '=') ||
-           (current == '<' && next == '<') ||
-           (current == '>' && next == '>') ||
-           (current == '+' && next == '=') ||
-           (current == '-' && next == '=') ||
-           (current == '/' && next == '=') ||
-           (current == '*' && next == '=') ||
-           (current == '%' && next == '=') ||
-           (current == '^' && next == '=')) {
+        if((current == '=' && next == '=') || // ==
+           (current == '!' && next == '=') || // !=
+           (current == '<' && next == '=') || // <=
+           (current == '>' && next == '=') || // >=
+           (current == '<' && next == '<') || // <<
+           (current == '>' && next == '>') || // >>
+           (current == '*' && next == '*') || // **
+           (current == '+' && next == '=') || // +=
+           (current == '-' && next == '=') || // -=
+           (current == '/' && next == '=') || // /=
+           (current == '*' && next == '=') || // *=
+           (current == '%' && next == '=') || // %=
+           (current == '^' && next == '=')) { // ^=
             op += next;
             lexer.advance();
         }
