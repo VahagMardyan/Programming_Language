@@ -11,6 +11,12 @@
 #include "../Tokenizer/tokenizer.h"
 #include "../Parser/parser.h"
 
+struct CallFrame {
+    size_t returnAddress;
+    size_t baseReg;
+    int argCount;
+};
+
 class VirtualMachine {
     private:
         std::vector<Value> registers;
@@ -19,6 +25,8 @@ class VirtualMachine {
         std::vector<double> current_consants;
         bool debug_mode;
         void visualize(const std::vector<Instruction>& program) const;
+        std::stack<CallFrame> callStack;
+        std::vector<Value> argBuffer;
     public:
         VirtualMachine(bool dm = false) : debug_mode(dm) {
             registers.resize(256, 0.0);

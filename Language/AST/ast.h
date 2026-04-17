@@ -13,6 +13,7 @@ enum class OpCode : uint8_t {
     STORE_VAR,
     PRINT, PRINT_STR,
     LOGICAL_AND, LOGICAL_OR, LOGICAL_NOT,
+    CALL, RETURN, PUSH_ARG, LOAD_PARAM,
 };
 
 class ASTNode {
@@ -156,3 +157,56 @@ class StringNode : public ASTNode {
         std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 
+// function definition
+class FunctionDefNode : public StatementNode {
+    private:
+        std::string name;
+        std::vector<std::string> params;
+        std::shared_ptr<StatementNode> body;
+    public:
+        FunctionDefNode(const std::string& n, std::vector<std::string> p, std::shared_ptr<StatementNode> b)
+        : name(n), params(std::move(p)), body(std::move(b)) {}
+        const std::string& getName() const { return name; }
+        const std::vector<std::string>& getParams() const { return params; }
+        std::shared_ptr<StatementNode> getBody() const { return body; }
+
+        void print(std::string prefix, bool isLast) const override;
+        std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
+};
+
+// function call
+class FunctionCallNode : public ASTNode {
+    private:
+        std::string name;
+        std::vector<std::shared_ptr<ASTNode>> args;
+    public:
+        FunctionCallNode(const std::string& n, std::vector<std::shared_ptr<ASTNode>> a)
+        : name(n), args(std::move(a)) {}
+        const std::string& getName() const { return name; }
+        const std::vector<std::shared_ptr<ASTNode>>& getArgs() const { return args; }
+        void print(std::string prefix, bool isLast) const override;
+        std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
+};
+
+// return statement
+class ReturnNode : public StatementNode {
+    private:
+        std::shared_ptr<ASTNode> expression;
+    public:
+        ReturnNode(std::shared_ptr<ASTNode> expr) : expression(std::move(expr)) {}
+        std::shared_ptr<ASTNode> getExpression() const { return expression; }
+        void print(std::string prefix, bool isLast) const override;
+        std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
+};
+
+class FunctionCallStatementNode : public StatementNode {
+    std::shared_ptr<FunctionCallNode> call;
+public:
+    FunctionCallStatementNode(std::shared_ptr<ASTNode> c)
+        : call(std::dynamic_pointer_cast<FunctionCallNode>(c)) {}
+    std::shared_ptr<FunctionCallNode> getCall() const { return call; }
+    void print(std::string prefix, bool isLast) const override {
+        call->print(prefix, isLast);
+    }
+    std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
+};

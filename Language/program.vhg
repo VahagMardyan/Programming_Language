@@ -102,15 +102,38 @@
 # print(x); # # 0.5
 
 # # print even numbers
-for(i=0; i<=10; i += 2) {
-    print(i,' ');
+# for(i=0; i<=10; i += 2) {
+#     print(i,' ');
+# }
+
+# print('\n');
+
+# # # print odd numbers
+# odd = 1;
+# while(odd <= 10) {
+#     print(odd, " ");
+#     odd += 2;
+# }
+
+# function add(a, b, c, d) {
+   # if(a % 2 == 0) {
+   #    a = a + 4;
+   # } else {
+   #    a = a - 4;
+   # }
+   # return a;
+#    print(a + b - c * d);
+# }
+# add(3, 334, 23, -12.435);
+# x = add(3);
+# print(x);
+
+function add(a) {
+   return a + 4;
 }
 
-print('\n');
-
-# # print odd numbers
-odd = 1;
-while(odd <= 10) {
-    print(odd, " ");
-    odd += 2;
+function foo() {
+   x = add(3);
+   print(x);
 }
+foo();

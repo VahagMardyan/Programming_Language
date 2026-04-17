@@ -87,14 +87,26 @@ std::shared_ptr<ASTNode> Compiler::optimize(std::shared_ptr<ASTNode> node) {
 
 ByteCode Compiler::compile(std::shared_ptr<ASTNode> root) {
     constantPool.clear();
+    stringPool.clear();
     nextTempIndex = 0;
+    functionTable.clear();
+    forwardCalls.clear();
+    
     std::vector<Instruction> insts;
-    if(!root) return {insts, constantPool};
+    if(!root) return {insts, constantPool, stringPool};
+    
     auto optimizedRoot = optimize(root);
     auto stmt = std::dynamic_pointer_cast<StatementNode>(optimizedRoot);
     if(stmt) compileStatement(stmt, insts);
-    else { auto po = postOrderTraverse(optimizedRoot); insts = generateByteCode(po); }
-    return {insts ,constantPool, stringPool};
+    
+    for(auto& [idx, name] : forwardCalls) {
+        if(functionTable.count(name)) {
+            setAddress(insts[idx], (uint16_t)functionTable[name].address);
+        } else {
+            throw std::runtime_error("Undefined function: " + name);
+        }
+    }    
+    return {insts, constantPool, stringPool};
 }
 
 std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::shared_ptr<ASTNode>>& nodes) {
@@ -138,7 +150,29 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
                 (uint32_t)OpCode::LOAD_STR, (uint32_t)reg, (uint32_t)strIdx, 0
             });
             storage.push(reg);
-        }
+        } else if(auto callExpr = std::dynamic_pointer_cast<FunctionCallNode>(node)) {
+            for(const auto& arg : callExpr->getArgs()) {
+                globalCtx.consts.clear();
+                globalCtx.vars.clear();
+                auto argCode = generateByteCode(postOrderTraverse(arg));
+                code.insert(code.end(), argCode.begin(), argCode.end());
+                int argReg = argCode.empty() ? 0 : argCode.back().dst;
+                code.push_back({(uint32_t)OpCode::PUSH_ARG, (uint32_t)argReg, 0, 0});
+            }
+        
+            int resultReg = nextTempIndex++;
+            Instruction callInst;
+            callInst.op  = (uint32_t)OpCode::CALL;
+            callInst.dst = (uint32_t)resultReg;
+            if(functionTable.count(callExpr->getName())) {
+                setAddress(callInst, (uint16_t)functionTable[callExpr->getName()].address);
+            } else {
+                setAddress(callInst, 0);
+                forwardCalls.push_back({code.size(), callExpr->getName()});
+            }
+            code.push_back(callInst);
+            storage.push(resultReg);
+        }  
     }
     return code;
 }
@@ -218,7 +252,61 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
 
         code.push_back({(uint32_t)OpCode::JMP, 0, (uint32_t)startAddr, 0});
         code[jzIdx].left = (uint32_t)code.size();
+    } else if(auto funcDef = std::dynamic_pointer_cast<FunctionDefNode>(stmt)) {
+
+        size_t jmpIdx = code.size();
+        code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
+
+        size_t funcAddr = code.size();
+        functionTable[funcDef->getName()] = {funcAddr, (int)funcDef->getParams().size()};
+
+        globalCtx.consts.clear();
+        globalCtx.vars.clear();
+        for(int i = 0; i < (int)funcDef->getParams().size(); i++) {
+            size_t paramAddr = symTable.getAddress(funcDef->getParams()[i]);
+            int reg = nextTempIndex++;
+            code.push_back({(uint32_t)OpCode::LOAD_PARAM, (uint32_t)reg, (uint32_t)i, 0});
+            
+            code.push_back({(uint32_t)OpCode::STORE_VAR, 0, (uint32_t)paramAddr, (uint32_t)reg});
+        }
+        compileStatement(funcDef->getBody(), code);
+        code.push_back({(uint32_t)OpCode::RETURN, 0, 0, 0});
+
+        setAddress(code[jmpIdx], (uint16_t)code.size());
+    } else if(auto callStmt = std::dynamic_pointer_cast<FunctionCallStatementNode>(stmt)) {
+        auto call = callStmt->getCall();
+        // Arguments compile + PUSH_ARG
+        for(const auto& arg : call->getArgs()) {
+            globalCtx.consts.clear();
+            globalCtx.vars.clear();
+            auto exprCode = generateByteCode(postOrderTraverse(arg));
+            code.insert(code.end(), exprCode.begin(), exprCode.end());
+            int argReg = exprCode.empty() ? 0 : exprCode.back().dst;
+            code.push_back({(uint32_t)OpCode::PUSH_ARG, (uint32_t)argReg, 0, 0});
+        }
+
+        int resultReg = nextTempIndex++;
+        Instruction callInst;
+        callInst.op  = (uint32_t)OpCode::CALL;
+        callInst.dst = (uint32_t)resultReg;
+        if(functionTable.count(call->getName())) {
+            setAddress(callInst, (uint16_t)functionTable[call->getName()].address);
+        } else {
+            setAddress(callInst, 0);
+            forwardCalls.push_back({code.size(), call->getName()});
+        }
+        code.push_back(callInst);
     }
+     else if(auto retStmt = std::dynamic_pointer_cast<ReturnNode>(stmt)) {
+        if(retStmt -> getExpression()) {
+            auto exprCode = generateByteCode(postOrderTraverse(retStmt -> getExpression()));
+            code.insert(code.end(), exprCode.begin(), exprCode.end());
+            int lastReg = exprCode.empty() ? 0 : exprCode.back().dst;
+            code.push_back({(uint32_t)OpCode::RETURN, (uint32_t)lastReg, 0, 0 });
+        } else {
+            code.push_back({(uint32_t)OpCode::RETURN, 0, 0, 0});
+        }
+    } 
 }
 
 void Compiler::printByteCode(const std::vector<Instruction>& code) const {

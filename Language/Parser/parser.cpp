@@ -94,6 +94,8 @@ std::shared_ptr<StatementNode> Parser::parseStatement() {
         case TokenType::Print:     return parsePrint();
         case TokenType::Name:      return parseAssignment();
         case TokenType::For:       return parseFor();
+        case TokenType::Function:  return parseFunction();
+        case TokenType::Return:    return parseReturn();
         default:
             parseExpression();
             if(currentToken.type == TokenType::Semicolon) nextToken();
@@ -143,23 +145,32 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
     std::string name = currentToken.value;
     size_t addr = symTable.getAddress(name);
     nextToken();
+
+    // Function call statement: foo(args);
+    if(currentToken.type == TokenType::OpenParen) {
+        auto callNode = parseFunctionCall(name);
+        if(currentToken.type == TokenType::Semicolon) nextToken();
+        return std::make_shared<FunctionCallStatementNode>(callNode);
+    }
+
     if(currentToken.type == TokenType::Assign) {
         nextToken();
         auto expr = parseExpression();
         if(currentToken.type == TokenType::Semicolon) nextToken();
         return std::make_shared<AssignmentNode>(addr, expr);
     }
+
     if(currentToken.type == TokenType::CompoundAssign) {
-        std::string op = currentToken.value; // +=, -=, ...
+        std::string op = currentToken.value; // += , -=, ...
         nextToken();
         auto rhs = parseExpression();
         if(currentToken.type == TokenType::Semicolon) nextToken();
-        // x+=5 -> x = x+5;
-        std::string baseOp = op.substr(0,1); // "+" from "+="
+        std::string baseOp = op.substr(0, 1);
         auto varNode = std::make_shared<VariableNode>(addr);
         auto expr = std::make_shared<BinaryOpNode>(baseOp, varNode, rhs);
         return std::make_shared<AssignmentNode>(addr, expr);
     }
+
     state = ParserState::Error;
     return nullptr;
 }
@@ -217,9 +228,15 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                     state = ParserState::ExpectOperator;
                     nextToken();
                 } else if(token.type == TokenType::Name) {
-                    nodes.push(std::make_shared<VariableNode>(symTable.getAddress(token.value)));
-                    state = ParserState::ExpectOperator;
                     nextToken();
+                    if(currentToken.type == TokenType::OpenParen) {
+                        auto callNode = parseFunctionCall(token.value);
+                        nodes.push(callNode);
+                        state = ParserState::ExpectOperator;
+                    } else {
+                        nodes.push(std::make_shared<VariableNode>(symTable.getAddress(token.value)));
+                        state = ParserState::ExpectOperator;
+                    }
                 } else if(token.type == TokenType::StringLiteral) {
                     nodes.push(std::make_shared<StringNode>(token.value));
                     state = ParserState::ExpectOperator;
@@ -257,6 +274,16 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                         state = ParserState::ExpectOperator; nextToken();
                     } else {
                         state = ParserState::Done;
+                    }
+                } else if(token.type == TokenType::Name) {
+                    nextToken();
+                    if(currentToken.type == TokenType::OpenParen) {
+                        auto callNode = parseFunctionCall(token.value);
+                        nodes.push(callNode);
+                        state = ParserState::ExpectOperator;
+                    } else {
+                        nodes.push(std::make_shared<VariableNode>(symTable.getAddress(token.value)));
+                        state = ParserState::ExpectOperator;
                     }
                 } else if(token.type == TokenType::Number ||
                           token.type == TokenType::Name   ||
@@ -299,3 +326,53 @@ std::shared_ptr<StatementNode> Parser::parseFor() {
     auto body = parseStatement();
     return std::make_shared<ForStatementNode>(init, cond, update, body);
 }
+
+std::shared_ptr<StatementNode> Parser::parseFunction() {
+    nextToken(); // skip 'function'
+    std::string name = currentToken.value;
+    nextToken(); // skip function name
+    if(currentToken.value != "(") {
+        state = ParserState::Error;
+        return nullptr;
+    }
+    nextToken(); // skip '('
+    std::vector<std::string> params;
+    while(currentToken.value != ")" && currentToken.type != TokenType::EndOfExpr) {
+        params.push_back(currentToken.value);
+        nextToken();
+        if(currentToken.type == TokenType::Comma) nextToken(); // skip ','
+    }
+    if(currentToken.value != ")") {
+        state = ParserState::Error;
+        return nullptr;
+    }
+    nextToken(); // skip ')'
+    auto body = parseBlock();
+    return std::make_shared<FunctionDefNode>(name, params, body);
+}
+
+std::shared_ptr<StatementNode> Parser::parseReturn() {
+    nextToken(); // skip 'return'
+    std::shared_ptr<ASTNode> expr = nullptr;
+    if(currentToken.type != TokenType::Semicolon) {
+        expr = parseExpression();
+    }
+    if(currentToken.type == TokenType::Semicolon) nextToken();
+    return std::make_shared<ReturnNode>(expr);
+}
+
+std::shared_ptr<ASTNode> Parser::parseFunctionCall(const std::string& name) {
+    nextToken(); // skip '('
+    std::vector<std::shared_ptr<ASTNode>> args;
+    while(currentToken.value != ")" && currentToken.type != TokenType::EndOfExpr) {
+        args.push_back(parseExpression());
+        if(currentToken.type == TokenType::Comma) nextToken();
+    }
+    if(currentToken.value != ")") {
+        state = ParserState::Error;
+        return nullptr;
+    }
+    nextToken(); // skip ')'
+    return std::make_shared<FunctionCallNode>(name, std::move(args));
+}
+

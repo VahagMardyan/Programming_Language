@@ -83,3 +83,27 @@ void ForStatementNode::print(std::string prefix, bool isLast) const {
     update->print(p, false);
     body->print(p, true);
 }
+
+void FunctionDefNode::print(std::string prefix, bool isLast) const {
+    std::cout << prefix << (isLast ? "└── " : "├── ")
+              << "Function: " << name << "(";
+    for(size_t i = 0; i < params.size(); ++i) {
+        std::cout << params[i];
+        if(i < params.size()-1) std::cout << ", ";
+    }
+    std::cout << ")" << std::endl;
+    body->print(prefix + (isLast ? "    " : "│   "), true);
+}
+
+void FunctionCallNode::print(std::string prefix, bool isLast) const {
+    std::cout << prefix << (isLast ? "└── " : "├── ")
+              << "Call: " << name << std::endl;
+    for(size_t i = 0; i < args.size(); ++i)
+        args[i]->print(prefix + (isLast ? "    " : "│   "), i == args.size()-1);
+}
+
+void ReturnNode::print(std::string prefix, bool isLast) const {
+    std::cout << prefix << (isLast ? "└── " : "├── ") << "Return" << std::endl;
+    if(expression)
+        expression->print(prefix + (isLast ? "    " : "│   "), true);
+}

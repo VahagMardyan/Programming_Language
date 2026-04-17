@@ -17,6 +17,8 @@ enum class TokenType {
     Not, // !
     CompoundAssign, // +=, -=, *=, /=, %= and ^=
     Boolean, // true/false
+    Function, // function,
+    Return, // return value
 };
 
 struct Token {
