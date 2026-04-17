@@ -1,0 +1,86 @@
+#*
+=============================================
+VHG Language Comprehensive Test
+=============================================
+*#
+
+# 1. Global variables and basic operations
+a = 10;
+b = 20.5;
+str1 = "Hello";
+str2 = 'World';
+
+print("=== Global variables and math ===\n");
+print("a = ", a, "\n");
+print("b = ", b, "\n");
+print("a + b = ", a + b, "\n");
+print("a * 2 = ", a * 2, "\n");
+print("str1 + str2 = ", str1 + " " + str2, "\n");
+
+# 2.Global variables
+global x = 100;
+global y = 200;
+
+print("\n=== Local variables ===\n");
+print("x = ", x, "\n");
+print("y = ", y, "\n");
+
+# 3. If - else if - else
+print("\n=== If-else ===\n");
+if (a > 5) {
+    print("a > 5 is true\n");
+} else if (a == 5) {
+    print("a == 5\n");
+} else {
+    print("a <= 5\n");
+}
+
+# 4. While loop
+print("\n=== While loop ===\n");
+i = 0;
+while (i < 5) {
+    print("while i = ", i, "\n");
+    i = i + 1;
+}
+
+# 5. For loop
+print("\n=== For loop ===\n");
+for (j = 0; j < 4; j = j + 1) {
+    print("for local j = ", j, "\n");
+}
+
+for (k = 0; k < 3; k = k + 1) {
+    print("for global k = ", k, "\n");
+}
+
+# 6. Function with parameters
+function test_func(n, m) {
+    local result = n + m * 2;
+    print("Inside test_func: n=", n, " m=", m, " result=", result, "\n");
+    return result;
+}
+
+print("\n=== Function test ===\n");
+func_result = test_func(5, 10);
+print("Function returned: ", func_result, "\n");
+
+# 7. String operations and print with multiple arguments
+print("\n=== String and multi-arg print ===\n");
+print("Mixed: ", "Number=", 42, " String=", "Test", "\n");
+
+# 8. Unary operations
+print("\n=== Unary ===\n");
+neg = -15;
+print("neg = ", neg, "\n");
+print("-neg = ", -neg, "\n");
+
+# 9. Comparison operators
+print("\n=== Comparisons ===\n");
+if (10 > 5 and 5 < 10) {
+    print("10 > 5 and 5 < 10 → true\n");
+}
+if (10 == 10 or 5 == 6) {
+    print("10 == 10 or 5 == 6 → true\n");
+}
+
+print("\n=== All tests completed ===\n");

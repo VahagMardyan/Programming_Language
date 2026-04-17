@@ -19,6 +19,8 @@ enum class TokenType {
     Boolean, // true/false
     Function, // function,
     Return, // return value
+    Global, // global variable
+    Local, // local variable
 };
 
 struct Token {

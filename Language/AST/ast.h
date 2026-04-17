@@ -5,8 +5,7 @@
 #include "../SymbolTable/symbol_table.h"
 
 enum class OpCode : uint8_t {
-<<<<<<< HEAD
-    ADD, SUB, MUL, DIV, AND, OR, XOR, MODULO,
+    ADD, SUB, MUL, DIV, AND, OR, XOR, MODULO, POW,
     LSHIFT, RSHIFT, UNARY, LOAD_CONST, LOAD_VAR, LOAD_STR,
     UNDEFINED,
     CMP_GT, CMP_LT, CMP_GET, CMP_LET, CMP_EQ, CMP_NEQ,
@@ -15,26 +14,7 @@ enum class OpCode : uint8_t {
     PRINT, PRINT_STR,
     LOGICAL_AND, LOGICAL_OR, LOGICAL_NOT,
     CALL, RETURN, PUSH_ARG, LOAD_PARAM,
-=======
-    // RISC-V arithmetic (0-9)
-    ADD = 0, SUB = 1, MUL = 2, DIV = 3, AND = 4, OR = 5, XOR = 6, MOD = 7, SLL = 8, SRL = 9,
-    // Immediate (10-19)
-    ADDI = 10, SUBI = 11, MULI = 12, DIVI = 13, ANDI = 14, ORI = 15, XORI = 16, MODI = 17, SLLI = 18, SRLI = 19,
-    // Load/Store (20-21)
-    LW = 20, SW = 21,
-    // Branches (22-25)
-    BEQ = 22, BNE = 23, BLT = 24, BGE = 25,
-    // Jumps (26-27)
-    JAL = 26, JALR = 27,
-    // Extended (28+)
-    LOAD_CONST = 28, LOAD_STR = 29, PRINT = 30, PRINT_STR = 31,
-    // Comparisons (32-37)
-    CMP_EQ = 32, CMP_NE = 33, CMP_LT = 34, CMP_GT = 35, CMP_LE = 36, CMP_GE = 37,
-    // Logical (38-40)
-    LOGICAL_AND = 38, LOGICAL_OR = 39, LOGICAL_NOT = 40,
-    HALT = 41, POW = 42,
-    UNDEFINED = 255
->>>>>>> 37c62253fa08934c2bae054db3a95e11c543af6e
+    LOAD, STORE, ADDI,
 };
 
 class ASTNode {
@@ -54,11 +34,24 @@ public:
 };
 
 class VariableNode : public ASTNode {
-    size_t offset;   // offset from frame pointer
+    bool isLocal;
+    union {
+        size_t globalAddr;
+        int32_t localOffset;
+    };
 public:
-    VariableNode(size_t off) : offset(off) {}
-    size_t getOffset() const { return offset; }
-    void print(std::string prefix, bool isLast) const override;
+    VariableNode(size_t addr) : isLocal(false), globalAddr(addr) {}
+    VariableNode(int32_t off)  : isLocal(true), localOffset(off) {}
+
+    bool getIsLocal() const { return isLocal; }
+    size_t getGlobalAddr() const { return globalAddr; }
+    int32_t getLocalOffset() const { return localOffset; }
+
+    void print(std::string prefix, bool isLast) const override {
+        std::cout << prefix << (isLast ? "└── " : "├── ")
+                  << "Var (" << (isLocal ? "local off=" : "global addr=")
+                  << (isLocal ? localOffset : (int)globalAddr) << ")" << std::endl;
+    }
     std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 
@@ -69,7 +62,7 @@ public:
     BinaryOpNode(const std::string& o, std::shared_ptr<ASTNode> l, std::shared_ptr<ASTNode> r)
         : op(o), left(std::move(l)), right(std::move(r)) {}
     void print(std::string prefix, bool isLast) const override;
-    OpCode getOpCode() const;  // returns appropriate OpCode
+    OpCode getOpCode() const;
     std::shared_ptr<ASTNode> getLeft() const { return left; }
     std::shared_ptr<ASTNode> getRight() const { return right; }
     std::string getOp() const { return op; }
@@ -83,7 +76,6 @@ public:
     UnaryOpNode(const std::string& o, std::shared_ptr<ASTNode> c) : op(o), child(std::move(c)) {}
     void print(std::string prefix, bool isLast) const override;
     std::string getOp() const { return op; }
-    std::shared_ptr<ASTNode> getChild() const { return child; }
     std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {child}; }
 };
 
@@ -103,20 +95,35 @@ public:
 };
 
 class AssignmentNode : public StatementNode {
-    size_t offset;
+    bool isLocal;
+    union {
+        size_t globalAddr;
+        int32_t localOffset;
+    };
     std::shared_ptr<ASTNode> expression;
 public:
-    AssignmentNode(size_t off, std::shared_ptr<ASTNode> expr) : offset(off), expression(std::move(expr)) {}
-    void print(std::string prefix, bool isLast) const override;
+    AssignmentNode(size_t addr, std::shared_ptr<ASTNode> expr)
+        : isLocal(false), globalAddr(addr), expression(std::move(expr)) {}
+    AssignmentNode(int32_t off, std::shared_ptr<ASTNode> expr)
+        : isLocal(true), localOffset(off), expression(std::move(expr)) {}
+
+    bool getIsLocal() const { return isLocal; }
+    size_t getGlobalAddr() const { return globalAddr; }
+    int32_t getLocalOffset() const { return localOffset; }
     std::shared_ptr<ASTNode> getExpression() const { return expression; }
-    size_t getOffset() const { return offset; }
+
+    void print(std::string prefix, bool isLast) const override {
+        std::cout << prefix << (isLast ? "└── " : "├── ") << "Assignment (=)" << std::endl;
+        expression->print(prefix + (isLast ? "    " : "│   "), true);
+    }
 };
 
 class IfStatementNode : public StatementNode {
     std::shared_ptr<ASTNode> condition;
     std::shared_ptr<StatementNode> thenBranch, elseBranch;
 public:
-    IfStatementNode(std::shared_ptr<ASTNode> cond, std::shared_ptr<StatementNode> thenBr,
+    IfStatementNode(std::shared_ptr<ASTNode> cond,
+                    std::shared_ptr<StatementNode> thenBr,
                     std::shared_ptr<StatementNode> elseBr = nullptr)
         : condition(cond), thenBranch(thenBr), elseBranch(elseBr) {}
     void print(std::string prefix, bool isLast) const override;
@@ -145,31 +152,38 @@ public:
 };
 
 class ForStatementNode : public StatementNode {
-    std::shared_ptr<StatementNode> init;
-    std::shared_ptr<ASTNode> condition;
-    std::shared_ptr<StatementNode> update;
-    std::shared_ptr<StatementNode> body;
-public:
-    ForStatementNode(std::shared_ptr<StatementNode> in, std::shared_ptr<ASTNode> cond,
-                     std::shared_ptr<StatementNode> updt, std::shared_ptr<StatementNode> bdy)
+    private:
+        std::shared_ptr<StatementNode> init; // i = start
+        std::shared_ptr<ASTNode> condition; // i < 10
+        std::shared_ptr<StatementNode> update; // i = i+1
+        std::shared_ptr<StatementNode> body; // i = i+1
+    public:
+        ForStatementNode(std::shared_ptr<StatementNode> in, 
+                         std::shared_ptr<ASTNode> cond, 
+                         std::shared_ptr<StatementNode> updt,
+                         std::shared_ptr<StatementNode> bdy)
         : init(std::move(in)), condition(std::move(cond)), update(std::move(updt)), body(std::move(bdy)) {}
-    void print(std::string prefix, bool isLast) const override;
-    std::shared_ptr<StatementNode> getInit() const { return init; }
-    std::shared_ptr<ASTNode> getCondition() const { return condition; }
-    std::shared_ptr<StatementNode> getUpdate() const { return update; }
-    std::shared_ptr<StatementNode> getBody() const { return body; }
+        void print(std::string prefix, bool isLast) const override;
+        std::shared_ptr<StatementNode> getInit()      const { return init; }
+    std::shared_ptr<ASTNode>       getCondition() const { return condition; }
+    std::shared_ptr<StatementNode> getUpdate()    const { return update; }
+    std::shared_ptr<StatementNode> getBody()      const { return body; }
 };
 
 class StringNode : public ASTNode {
-    std::string value;
-public:
-    StringNode(const std::string& val = "") : value(val) {}
-    const std::string& getValue() const { return value; }
-    void print(std::string prefix, bool isLast) const override;
-    std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
+    private:
+        std::string value;
+    public:
+        StringNode(const std::string& val = "") : value(val) {}
+        const std::string getValue() const {
+            return value;
+        }
+        void print(std::string prefix, bool isLast) const override {
+            std::cout << prefix << (isLast ? "└── " : "├── ") << "String: \"" << value << "\"" << std::endl;
+        }
+        std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 
-<<<<<<< HEAD
 // function definition
 class FunctionDefNode : public StatementNode {
     private:
@@ -210,41 +224,6 @@ class ReturnNode : public StatementNode {
         std::shared_ptr<ASTNode> getExpression() const { return expression; }
         void print(std::string prefix, bool isLast) const override;
         std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
-=======
-class FunctionDefNode : public StatementNode {
-    std::string name;
-    std::vector<std::string> params;
-    std::shared_ptr<StatementNode> body;
-public:
-    FunctionDefNode(const std::string& n, std::vector<std::string> p, std::shared_ptr<StatementNode> b)
-        : name(n), params(std::move(p)), body(std::move(b)) {}
-    const std::string& getName() const { return name; }
-    const std::vector<std::string>& getParams() const { return params; }
-    std::shared_ptr<StatementNode> getBody() const { return body; }
-    void print(std::string prefix, bool isLast) const override;
-    std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
-};
-
-class FunctionCallNode : public ASTNode {
-    std::string name;
-    std::vector<std::shared_ptr<ASTNode>> args;
-public:
-    FunctionCallNode(const std::string& n, std::vector<std::shared_ptr<ASTNode>> a)
-        : name(n), args(std::move(a)) {}
-    const std::string& getName() const { return name; }
-    const std::vector<std::shared_ptr<ASTNode>>& getArgs() const { return args; }
-    void print(std::string prefix, bool isLast) const override;
-    std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
-};
-
-class ReturnNode : public StatementNode {
-    std::shared_ptr<ASTNode> expression;
-public:
-    ReturnNode(std::shared_ptr<ASTNode> expr) : expression(std::move(expr)) {}
-    std::shared_ptr<ASTNode> getExpression() const { return expression; }
-    void print(std::string prefix, bool isLast) const override;
-    std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
->>>>>>> 37c62253fa08934c2bae054db3a95e11c543af6e
 };
 
 class FunctionCallStatementNode : public StatementNode {
@@ -253,12 +232,8 @@ public:
     FunctionCallStatementNode(std::shared_ptr<ASTNode> c)
         : call(std::dynamic_pointer_cast<FunctionCallNode>(c)) {}
     std::shared_ptr<FunctionCallNode> getCall() const { return call; }
-<<<<<<< HEAD
     void print(std::string prefix, bool isLast) const override {
         call->print(prefix, isLast);
     }
-=======
-    void print(std::string prefix, bool isLast) const override;
->>>>>>> 37c62253fa08934c2bae054db3a95e11c543af6e
     std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };

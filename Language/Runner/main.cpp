@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
     ss << file.rdbuf();
 
     SymbolTable st;
-    VirtualMachine vm(true);
+    VirtualMachine vm(false);
     try {
         vm.load(ss.str(), st);
         vm.run();

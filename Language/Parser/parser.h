@@ -36,10 +36,6 @@ class Parser {
     std::shared_ptr<StatementNode> parseFunction();
     std::shared_ptr<StatementNode> parseReturn();
     std::shared_ptr<ASTNode> parseFunctionCall(const std::string& name);
-<<<<<<< HEAD
-=======
-    std::shared_ptr<ASTNode> parsePrimary();
->>>>>>> 37c62253fa08934c2bae054db3a95e11c543af6e
 public:
     Parser(Tokenizer& tok, SymbolTable& st)
         : tokenizer(tok), symTable(st), state(ParserState::ExpectOperand) { nextToken(); }

@@ -104,6 +104,8 @@ Token Tokenizer::getNextToken() {
         if(name == "true" || name == "false") return {TokenType::Boolean, name};
         if(name == "function") return {TokenType::Function, name};
         if(name == "return") return {TokenType::Return, name};
+        if(name == "local") return {TokenType::Local, name};
+        if(name == "global") return {TokenType::Global, name};
         return {TokenType::Name, name};
     }
 
@@ -119,13 +121,13 @@ Token Tokenizer::getNextToken() {
            (current == '>' && next == '=') || // >=
            (current == '<' && next == '<') || // <<
            (current == '>' && next == '>') || // >>
-           (current == '*' && next == '*') || // **
            (current == '+' && next == '=') || // +=
            (current == '-' && next == '=') || // -=
            (current == '/' && next == '=') || // /=
            (current == '*' && next == '=') || // *=
            (current == '%' && next == '=') || // %=
-           (current == '^' && next == '=')) { // ^=
+           (current == '^' && next == '=') ||
+           (current == '*' && next == '*')) { // **
             op += next;
             lexer.advance();
         }

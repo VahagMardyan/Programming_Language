@@ -115,7 +115,6 @@
 #     odd += 2;
 # }
 
-<<<<<<< HEAD
 # function add(a, b, c, d) {
    # if(a % 2 == 0) {
    #    a = a + 4;
@@ -129,86 +128,90 @@
 # x = add(3);
 # print(x);
 
-function add(a) {
-   return a + 4;
-}
-
-function foo() {
-   x = add(3);
-   print(x);
-}
-foo();
-=======
 # function add(a) {
-#    # if(a % 2 == 0) {
-#    #    return a + 4;
-#    # } else {
-#    #    return a - 4;
-#    # }
-#    print(a + 5);
-# }
-# x = add(3);
-# print(x);
-# add(3);
-
-# function addOne(n) {
-#     return n + 1;
+#    return a + 4;
 # }
 
-# x = 10;
-# y = addOne(x);
-# print(y);
-
-# function add(a,b) {
-#     return a + b;
+# function foo() {
+#    x = add(3);
+#    print(x);
 # }
-
-# x = add(2,4);
-# print("output: ",x);
+# foo();
 
 # x = 3;
+# function factorial(n) {
+#    fact = 1;
+#    i = 1;
+#    while(i <= n) {
+#       fact *= i;
+#       i+=1;
+#    }
+#    return fact;
+# }
+# f = factorial(5);
+# print(f);
 
-# function check(x) {
-#     if(x > 4) {
-#         x += 2;
-#     } else {
-#         x *= 2;
-#     }
-#     return x;
+# function fib(n) {
+#    if (n <= 1) {
+#       return n;
+#    }
+   
+#    local a = 0;
+#    local b = 1;
+#    local result = 0;
+   
+#    for (local i = 2; i <= n; i = i + 1) {
+#       result = a + b;
+#       a = b;
+#       b = result;
+#    }
+   
+#    return result;
 # }
 
-# a = check(28);
-# print(a);
+# print("Fibonacci(10) = ");
+# print(fib(10));
+# print("\n");
 
-# print(x);
-
-# x = 2 + 4;
-# print("output: ",x,'\n');
+# print("First 10 Fibonacci numbers:\n");
+# for (i = 0; i <= 10; i = i + 1) {
+#    print(fib(i));
+#    print(" ");
+# }
 
 # function factorial(n) {
-#     x = 1;
-#     for(i=2;i<=n;i+=1) {
-#         x *= i;
-#     }
-#     return x;
+#    local x = 1;
+#    for(local i=1;i<=n;i+=1) {
+#       x *= i;
+#    }
+#    return x;
 # }
 
-# x = factorial(5);
-# print(x);
+# # Nested function
 
-function foo() {
-    a = 5;
-    if(a < 3) { # # will execute this one
-        a += 2;
-    } else if(a == 5){
-        a = a ** 3;
-    } else {
-        a /= 2;
-    }
-    return a;
-}
+# function foo() {
+#    function add(x) {
+#       return x + 4;
+#    }
+#    local a = add(3);
+#    local b = a / 2;
+#    print("b=", b,'\n');
+# }
 
-x = foo();
-print(x);
+# foo();
 
->>>>>>> 37c62253fa08934c2bae054db3a95e11c543af6e
+# # Nested loop (for -> while)
+# for(i=0;i<=5;i+=1) {
+#    j = 0;
+#    while(j <= 3) {
+#       print(i + j, ' ');
+#       j+=1;
+#    }
+# }
+
+# # for for
+for(i=0;i<=10;i+=2) {
+   for(j=1;j<5;j*=2) {
+      print(i+j," ");
+   }
+} 

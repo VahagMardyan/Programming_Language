@@ -55,7 +55,7 @@
             "name": "keyword.control_boolean.vhg"
         },
         "logical_operators": {
-            "match": "\\b(and|or|not)\\b",
+            "match": "\\b(and|or|not|local|global)\\b",
             "name": "keyword.operator.logical.vhg"
         },
         "numbers": {
