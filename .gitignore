@@ -6,6 +6,9 @@
 *.bin
 *.pdb
 
+# VHG binary files
+*.vhb
+
 # Python related
 __pycache__
 *.pyc
@@ -24,5 +27,3 @@ Thumbs.db
 out/
 build/
 bin/
-
-test.cpp

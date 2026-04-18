@@ -1,7 +1,6 @@
 **Please don't take this `README.md` too seriously - I'll update it once the project is finished.🙂**
-**Please check the `I-mid-exam` branch.**
 
-# 🧮 Math Expression Compiler
+# 🧮 Compiler
 
 A high-performance C++ mathematical expression evaluator that follows a full compiler pipeline: from lexical analysis to Abstract Syntax Tree (AST) construction, and finally to bytecode execution via a Register-based Virtual Machine.
 
@@ -187,6 +186,11 @@ cl /EHsc /O2 /W4 *.cpp /Fe:out.exe && out.exe ./file_name.txt
     }
 }
 ```
+
+### **Compile and run VHG language**
+* Compile command: `out.exe compile <filename.vhg>`
+    It will give you a `filename.vhb` binary file.
+* Run command: `out.exe run <filename.vhb>`
 ```
 
 #### **MSVC Flag Definitions:**
@@ -198,117 +202,92 @@ cl /EHsc /O2 /W4 *.cpp /Fe:out.exe && out.exe ./file_name.txt
 * `/Fe:out.exe` ➡️ Specifies the output executable file name.
 ---
 
-## 🛠️ (main.cpp)
+### **Program example. Use the '.vhg' extension.**
 
-```cpp
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <filesystem>
-#include "vm.h"
-#include "symbol_table.h"
-
-int main(int argc, char* argv[]) {
-    if(argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <filename>" << std::endl;
-        return 1;
-    }
-    std::string filename = argv[1];
-    
-    if(filename.length() < 5 || filename.substr(filename.length() - 4) != ".vhg") {
-        std::cerr << "Error: Only '.vhg' files are supported!" << std::endl;
-        return 1;
-    }
-
-    std::ifstream file(filename);
-    if(!file.is_open()) {
-        std::cerr << "Error: Cannot open file '" << filename <<"'" << std::endl;
-        return 1;
-    }
-
-    std::ostringstream ss;
-    ss << file.rdbuf();
-
-    SymbolTable st;
-    VirtualMachine vm(false);
-    try {
-        vm.load(ss.str(), st);
-        vm.run(st);
-    } catch(const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-        return 1;
-    }
-    return 0;
-}
-```
-## Program example. Use '.vhg' extension (Theoritically you can use any extension).
 ```vhg
-x = 10;
-y = 3;
-z = 0;
-total = 0;
-count = 5; # # Count for while loop
+# 1. Global variables and basic operations
+a = 10;
+b = 20.5;
+str1 = "Hello";
+str2 = 'World';
 
-# # Single line comment
+print("=== Global variables and math ===\n");
+print("a = ", a, "\n");
+print("b = ", b, "\n");
+print("a + b = ", a + b, "\n");
+print("a * 2 = ", a * 2, "\n");
+print("str1 + str2 = ", str1 + " " + str2, "\n");
 
-#* 
-    Multi
-    Line
-    Comment
-*#
+# 2.Global variables
+global x = 100;
+global y = 200;
 
-while(count > 0) {
-    total = total + count;
-    count = count - 1;
-}
+print("\n=== Local variables ===\n");
+print("x = ", x, "\n");
+print("y = ", y, "\n");
 
-if(total > 20) {
-    z = 100;
+# 3. If - else if - else
+print("\n=== If-else ===\n");
+if (a > 5) {
+    print("a > 5 is true\n");
+} else if (a == 5) {
+    print("a == 5\n");
 } else {
-    if(total > 10) {
-        z = 50;
-    } else {
-        z = 0;
-    }
+    print("a <= 5\n");
 }
 
-x = x & 7;
-y = y | 4;
-z = z ^ 1;
-x = x << 1;
-y = y >> 1;
-z = z % 3;
+# 4. While loop
+print("\n=== While loop ===\n");
+i = 0;
+while (i < 5) {
+    print("while i = ", i, "\n");
+    i = i + 1;
+}
 
-total = total + -1;
+# 5. For loop
+print("\n=== For loop ===\n");
+for (j = 0; j < 4; j = j + 1) {
+    print("for local j = ", j, "\n");
+}
 
-    if(x == 4) {
-    if(y > 2) {
-        total = total + 10;
-    } else {
-        total = total + 5;
-    }
+for (k = 0; k < 3; k = k + 1) {
+    print("for global k = ", k, "\n");
+}
+
+# 6. Function with parameters
+function test_func(n, m) {
+    local result = n + m * 2;
+    print("Inside test_func: n=", n, " m=", m, " result=", result, "\n");
+    return result;
+}
+
+print("\n=== Function test ===\n");
+func_result = test_func(5, 10);
+print("Function returned: ", func_result, "\n");
+
+# 7. String operations and print with multiple arguments
+print("\n=== String and multi-arg print ===\n");
+print("Mixed: ", "Number=", 42, " String=", "Test", "\n");
+
+# 8. Unary operations
+print("\n=== Unary ===\n");
+neg = -15;
+print("neg = ", neg, "\n");
+print("-neg = ", -neg, "\n");
+
+# 9. Comparison operators
+print("\n=== Comparisons ===\n");
+if (10 > 5 and 5 < 10) {
+    print("10 > 5 and 5 < 10 → true\n");
+}
+if (10 != 15 or 5 == 6) {
+    print("10 != 15 or 5 == 6 → true\n");
+}
+empty_text = "";
+if(not empty_text) {
+    print("true");
 } else {
-    if(x != 0) {
-        total = total * 2;
-    } else {
-        total = 0;
-    }
+    print('false');
 }
-
-result = (x + y) * z - total % 4 + 1;
-
-print(x, y, z, total, result);
-
-x = "vahag";
-if(x) {
-    x = 18;
-    print("x=", x, "\n");
-} else {
-    print("Nothing to print.")
-}
-
-for(i = 0; i<10; i = i+1) {
-    print(i, ": Hello World!\n");
-}
+print("\n=== All tests completed ===\n");
 ```
