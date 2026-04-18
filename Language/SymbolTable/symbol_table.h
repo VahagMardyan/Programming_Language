@@ -37,6 +37,7 @@ class SymbolTable {
 private:
     std::unordered_map<std::string, size_t> globalAddresses;
     std::unordered_map<std::string, int32_t> localOffsets;
+    bool inFunctionScope = false;
     int32_t nextLocalOffset = -4;
     size_t nextGlobalAddress = 0;
 
@@ -63,11 +64,13 @@ public:
     }
 
     void enterFunctionScope() {
+        inFunctionScope = true;
         localOffsets.clear();
         nextLocalOffset = -4;
     }
 
     void exitFunctionScope() {
+        inFunctionScope = false;
         localOffsets.clear();
         nextLocalOffset = -4;
     }
@@ -78,5 +81,9 @@ public:
 
     size_t getAddress(const std::string& name) {
         return getGlobalAddress(name);
+    }
+
+    bool isInsideFunction() const {
+        return inFunctionScope;
     }
 };

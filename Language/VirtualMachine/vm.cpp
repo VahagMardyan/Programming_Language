@@ -1,4 +1,15 @@
 #include "vm.h"
+#include <cmath>
+
+namespace {
+int32_t toInt32(const Value& v) {
+    return static_cast<int32_t>(asNumber(v));
+}
+
+double fromInt32(int32_t v) {
+    return static_cast<double>(v);
+}
+}
 
 void VirtualMachine::load(const std::string& expr, SymbolTable& symtable) {
     std::istringstream stream(expr);
@@ -10,6 +21,23 @@ void VirtualMachine::load(const std::string& expr, SymbolTable& symtable) {
     if(!root) throw std::runtime_error("Parsing failed!");
     Compiler compiler(symtable);
     ByteCode bc = compiler.compile(root);
+    loadByteCode(bc);
+
+    if(debug_mode) {
+        root->print();
+        visualize(current_program);
+    }
+}
+
+void VirtualMachine::loadFromFile(const std::string& byteCodePath) {
+    ByteCode bc = readByteCodeFromFile(byteCodePath);
+    loadByteCode(bc);
+    if(debug_mode) {
+        visualize(current_program);
+    }
+}
+
+void VirtualMachine::loadByteCode(const ByteCode& bc) {
     current_program  = bc.instructions;
     current_consants = bc.constants;
     current_strings = bc.strings;
@@ -17,13 +45,13 @@ void VirtualMachine::load(const std::string& expr, SymbolTable& symtable) {
     int maxReg = 0;
     for(const auto& inst : current_program)
         maxReg = std::max({maxReg, (int)inst.left, (int)inst.right, (int)inst.dst});
-    registers.assign(std::max(256, maxReg + 1), 0.0);
-    registers[254] = 10000.0; // SP
-    registers[255] = 10000.0; // FP
-    if(debug_mode) {
-        root->print();
-        visualize(current_program);
-    }
+    const int kRv32RegCount = 32;
+    const int kSpReg = 2; // x2 (sp)
+    const int kFpReg = 8; // x8 (s0/fp)
+    registers.assign(std::max(kRv32RegCount, maxReg + 1), 0.0);
+    registers[kSpReg] = 10000.0;
+    registers[kFpReg] = 10000.0;
+    memory.resize(65536);
 }
 
 double VirtualMachine::run() {
@@ -48,21 +76,24 @@ double VirtualMachine::run() {
             }
         }
         break;
-        case OpCode::SUB:    registers[inst.dst] = asNumber(registers[inst.left]) - asNumber(registers[inst.right]); break;
+        case OpCode::SUB:    registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) - toInt32(registers[inst.right])); break;
         case OpCode::MUL:    registers[inst.dst] = asNumber(registers[inst.left]) * asNumber(registers[inst.right]); break;
         case OpCode::POW:    registers[inst.dst] = std::pow(asNumber(registers[inst.left]), asNumber(registers[inst.right])); break;
         case OpCode::DIV:
             if(asNumber(registers[inst.right]) == 0) throw std::runtime_error("Division by zero");
             registers[inst.dst] = asNumber(registers[inst.left]) / asNumber(registers[inst.right]); break;
         case OpCode::UNARY:  registers[inst.dst] = -asNumber(registers[inst.left]); break;
-        case OpCode::MODULO: registers[inst.dst] = (double)((long long) asNumber(registers[inst.left]) % (long long) asNumber(registers[inst.right])); break;
-        case OpCode::AND:    registers[inst.dst] = (double)((long long) asNumber(registers[inst.left]) & (long long) asNumber(registers[inst.right])); break;
-        case OpCode::OR:     registers[inst.dst] = (double)((long long) asNumber(registers[inst.left]) | (long long) asNumber(registers[inst.right])); break;
-        case OpCode::XOR:    registers[inst.dst] = (double)((long long) asNumber(registers[inst.left]) ^ (long long) asNumber(registers[inst.right])); break;
-        case OpCode::LSHIFT: registers[inst.dst] = (double)((long long) asNumber(registers[inst.left]) << (long long) asNumber(registers[inst.right])); break;
-        case OpCode::RSHIFT: registers[inst.dst] = (double)((long long) asNumber(registers[inst.left]) >> (long long) asNumber(registers[inst.right])); break;
+        case OpCode::MODULO: registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) % toInt32(registers[inst.right])); break;
+        case OpCode::AND:    registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) & toInt32(registers[inst.right])); break;
+        case OpCode::OR:     registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) | toInt32(registers[inst.right])); break;
+        case OpCode::XOR:    registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) ^ toInt32(registers[inst.right])); break;
+        case OpCode::SLL:    registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) << (toInt32(registers[inst.right]) & 0x1F)); break;
+        case OpCode::SRL:    registers[inst.dst] = fromInt32((uint32_t)toInt32(registers[inst.left]) >> (toInt32(registers[inst.right]) & 0x1F)); break;
+        case OpCode::SRA:    registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) >> (toInt32(registers[inst.right]) & 0x1F)); break;
+        case OpCode::SLT:    registers[inst.dst] = toInt32(registers[inst.left]) < toInt32(registers[inst.right]) ? 1.0 : 0.0; break;
+        case OpCode::SLTU:   registers[inst.dst] = (uint32_t)toInt32(registers[inst.left]) < (uint32_t)toInt32(registers[inst.right]) ? 1.0 : 0.0; break;
+        case OpCode::CMP_LT: registers[inst.dst] = toInt32(registers[inst.left]) < toInt32(registers[inst.right]) ? 1.0 : 0.0; break;
         case OpCode::CMP_GT:  registers[inst.dst] = asNumber(registers[inst.left]) >  asNumber(registers[inst.right]) ? 1.0 : 0.0; break;
-        case OpCode::CMP_LT:  registers[inst.dst] = asNumber(registers[inst.left]) <  asNumber(registers[inst.right]) ? 1.0 : 0.0; break;
         case OpCode::CMP_GET: registers[inst.dst] = asNumber(registers[inst.left]) >= asNumber(registers[inst.right]) ? 1.0 : 0.0; break;
         case OpCode::CMP_LET: registers[inst.dst] = asNumber(registers[inst.left]) <= asNumber(registers[inst.right]) ? 1.0 : 0.0; break;
         case OpCode::CMP_EQ:  registers[inst.dst] = registers[inst.left] == registers[inst.right] ? 1.0 : 0.0; break;
@@ -98,7 +129,7 @@ double VirtualMachine::run() {
         
         case OpCode::LOGICAL_AND: registers[inst.dst] = (isTruthy(registers[inst.left]) && isTruthy(registers[inst.right])) ? 1.0 : 0.0; break;
         case OpCode::LOGICAL_OR: registers[inst.dst] = (isTruthy(registers[inst.left]) || isTruthy(registers[inst.right])) ? 1.0 : 0.0; break;
-        case OpCode::LOGICAL_NOT: registers[inst.dst] = (isFalsy(registers[inst.left]) != 0) ? 0.0 : 1.0; break;
+        case OpCode::LOGICAL_NOT: registers[inst.dst] = isFalsy(registers[inst.left]) ? 0.0 : 1.0; break;
 
         case OpCode::CALL: {
             size_t retAddr = pc + 1;
@@ -141,13 +172,23 @@ double VirtualMachine::run() {
         break;
 
         case OpCode::LOAD: {
-            int32_t addr = (int32_t)asNumber(registers[inst.left]) + (int32_t)inst.right;
-            if (addr < 0 || addr >= (int32_t)memory.size()) throw std::runtime_error("LOAD out of range");
+            int32_t base   = (int32_t)asNumber(registers[inst.left]); // FP
+            int32_t offset = (int32_t)inst.right;
+            int32_t addr   = base + offset;
+
+            if (addr < 0 || addr >= (int32_t)memory.size()) {
+                std::cerr << "LOAD out of range: addr=" << addr << std::endl;
+                throw std::runtime_error("LOAD out of range");
+            }
             registers[inst.dst] = memory[addr];
             break;
         }
+
         case OpCode::STORE: {
-            int32_t addr = (int32_t)asNumber(registers[inst.left]) + (int32_t)inst.right;
+            int32_t base   = (int32_t)asNumber(registers[inst.left]); // FP
+            int32_t offset = (int32_t)inst.right;
+            int32_t addr   = base + offset;
+
             if (addr < 0 || addr >= (int32_t)memory.size()) {
                 std::cerr << "STORE out of range: addr=" << addr << std::endl;
                 throw std::runtime_error("STORE out of range");
@@ -157,12 +198,44 @@ double VirtualMachine::run() {
         }
 
         case OpCode::ADDI: {
-            int8_t signedImm = static_cast<int8_t>(inst.right);  // -32 դառնում է -32
+            int8_t signedImm = static_cast<int8_t>(inst.right);
             int32_t imm = signedImm;
-            registers[inst.dst] = asNumber(registers[inst.left]) + imm;
-            break;
+            registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) + imm);
             break;
         }
+        case OpCode::ANDI: {
+            int8_t signedImm = static_cast<int8_t>(inst.right);
+            registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) & signedImm);
+            break;
+        }
+        case OpCode::ORI: {
+            int8_t signedImm = static_cast<int8_t>(inst.right);
+            registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) | signedImm);
+            break;
+        }
+        case OpCode::XORI: {
+            int8_t signedImm = static_cast<int8_t>(inst.right);
+            registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) ^ signedImm);
+            break;
+        }
+        case OpCode::SLLI: {
+            registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) << (inst.right & 0x1F));
+            break;
+        }
+        case OpCode::SRLI: {
+            registers[inst.dst] = fromInt32((uint32_t)toInt32(registers[inst.left]) >> (inst.right & 0x1F));
+            break;
+        }
+        case OpCode::SRAI: {
+            registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) >> (inst.right & 0x1F));
+            break;
+        }
+        case OpCode::LW:
+            registers[inst.dst] = memory[inst.left];
+            break;
+        case OpCode::SW:
+            memory[inst.left] = registers[inst.dst];
+            break;
         default: break;
     }
     if(!jumped) pc++;
@@ -219,8 +292,11 @@ void VirtualMachine::visualize(const std::vector<Instruction>& program) const {
             case OpCode::AND:     std::cout << "AND";     break;
             case OpCode::OR:      std::cout << "OR";      break;
             case OpCode::XOR:     std::cout << "XOR";     break;
-            case OpCode::LSHIFT:  std::cout << "LSHIFT";  break;
-            case OpCode::RSHIFT:  std::cout << "RSHIFT";  break;
+            case OpCode::SLL:     std::cout << "SLL";     break;
+            case OpCode::SRL:     std::cout << "SRL";     break;
+            case OpCode::SRA:     std::cout << "SRA";     break;
+            case OpCode::SLT:     std::cout << "SLT";     break;
+            case OpCode::SLTU:    std::cout << "SLTU";    break;
 
             case OpCode::CMP_GT:  std::cout << "CMP_GT";  break;
             case OpCode::CMP_LT:  std::cout << "CMP_LT";  break;
@@ -291,6 +367,38 @@ void VirtualMachine::visualize(const std::vector<Instruction>& program) const {
                           << std::setw(6) << inst.right 
                           << std::setw(6) << inst.dst 
                           << " (imm=" << (int32_t)inst.right << ")";
+                break;
+            case OpCode::ANDI:
+                std::cout << "ANDI" << std::setw(6) << inst.left << std::setw(6) << inst.right
+                          << std::setw(6) << inst.dst;
+                break;
+            case OpCode::ORI:
+                std::cout << "ORI" << std::setw(6) << inst.left << std::setw(6) << inst.right
+                          << std::setw(6) << inst.dst;
+                break;
+            case OpCode::XORI:
+                std::cout << "XORI" << std::setw(6) << inst.left << std::setw(6) << inst.right
+                          << std::setw(6) << inst.dst;
+                break;
+            case OpCode::SLLI:
+                std::cout << "SLLI" << std::setw(6) << inst.left << std::setw(6) << inst.right
+                          << std::setw(6) << inst.dst;
+                break;
+            case OpCode::SRLI:
+                std::cout << "SRLI" << std::setw(6) << inst.left << std::setw(6) << inst.right
+                          << std::setw(6) << inst.dst;
+                break;
+            case OpCode::SRAI:
+                std::cout << "SRAI" << std::setw(6) << inst.left << std::setw(6) << inst.right
+                          << std::setw(6) << inst.dst;
+                break;
+            case OpCode::LW:
+                std::cout << "LW" << std::setw(6) << inst.left << std::setw(6) << "-"
+                          << std::setw(6) << inst.dst;
+                break;
+            case OpCode::SW:
+                std::cout << "SW" << std::setw(6) << inst.left << std::setw(6) << "-"
+                          << std::setw(6) << inst.dst;
                 break;
 
             default:

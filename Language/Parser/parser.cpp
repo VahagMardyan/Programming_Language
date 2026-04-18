@@ -1,4 +1,5 @@
 #include "parser.h"
+#include <cmath>
 
 std::shared_ptr<ASTNode> Parser::createBinaryNode(const std::string& op,
     std::shared_ptr<ASTNode> left, std::shared_ptr<ASTNode> right) {
@@ -58,6 +59,7 @@ int Parser::precedence(const std::string& op) const {
     if(op == "+" || op == "-") return 6;
     if(op == "*" || op == "/" || op == "%") return 7;
     if(op == "not" || op == "_" || op == "#") return 8;
+    if(op == "**") return 9;
     return -1;
 }
 
@@ -83,7 +85,6 @@ void Parser::processOperatorStack(const std::string& currentOp) {
 }
 
 std::shared_ptr<StatementNode> Parser::parseProgram() {
-    symTable.enterFunctionScope();
     auto block = std::make_shared<BlockCode>();
     while(currentToken.type != TokenType::EndOfExpr) {
         auto stmt = parseStatement();
@@ -161,13 +162,16 @@ std::shared_ptr<StatementNode> Parser::parseBlock() {
 }
 
 std::shared_ptr<StatementNode> Parser::parseAssignment() {
-    bool isLocal = false;
+    bool explicitLocal = false;
+    bool explicitGlobal = false;
     std::string name;
 
-    if (currentToken.type == TokenType::Global) {
+    if (currentToken.type == TokenType::Local) {
+        explicitLocal = true;
         nextToken();
-    } else if (currentToken.type == TokenType::Local) {
-        isLocal = true;
+    } 
+    else if (currentToken.type == TokenType::Global) {
+        explicitGlobal = true;
         nextToken();
     }
 
@@ -179,27 +183,39 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
     name = currentToken.value;
     nextToken();
 
-    // Function call as statement: foo(args);
     if (currentToken.type == TokenType::OpenParen) {
         auto callNode = parseFunctionCall(name);
         if (currentToken.type == TokenType::Semicolon) nextToken();
-
-        if (isLocal) {
-            int32_t off = symTable.getLocalOffset(name);
-            return std::make_shared<AssignmentNode>(off, callNode);
-        } else {
-            size_t addr = symTable.getGlobalAddress(name);
-            return std::make_shared<AssignmentNode>(addr, callNode);
-        }
+        return std::make_shared<FunctionCallStatementNode>(callNode);
     }
 
-    // Normal assignment: var = expression
+    bool isLocalVar = false;
+
+    if (explicitLocal) {
+        isLocalVar = true;
+    } 
+    else if (explicitGlobal) {
+        isLocalVar = false;
+    } 
+    else if (insideFunction) {
+        isLocalVar = true;
+    } 
+    else {
+        isLocalVar = false;
+    }
+
+    if (isLocalVar) {
+        symTable.getLocalOffset(name);
+    } else {
+        symTable.getGlobalAddress(name);
+    }
+
     if (currentToken.type == TokenType::Assign) {
         nextToken();
         auto expr = parseExpression();
         if (currentToken.type == TokenType::Semicolon) nextToken();
 
-        if (isLocal || symTable.isLocal(name)) {
+        if (isLocalVar) {
             int32_t off = symTable.getLocalOffset(name);
             return std::make_shared<AssignmentNode>(off, expr);
         } else {
@@ -208,7 +224,7 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
         }
     }
 
-    // Compound assignment (+= , -=, etc.)
+    // Compound assignment += -= ...
     if (currentToken.type == TokenType::CompoundAssign) {
         std::string op = currentToken.value;
         nextToken();
@@ -216,8 +232,7 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
         if (currentToken.type == TokenType::Semicolon) nextToken();
         std::string baseOp = op.substr(0, 1);
 
-        bool varIsLocal = isLocal || symTable.isLocal(name);
-        if (varIsLocal) {
+        if (isLocalVar) {
             int32_t off = symTable.getLocalOffset(name);
             auto varNode = std::make_shared<VariableNode>(off);
             auto expr = std::make_shared<BinaryOpNode>(baseOp, varNode, rhs);
@@ -236,26 +251,47 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
 
 std::shared_ptr<StatementNode> Parser::parsePrint() {
     nextToken(); // skip 'print'
-    if(currentToken.value != "(") { state = ParserState::Error; return nullptr; }
-    nextToken();
+
+    if (currentToken.value != "(") { 
+        state = ParserState::Error; 
+        return nullptr; 
+    }
+    nextToken(); // skip '('
+
     std::vector<std::shared_ptr<ASTNode>> args;
-    while(currentToken.value != ")" && currentToken.type != TokenType::EndOfExpr) {
-        if(currentToken.type == TokenType::StringLiteral) {
+
+    while (currentToken.value != ")" && currentToken.type != TokenType::EndOfExpr) {
+        if (currentToken.type == TokenType::StringLiteral) {
             args.push_back(std::make_shared<StringNode>(currentToken.value));
-            nextToken(); 
+            nextToken();
         } else {
             args.push_back(parseExpression());
         }
-        if(currentToken.type == TokenType::Comma) {
-            nextToken();
-            if(currentToken.value != ")") {
-                args.push_back(std::make_shared<StringNode>()); // Default separator is
+
+        // Comma
+        if (currentToken.type == TokenType::Comma) {
+            nextToken(); // skip ','
+            if (currentToken.value == ")") {
+                state = ParserState::Error;
+                return nullptr;
             }
+        } 
+        else if (currentToken.value != ")") {
+            state = ParserState::Error;
+            return nullptr;
         }
     }
-    if(currentToken.value != ")") { state = ParserState::Error; return nullptr; }
-    nextToken();
-    if(currentToken.type == TokenType::Semicolon) nextToken();
+
+    if (currentToken.value != ")") { 
+        state = ParserState::Error; 
+        return nullptr; 
+    }
+    nextToken(); // skip ')'
+
+    if (currentToken.type == TokenType::Semicolon) {
+        nextToken();
+    }
+
     return std::make_shared<PrintNode>(std::move(args));
 }
 
@@ -294,7 +330,7 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                         nodes.push(callNode);
                         state = ParserState::ExpectOperator;
                     } else {
-                        if (symTable.isLocal(name)) {
+                        if (insideFunction && symTable.isLocal(name)) {
                             int32_t off = symTable.getLocalOffset(name);
                             nodes.push(std::make_shared<VariableNode>(off));
                         } else {
@@ -350,7 +386,7 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                         nodes.push(callNode);
                         state = ParserState::ExpectOperator;
                     } else {
-                        if (symTable.isLocal(name)) {
+                        if (insideFunction && symTable.isLocal(name)) {
                             int32_t off = symTable.getLocalOffset(name);
                             nodes.push(std::make_shared<VariableNode>(off));
                         } else {
@@ -369,7 +405,7 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                     } else if(token.type == TokenType::Name) {
                         std::string name = token.value;
                         nextToken();
-                        if (symTable.isLocal(name)) {
+                        if (insideFunction && symTable.isLocal(name)) {
                             int32_t off = symTable.getLocalOffset(name);
                             nodes.push(std::make_shared<VariableNode>(off));
                         } else {
@@ -415,43 +451,46 @@ std::shared_ptr<StatementNode> Parser::parseFunction() {
     std::string name = currentToken.value;
     nextToken(); // skip function name
 
-    if(currentToken.value != "(") {
+    if (currentToken.value != "(") {
         state = ParserState::Error;
         return nullptr;
     }
     nextToken(); // skip '('
 
     std::vector<std::string> params;
-    while(currentToken.value != ")" && currentToken.type != TokenType::EndOfExpr) {
-        if(currentToken.type != TokenType::Name) {
+    while (currentToken.value != ")" && currentToken.type != TokenType::EndOfExpr) {
+        if (currentToken.type != TokenType::Name) {
             state = ParserState::Error;
             return nullptr;
         }
-        std::string p = currentToken.value;
-        params.push_back(p);
+        params.push_back(currentToken.value);
         nextToken();
-        if(currentToken.type == TokenType::Comma) nextToken();
+        if (currentToken.type == TokenType::Comma) nextToken();
     }
 
-    if(currentToken.value != ")") {
+    if (currentToken.value != ")") {
         state = ParserState::Error;
         return nullptr;
     }
     nextToken(); // skip ')'
 
+    insideFunction = true;
     symTable.enterFunctionScope();
 
-    for(const auto& p : params) {
+    for (const auto& p : params) {
         symTable.getLocalOffset(p);
     }
 
-    if(currentToken.type != TokenType::OpenBrace) {
+    if (currentToken.type != TokenType::OpenBrace) {
         state = ParserState::Error;
         return nullptr;
     }
 
     auto body = parseBlock();
+
     symTable.exitFunctionScope();
+    insideFunction = false;
+
     return std::make_shared<FunctionDefNode>(name, params, body);
 }
 

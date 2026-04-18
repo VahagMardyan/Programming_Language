@@ -79,8 +79,13 @@ print("\n=== Comparisons ===\n");
 if (10 > 5 and 5 < 10) {
     print("10 > 5 and 5 < 10 → true\n");
 }
-if (10 == 10 or 5 == 6) {
-    print("10 == 10 or 5 == 6 → true\n");
+if (10 != 15 or 5 == 6) {
+    print("10 != 15 or 5 == 6 → true\n");
 }
-
+empty_text = "";
+if(not empty_text) {
+    print("true");
+} else {
+    print('false');
+}
 print("\n=== All tests completed ===\n");

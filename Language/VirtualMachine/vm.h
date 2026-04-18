@@ -26,6 +26,7 @@ class VirtualMachine {
         std::vector<double> current_consants;
         bool debug_mode;
         void visualize(const std::vector<Instruction>& program) const;
+        void loadByteCode(const ByteCode& bc);
         std::stack<CallFrame> callStack;
         std::vector<Value> argBuffer;
     public:
@@ -34,5 +35,6 @@ class VirtualMachine {
             memory.resize(20000, 0.0);
         }
         void load(const std::string& expr, SymbolTable& st);
+        void loadFromFile(const std::string& byteCodePath);
         double run();
 };

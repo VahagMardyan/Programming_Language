@@ -4,6 +4,7 @@
 #include <memory>
 #include <algorithm>
 #include <cstdint>
+#include <string>
 #include "ast.h"
 
 struct Instruction {
@@ -49,6 +50,7 @@ class Compiler {
 
         // Forward declarations
         std::vector<std::pair<size_t, std::string>> forwardCalls;
+        int allocateTempRegister();
 
         std::vector<std::shared_ptr<ASTNode>> postOrderTraverse(std::shared_ptr<ASTNode> root);
         std::vector<Instruction> generateByteCode(const std::vector<std::shared_ptr<ASTNode>>& nodes);
@@ -63,3 +65,6 @@ public:
     }
     int calculateFrameSize(std::shared_ptr<StatementNode>body);
 };
+
+void writeByteCodeToFile(const ByteCode& bc, const std::string& path);
+ByteCode readByteCodeFromFile(const std::string& path);

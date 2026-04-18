@@ -210,8 +210,22 @@
 # }
 
 # # for for
-for(i=0;i<=10;i+=2) {
-   for(j=1;j<5;j*=2) {
-      print(i+j," ");
-   }
-} 
+# for(i=0;i<=10;i+=2) {
+#    for(j=1;j<5;j*=2) {
+#       print(i+j," ");
+#    }
+# } 
+
+# x = 8;                  # global x = 8
+
+# function test() {
+#    x = 5;                # by default local x = 5
+#    global y = 10;        # global y = 10
+#    z = 20;         # local z = 20
+   
+#    print("Inside function: x=", x, " y=", y, " z=", z, "\n");
+# }
+# z = "VAHAG";
+# test();
+# print("Outside function: x=", x, "\n"); # # 8
+# print("Outside function: z=", z, "\n"); # # VAHAG

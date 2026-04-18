@@ -1,12 +1,31 @@
 #pragma once
 #include <iostream>
+#include <memory>
 #include <map>
+#include <string>
 #include <cstdint>
+#include <vector>
 #include "../SymbolTable/symbol_table.h"
 
 enum class OpCode : uint8_t {
-    ADD, SUB, MUL, DIV, AND, OR, XOR, MODULO, POW,
-    LSHIFT, RSHIFT, UNARY, LOAD_CONST, LOAD_VAR, LOAD_STR,
+    // RV32I arithmetic and logic
+    ADD, SUB, AND, OR, XOR,
+    SLL, SRL, SRA,
+    SLT, SLTU,
+    ADDI, ANDI, ORI, XORI,
+    SLLI, SRLI, SRAI,
+    LUI, AUIPC,
+
+    // RV32I control flow
+    JAL, JALR,
+    BEQ, BNE, BLT, BGE, BLTU, BGEU,
+
+    // RV32I memory
+    LW, SW,
+
+    // Existing VM extensions
+    MUL, DIV, MODULO, POW,
+    UNARY, LOAD_CONST, LOAD_VAR, LOAD_STR,
     UNDEFINED,
     CMP_GT, CMP_LT, CMP_GET, CMP_LET, CMP_EQ, CMP_NEQ,
     JMP, JZ, JNZ,
@@ -14,7 +33,7 @@ enum class OpCode : uint8_t {
     PRINT, PRINT_STR,
     LOGICAL_AND, LOGICAL_OR, LOGICAL_NOT,
     CALL, RETURN, PUSH_ARG, LOAD_PARAM,
-    LOAD, STORE, ADDI,
+    LOAD, STORE,
 };
 
 class ASTNode {
@@ -80,10 +99,10 @@ public:
 };
 
 class StatementNode : public ASTNode {
-public:
-    virtual ~StatementNode() = default;
-    virtual void print(std::string prefix, bool isLast) const = 0;
-    std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
+    public:
+        virtual ~StatementNode() = default;
+        virtual void print(std::string prefix, bool isLast) const = 0;
+        std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 
 class BlockCode : public StatementNode {
@@ -95,26 +114,32 @@ public:
 };
 
 class AssignmentNode : public StatementNode {
-    bool isLocal;
-    union {
-        size_t globalAddr;
-        int32_t localOffset;
-    };
-    std::shared_ptr<ASTNode> expression;
+private:
+    bool isLocalFlag;
+    int32_t localOffset;
+    size_t globalAddr;
+    std::shared_ptr<ASTNode> value;
+
 public:
-    AssignmentNode(size_t addr, std::shared_ptr<ASTNode> expr)
-        : isLocal(false), globalAddr(addr), expression(std::move(expr)) {}
-    AssignmentNode(int32_t off, std::shared_ptr<ASTNode> expr)
-        : isLocal(true), localOffset(off), expression(std::move(expr)) {}
+    AssignmentNode(int32_t offset, std::shared_ptr<ASTNode> val)
+        : isLocalFlag(true), localOffset(offset), globalAddr(0), value(val) {}
 
-    bool getIsLocal() const { return isLocal; }
-    size_t getGlobalAddr() const { return globalAddr; }
-    int32_t getLocalOffset() const { return localOffset; }
-    std::shared_ptr<ASTNode> getExpression() const { return expression; }
+    AssignmentNode(size_t addr, std::shared_ptr<ASTNode> val)
+        : isLocalFlag(false), localOffset(0), globalAddr(addr), value(val) {}
 
-    void print(std::string prefix, bool isLast) const override {
+    bool isLocal() const { return isLocalFlag; }
+    int32_t getOffset() const { return localOffset; }
+    size_t getAddress() const { return globalAddr; }
+    std::shared_ptr<ASTNode> getValue() const { return value; }
+
+    void print(std::string prefix = "", bool isLast = true) const override {
         std::cout << prefix << (isLast ? "└── " : "├── ") << "Assignment (=)" << std::endl;
-        expression->print(prefix + (isLast ? "    " : "│   "), true);
+        if (isLocalFlag) {
+            std::cout << prefix << (isLast ? "    " : "│   ") << "Local offset: " << localOffset << std::endl;
+        } else {
+            std::cout << prefix << (isLast ? "    " : "│   ") << "Global addr: " << globalAddr << std::endl;
+        }
+        value->print(prefix + (isLast ? "    " : "│   "), true);
     }
 };
 

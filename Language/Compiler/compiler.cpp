@@ -1,7 +1,17 @@
 #include "compiler.h"
+#include <cmath>
+#include <fstream>
+#include <cstring>
 
-const int SP = 254;
-const int FP = 255;
+const int SP = 2;
+const int FP = 8;
+
+int Compiler::allocateTempRegister() {
+    while(nextTempIndex == SP || nextTempIndex == FP) {
+        ++nextTempIndex;
+    }
+    return nextTempIndex++;
+}
 
 int Compiler::calculateFrameSize(std::shared_ptr<StatementNode> body) {
     if (!body) return 8;
@@ -11,7 +21,7 @@ int Compiler::calculateFrameSize(std::shared_ptr<StatementNode> body) {
     if (auto block = std::dynamic_pointer_cast<BlockCode>(body)) {
         for (const auto& stmt : block->getStatements()) {
             if (auto assign = std::dynamic_pointer_cast<AssignmentNode>(stmt)) {
-                if (assign->getIsLocal()) {
+                if (assign->isLocal()) {
                     localCount++;
                 }
             }
@@ -52,10 +62,16 @@ std::shared_ptr<ASTNode> Compiler::optimize(std::shared_ptr<ASTNode> node) {
                 case OpCode::OR:  result = (double)((long long)v1 | (long long)v2); break;
                 case OpCode::XOR: result = (double)((long long)v1 ^ (long long)v2); break;
                 case OpCode::MODULO: result = (double)((long long)v1 % (long long)v2); break;
-                case OpCode::LSHIFT: result = (double)((long long)v1 << (long long)v2); break;
-                case OpCode::RSHIFT: result = (double)((long long)v1 >> (long long)v2); break;
+                case OpCode::SLL: result = (double)((long long)v1 << (long long)v2); break;
+                case OpCode::SRL: result = (double)((long long)v1 >> (long long)v2); break;
                 case OpCode::LOGICAL_AND: result = (v1 != 0 && v2 != 0) ? 1.0 : 0.0; break;
                 case OpCode::LOGICAL_OR: result = (v1 != 0 || v2 != 0) ? 1.0 : 0.0; break;
+                case OpCode::SLT: result = (v1 < v2) ? 1.0 : 0.0; break;
+                case OpCode::CMP_LET: result = (v1 <= v2) ? 1.0 : 0.0; break;
+                case OpCode::CMP_GT: result = (v1 > v2) ? 1.0 : 0.0; break;
+                case OpCode::CMP_GET: result = (v1 >= v2) ? 1.0 : 0.0; break;
+                case OpCode::CMP_EQ: result = (v1 == v2) ? 1.0 : 0.0; break;
+                case OpCode::CMP_NEQ: result = (v1 != v2) ? 1.0 : 0.0; break;
                 default: break;
             }
             return std::make_shared<NumberNode>(result);
@@ -71,10 +87,10 @@ std::shared_ptr<ASTNode> Compiler::optimize(std::shared_ptr<ASTNode> node) {
         return optimizedBlock;
     }
     if(auto assign = std::dynamic_pointer_cast<AssignmentNode>(node)) {
-        if (assign->getIsLocal()) {
-            return std::make_shared<AssignmentNode>(assign->getLocalOffset(), optimize(assign->getExpression()));
+        if (assign->isLocal()) {
+            return std::make_shared<AssignmentNode>(assign->getOffset(), optimize(assign->getValue()));
         } else {
-            return std::make_shared<AssignmentNode>(assign->getGlobalAddr(), optimize(assign->getExpression()));
+            return std::make_shared<AssignmentNode>(assign->getAddress(), optimize(assign->getValue()));
         }
     }
     if(auto ifStmt = std::dynamic_pointer_cast<IfStatementNode>(node)) {
@@ -141,14 +157,14 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
         if(auto num = std::dynamic_pointer_cast<NumberNode>(node)) {
             double val = num->getValue();
             if(globalCtx.consts.find(val) == globalCtx.consts.end()) {
-                int reg = nextTempIndex++, idx = (int)constantPool.size();
+                int reg = allocateTempRegister(), idx = (int)constantPool.size();
                 constantPool.push_back(val);
                 code.push_back({(uint32_t)OpCode::LOAD_CONST, (uint32_t)reg, (uint32_t)idx, 0});
                 globalCtx.consts[val] = reg;
             }
             storage.push(globalCtx.consts[val]);        
         } else if(auto var = std::dynamic_pointer_cast<VariableNode>(node)) {
-            int rd = nextTempIndex++;
+            int rd = allocateTempRegister();
             if (var->getIsLocal()) {
                 int32_t off = var->getLocalOffset();
                 code.push_back({(uint32_t)OpCode::LOAD, (uint32_t)rd, (uint32_t)FP, (uint32_t)off});
@@ -161,19 +177,19 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
         else if(auto bin = std::dynamic_pointer_cast<BinaryOpNode>(node)) {
             int r = storage.top(); storage.pop();
             int l = storage.top(); storage.pop();
-            int target = nextTempIndex++;
+            int target = allocateTempRegister();
             code.push_back({(uint32_t)bin->getOpCode(), (uint32_t)target, (uint32_t)l, (uint32_t)r});
             storage.push(target);
         } else if(auto un = std::dynamic_pointer_cast<UnaryOpNode>(node)) {
             int childIdx = storage.top(); storage.pop();
-            int target = nextTempIndex++;
+            int target = allocateTempRegister();
             OpCode opcode = (un -> getOp() == "not") ? OpCode::LOGICAL_NOT : OpCode::UNARY;
             code.push_back({(uint32_t)opcode, (uint32_t)target, (uint32_t)childIdx, 0});
             storage.push(target);
         } else if(auto strNode = std::dynamic_pointer_cast<StringNode>(node)) {
             int strIdx = (int)stringPool.size();
             stringPool.push_back(strNode -> getValue());
-            int reg = nextTempIndex++;
+            int reg = allocateTempRegister();
             code.push_back({
                 (uint32_t)OpCode::LOAD_STR, (uint32_t)reg, (uint32_t)strIdx, 0
             });
@@ -188,7 +204,7 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
                 code.push_back({(uint32_t)OpCode::PUSH_ARG, (uint32_t)argReg, 0, 0});
             }
         
-            int resultReg = nextTempIndex++;
+            int resultReg = allocateTempRegister();
             Instruction callInst;
             callInst.op  = (uint32_t)OpCode::CALL;
             callInst.dst = (uint32_t)resultReg;
@@ -207,19 +223,30 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
 
 void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector<Instruction>& code) {
     if(!stmt) return;
-        if(auto assign = std::dynamic_pointer_cast<AssignmentNode>(stmt)) {
-            globalCtx.consts.clear(); globalCtx.vars.clear();
-            auto exprCode = generateByteCode(postOrderTraverse(assign->getExpression()));
-            code.insert(code.end(), exprCode.begin(), exprCode.end());
-            int valReg = exprCode.empty() ? 0 : exprCode.back().dst;
-            if (assign->getIsLocal()) {
-                int32_t off = assign->getLocalOffset();
-                code.push_back({(uint32_t)OpCode::STORE, (uint32_t)valReg, (uint32_t)FP, (uint32_t)off});
-            } else {
-                size_t addr = assign->getGlobalAddr();
-                code.push_back({(uint32_t)OpCode::STORE_VAR, 0, (uint32_t)addr, (uint32_t)valReg});
-            }
-    } 
+    
+    if (auto assign = std::dynamic_pointer_cast<AssignmentNode>(stmt)) {
+    
+        auto exprCode = generateByteCode(postOrderTraverse(assign->getValue()));
+        code.insert(code.end(), exprCode.begin(), exprCode.end());
+        
+        int srcReg = exprCode.empty() ? 0 : exprCode.back().dst;
+        
+        if (assign->isLocal()) {
+            int32_t offset = assign->getOffset();
+            code.push_back({(uint32_t)OpCode::STORE, 
+                            (uint32_t)srcReg,
+                            (uint32_t)FP,
+                            (uint32_t)offset});
+        } 
+        else {
+            size_t addr = assign->getAddress();
+            code.push_back({(uint32_t)OpCode::STORE_VAR, 
+                            0,
+                            (uint32_t)addr,
+                            (uint32_t)srcReg});
+        }
+    }
+    
     else if(auto ifStmt = std::dynamic_pointer_cast<IfStatementNode>(stmt)) {
         globalCtx.consts.clear(); globalCtx.vars.clear();
         auto condCode = generateByteCode(postOrderTraverse(ifStmt->getCondition()));
@@ -289,7 +316,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         code[jzIdx].left = (uint32_t)code.size();
     }
 
-        else if(auto funcDef = std::dynamic_pointer_cast<FunctionDefNode>(stmt)) {
+    else if(auto funcDef = std::dynamic_pointer_cast<FunctionDefNode>(stmt)) {
         size_t jmpIdx = code.size();
         code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
 
@@ -300,16 +327,15 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
 
         // SP = SP - frameSize
         code.push_back({(uint32_t)OpCode::ADDI, SP, SP, (uint32_t)(int32_t)(-frameSize)});
-        
+
         // FP = SP + frameSize
         code.push_back({(uint32_t)OpCode::ADDI, FP, SP, (uint32_t)frameSize});
 
-        globalCtx.consts.clear();
-        globalCtx.vars.clear();
+        // պարամետրեր
         for(int i = 0; i < (int)funcDef->getParams().size(); i++) {
             std::string p = funcDef->getParams()[i];
             int32_t off = symTable.getLocalOffset(p);
-            int reg = nextTempIndex++;
+            int reg = allocateTempRegister();
 
             code.push_back({(uint32_t)OpCode::LOAD_PARAM, (uint32_t)reg, (uint32_t)i, 0});
             code.push_back({(uint32_t)OpCode::STORE, (uint32_t)reg, (uint32_t)FP, (uint32_t)off});
@@ -322,8 +348,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         code.push_back({(uint32_t)OpCode::RETURN, 0, 0, 0});
 
         setAddress(code[jmpIdx], (uint16_t)code.size());
-    }
-    
+    } 
     
     else if(auto callStmt = std::dynamic_pointer_cast<FunctionCallStatementNode>(stmt)) {
         auto call = callStmt->getCall();
@@ -337,7 +362,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
             code.push_back({(uint32_t)OpCode::PUSH_ARG, (uint32_t)argReg, 0, 0});
         }
 
-        int resultReg = nextTempIndex++;
+        int resultReg = allocateTempRegister();
         Instruction callInst;
         callInst.op  = (uint32_t)OpCode::CALL;
         callInst.dst = (uint32_t)resultReg;
@@ -365,4 +390,101 @@ void Compiler::printByteCode(const std::vector<Instruction>& code) const {
     for(const auto& inst : code)
         std::cout << "Op: " << (int)inst.op << " | L: " << inst.left
                   << " | R: " << inst.right << " | Dst: " << inst.dst << std::endl;
+}
+
+void writeByteCodeToFile(const ByteCode& bc, const std::string& path) {
+    std::ofstream out(path, std::ios::binary);
+    if(!out.is_open()) {
+        throw std::runtime_error("Cannot open output file: " + path);
+    }
+
+    const char magic[4] = {'V', 'H', 'B', '1'};
+    out.write(magic, sizeof(magic));
+
+    uint32_t instructionCount = static_cast<uint32_t>(bc.instructions.size());
+    uint32_t constantCount = static_cast<uint32_t>(bc.constants.size());
+    uint32_t stringCount = static_cast<uint32_t>(bc.strings.size());
+
+    out.write(reinterpret_cast<const char*>(&instructionCount), sizeof(instructionCount));
+    out.write(reinterpret_cast<const char*>(&constantCount), sizeof(constantCount));
+    out.write(reinterpret_cast<const char*>(&stringCount), sizeof(stringCount));
+
+    for(const auto& inst : bc.instructions) {
+        uint8_t op = static_cast<uint8_t>(inst.op);
+        uint8_t dst = static_cast<uint8_t>(inst.dst);
+        uint8_t left = static_cast<uint8_t>(inst.left);
+        uint8_t right = static_cast<uint8_t>(inst.right);
+        out.write(reinterpret_cast<const char*>(&op), sizeof(op));
+        out.write(reinterpret_cast<const char*>(&dst), sizeof(dst));
+        out.write(reinterpret_cast<const char*>(&left), sizeof(left));
+        out.write(reinterpret_cast<const char*>(&right), sizeof(right));
+    }
+
+    for(double value : bc.constants) {
+        out.write(reinterpret_cast<const char*>(&value), sizeof(value));
+    }
+
+    for(const auto& str : bc.strings) {
+        uint32_t len = static_cast<uint32_t>(str.size());
+        out.write(reinterpret_cast<const char*>(&len), sizeof(len));
+        out.write(str.data(), len);
+    }
+
+    if(!out.good()) {
+        throw std::runtime_error("Failed writing bytecode file: " + path);
+    }
+}
+
+ByteCode readByteCodeFromFile(const std::string& path) {
+    std::ifstream in(path, std::ios::binary);
+    if(!in.is_open()) {
+        throw std::runtime_error("Cannot open bytecode file: " + path);
+    }
+
+    char magic[4] = {};
+    in.read(magic, sizeof(magic));
+    const char expected[4] = {'V', 'H', 'B', '1'};
+    if(std::memcmp(magic, expected, sizeof(expected)) != 0) {
+        throw std::runtime_error("Invalid bytecode format: " + path);
+    }
+
+    uint32_t instructionCount = 0;
+    uint32_t constantCount = 0;
+    uint32_t stringCount = 0;
+    in.read(reinterpret_cast<char*>(&instructionCount), sizeof(instructionCount));
+    in.read(reinterpret_cast<char*>(&constantCount), sizeof(constantCount));
+    in.read(reinterpret_cast<char*>(&stringCount), sizeof(stringCount));
+
+    ByteCode bc;
+    bc.instructions.reserve(instructionCount);
+    bc.constants.resize(constantCount);
+    bc.strings.reserve(stringCount);
+
+    for(uint32_t i = 0; i < instructionCount; ++i) {
+        uint8_t op = 0, dst = 0, left = 0, right = 0;
+        in.read(reinterpret_cast<char*>(&op), sizeof(op));
+        in.read(reinterpret_cast<char*>(&dst), sizeof(dst));
+        in.read(reinterpret_cast<char*>(&left), sizeof(left));
+        in.read(reinterpret_cast<char*>(&right), sizeof(right));
+        bc.instructions.push_back({op, dst, left, right});
+    }
+
+    for(uint32_t i = 0; i < constantCount; ++i) {
+        in.read(reinterpret_cast<char*>(&bc.constants[i]), sizeof(double));
+    }
+
+    for(uint32_t i = 0; i < stringCount; ++i) {
+        uint32_t len = 0;
+        in.read(reinterpret_cast<char*>(&len), sizeof(len));
+        std::string s(len, '\0');
+        if(len > 0) {
+            in.read(&s[0], len);
+        }
+        bc.strings.push_back(std::move(s));
+    }
+
+    if(!in.good() && !in.eof()) {
+        throw std::runtime_error("Failed reading bytecode file: " + path);
+    }
+    return bc;
 }
