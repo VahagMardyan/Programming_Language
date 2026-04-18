@@ -191,7 +191,6 @@ cl /EHsc /O2 /W4 *.cpp /Fe:out.exe && out.exe ./file_name.txt
 * Compile command: `out.exe compile <filename.vhg>`
     It will give you a `filename.vhb` binary file.
 * Run command: `out.exe run <filename.vhb>`
-```
 
 #### **MSVC Flag Definitions:**
 
