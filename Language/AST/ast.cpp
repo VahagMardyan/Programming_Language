@@ -19,7 +19,7 @@ OpCode BinaryOpNode::getOpCode() const {
     if(op == "<<") return OpCode::SLL;
     if(op == ">>") return OpCode::SRL;
     if(op == ">")  return OpCode::CMP_GT;
-    if(op == "<")  return OpCode::SLT;
+    if(op == "<")  return OpCode::CMP_LT;
     if(op == ">=") return OpCode::CMP_GET;
     if(op == "<=") return OpCode::CMP_LET;
     if(op == "==") return OpCode::CMP_EQ;

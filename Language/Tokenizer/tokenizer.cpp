@@ -140,7 +140,7 @@ Token Tokenizer::getNextToken() {
         return {TokenType::CompareOp, op};
     }
     
-    if(op == "+=" || op == "-=" || op == "/=" || op == "*=" || op == "%=") {
+    if(op == "+=" || op == "-=" || op == "/=" || op == "*=" || op == "%=" || op == "^=") {
         return {TokenType::CompoundAssign, op};
     }
     if(isOperator(op)) return {TokenType::Operator, op};

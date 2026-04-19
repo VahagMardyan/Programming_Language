@@ -13,8 +13,10 @@
 
 struct CallFrame {
     size_t returnAddress;
-    size_t baseReg;
-    int argCount;
+    size_t returnDest;
+    Value callerSp;
+    Value callerFp;
+    std::vector<Value> args;
 };
 
 class VirtualMachine {

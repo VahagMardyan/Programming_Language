@@ -76,7 +76,7 @@ double VirtualMachine::run() {
             }
         }
         break;
-        case OpCode::SUB:    registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) - toInt32(registers[inst.right])); break;
+        case OpCode::SUB:    registers[inst.dst] = asNumber(registers[inst.left]) - asNumber(registers[inst.right]); break;
         case OpCode::MUL:    registers[inst.dst] = asNumber(registers[inst.left]) * asNumber(registers[inst.right]); break;
         case OpCode::POW:    registers[inst.dst] = std::pow(asNumber(registers[inst.left]), asNumber(registers[inst.right])); break;
         case OpCode::DIV:
@@ -104,7 +104,7 @@ double VirtualMachine::run() {
         case OpCode::SRA:    registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) >> (toInt32(registers[inst.right]) & 0x1F)); break;
         case OpCode::SLT:    registers[inst.dst] = toInt32(registers[inst.left]) < toInt32(registers[inst.right]) ? 1.0 : 0.0; break;
         case OpCode::SLTU:   registers[inst.dst] = (uint32_t)toInt32(registers[inst.left]) < (uint32_t)toInt32(registers[inst.right]) ? 1.0 : 0.0; break;
-        case OpCode::CMP_LT: registers[inst.dst] = toInt32(registers[inst.left]) < toInt32(registers[inst.right]) ? 1.0 : 0.0; break;
+        case OpCode::CMP_LT: registers[inst.dst] = asNumber(registers[inst.left]) < asNumber(registers[inst.right]) ? 1.0 : 0.0; break;
         case OpCode::CMP_GT:  registers[inst.dst] = asNumber(registers[inst.left]) >  asNumber(registers[inst.right]) ? 1.0 : 0.0; break;
         case OpCode::CMP_GET: registers[inst.dst] = asNumber(registers[inst.left]) >= asNumber(registers[inst.right]) ? 1.0 : 0.0; break;
         case OpCode::CMP_LET: registers[inst.dst] = asNumber(registers[inst.left]) <= asNumber(registers[inst.right]) ? 1.0 : 0.0; break;
@@ -146,14 +146,7 @@ double VirtualMachine::run() {
         case OpCode::CALL: {
             size_t retAddr = pc + 1;
             uint16_t funcAddr = getAddress(inst);
-            size_t baseReg = inst.dst + 1;
-
-            callStack.push({retAddr, baseReg, (int)argBuffer.size()});
-
-            for(int i = 0; i < (int)argBuffer.size(); i++) {
-                if(baseReg + i < registers.size())
-                    registers[baseReg + i] = argBuffer[i];
-            }
+            callStack.push({retAddr, inst.dst, registers[2], registers[8], argBuffer});
             argBuffer.clear();
 
             pc = funcAddr;
@@ -166,7 +159,9 @@ double VirtualMachine::run() {
                 if(callStack.empty()) break;
                 CallFrame frame = callStack.top();
                 callStack.pop();
-                registers[frame.baseReg - 1] = retVal;
+                registers[2] = frame.callerSp;
+                registers[8] = frame.callerFp;
+                registers[frame.returnDest] = retVal;
                 pc = frame.returnAddress;
                 jumped = true;
         }
@@ -177,15 +172,15 @@ double VirtualMachine::run() {
         break;
         case OpCode::LOAD_PARAM: {
             if(!callStack.empty()) {
-                size_t baseReg = callStack.top().baseReg;
-                registers[inst.dst] = registers[baseReg + inst.left];
+                const auto& args = callStack.top().args;
+                registers[inst.dst] = inst.left < args.size() ? args[inst.left] : Value(0.0);
             }
         }
         break;
 
         case OpCode::LOAD: {
             int32_t base   = (int32_t)asNumber(registers[inst.left]); // FP
-            int32_t offset = (int32_t)inst.right;
+            int32_t offset = static_cast<int8_t>(inst.right);
             int32_t addr   = base + offset;
 
             if (addr < 0 || addr >= (int32_t)memory.size()) {
@@ -198,7 +193,7 @@ double VirtualMachine::run() {
 
         case OpCode::STORE: {
             int32_t base   = (int32_t)asNumber(registers[inst.left]); // FP
-            int32_t offset = (int32_t)inst.right;
+            int32_t offset = static_cast<int8_t>(inst.right);
             int32_t addr   = base + offset;
 
             if (addr < 0 || addr >= (int32_t)memory.size()) {

@@ -59,6 +59,17 @@ private:
     int programFrameSlotCount_ = 1;
 
 public:
+    bool hasGlobal(const std::string& name) const {
+        return globalAddresses.find(name) != globalAddresses.end();
+    }
+
+    bool tryGetGlobalAddress(const std::string& name, size_t& addr) const {
+        auto it = globalAddresses.find(name);
+        if (it == globalAddresses.end()) return false;
+        addr = it->second;
+        return true;
+    }
+
     size_t getGlobalAddress(const std::string& name) {
         auto it = globalAddresses.find(name);
         if (it != globalAddresses.end()) return it->second;
@@ -68,6 +79,17 @@ public:
     }
 
     // Get local offset - searches from innermost to outermost scope
+    bool tryGetLocalOffset(const std::string& name, int32_t& offset) const {
+        for (auto it = scopeStack.rbegin(); it != scopeStack.rend(); ++it) {
+            auto found = it->locals.find(name);
+            if (found != it->locals.end()) {
+                offset = found->second;
+                return true;
+            }
+        }
+        return false;
+    }
+
     int32_t getLocalOffset(const std::string& name) {
         if (scopeStack.empty()) {
             throw std::runtime_error("Cannot allocate local variable outside of any scope");
@@ -180,6 +202,10 @@ public:
 
     bool isInsideFunction() const {
         return inFunctionScope;
+    }
+
+    bool hasActiveScope() const {
+        return !scopeStack.empty();
     }
 
     // Program (script) parsing: one root scope for top-level locals and blocks

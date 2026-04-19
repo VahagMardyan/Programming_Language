@@ -5,11 +5,11 @@ VHG Test Suite v2.0: Complex Logic & Scoping
 
 # 1. Shadowing & Scoping Test
 global x = 500;
-y = 10;
+global y = 10; # # Use the "global" keyword just to be sure the variable is global
 
 function scope_test(a) {
-    local x = 20; # Սա պետք է չփոխի գլոբալ x-ը
-    global y = y + a;    # Սա պետք է փոխի գլոբալ y-ը (քանի որ local չէ)
+    local x = 20; # This should not change the global x
+    global y = y + a;    # This should change the global y (because it's not local)
     print("Inside function: local x = ", x, " global y (modified) = ", y, "\n");
     return x + y;
 }

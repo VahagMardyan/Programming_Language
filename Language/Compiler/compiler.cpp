@@ -48,18 +48,33 @@ std::shared_ptr<ASTNode> Compiler::optimize(std::shared_ptr<ASTNode> node) {
                 case OpCode::SUB: result = v1-v2; break;
                 case OpCode::MUL: result = v1*v2; break;
                 case OpCode::POW: result = std::pow(v1, v2); break;
-                case OpCode::DIV: result = v2 ? v1/v2 : 0; break;
-                case OpCode::FLOOR_DIV: result = v2 ? std::floor(v1/v2) : 0; break;
-                case OpCode::FRAC_DIV: result = v2 ? (v1 / v2 - std::floor(v1/v2)) : 0; break;
+                case OpCode::DIV:
+                    if (v2 == 0) return std::make_shared<BinaryOpNode>(bin->getOp(), left, right);
+                    result = v1/v2;
+                    break;
+                case OpCode::FLOOR_DIV:
+                    if (v2 == 0) return std::make_shared<BinaryOpNode>(bin->getOp(), left, right);
+                    result = std::floor(v1/v2);
+                    break;
+                case OpCode::FRAC_DIV:
+                    if (v2 == 0) return std::make_shared<BinaryOpNode>(bin->getOp(), left, right);
+                    result = (v1 / v2 - std::floor(v1/v2));
+                    break;
                 case OpCode::AND: result = (double)((long long)v1 & (long long)v2); break;
                 case OpCode::OR:  result = (double)((long long)v1 | (long long)v2); break;
                 case OpCode::XOR: result = (double)((long long)v1 ^ (long long)v2); break;
-                case OpCode::MODULO: result = (double)((long long)v1 % (long long)v2); break;
+                case OpCode::MODULO:
+                    if ((long long)v2 == 0) return std::make_shared<BinaryOpNode>(bin->getOp(), left, right);
+                    result = (double)((long long)v1 % (long long)v2);
+                    break;
                 case OpCode::SLL: result = (double)((long long)v1 << (long long)v2); break;
-                case OpCode::SRL: result = (double)((long long)v1 >> (long long)v2); break;
+                case OpCode::SRL: result = (double)((uint32_t)((long long)v1) >> (((long long)v2) & 0x1F)); break;
                 case OpCode::LOGICAL_AND: result = (v1 != 0 && v2 != 0) ? 1.0 : 0.0; break;
                 case OpCode::LOGICAL_OR: result = (v1 != 0 || v2 != 0) ? 1.0 : 0.0; break;
-                case OpCode::SLT: result = (v1 < v2) ? 1.0 : 0.0; break;
+                case OpCode::SLT:
+                case OpCode::CMP_LT:
+                    result = (v1 < v2) ? 1.0 : 0.0;
+                    break;
                 case OpCode::CMP_LET: result = (v1 <= v2) ? 1.0 : 0.0; break;
                 case OpCode::CMP_GT: result = (v1 > v2) ? 1.0 : 0.0; break;
                 case OpCode::CMP_GET: result = (v1 >= v2) ? 1.0 : 0.0; break;
@@ -350,8 +365,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
 
         compileStatement(funcDef->getBody(), code);
 
-        // Epilogue
-        code.push_back({(uint32_t)OpCode::ADDI, SP, SP, (uint32_t)frameSize});
+        // Implicit fallthrough returns 0; VM restores caller SP/FP from the saved frame.
         code.push_back({(uint32_t)OpCode::RETURN, 0, 0, 0});
 
         setAddress(code[jmpIdx], (uint16_t)code.size());

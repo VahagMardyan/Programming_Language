@@ -11,15 +11,28 @@ std::shared_ptr<ASTNode> Parser::createBinaryNode(const std::string& op,
         if(op == "-") return std::make_shared<NumberNode>(l - r);
         if(op == "*") return std::make_shared<NumberNode>(l * r);
         if(op == "**") return std::make_shared<NumberNode>(std::pow(l,r));
-        if(op == "/") return std::make_shared<NumberNode>(r != 0 ? l / r : 0);
-        if(op == "//") return std::make_shared<NumberNode>(r != 0 ? std::floor(l/r) : 0);
+        if(op == "/") {
+            if(r == 0) return std::make_shared<BinaryOpNode>(op, left, right);
+            return std::make_shared<NumberNode>(l / r);
+        }
+        if(op == "//") {
+            if(r == 0) return std::make_shared<BinaryOpNode>(op, left, right);
+            return std::make_shared<NumberNode>(std::floor(l/r));
+        }
         long long li = (long long)l, ri = (long long)r;
         if(op == "&")  return std::make_shared<NumberNode>((double)(li & ri));
         if(op == "|")  return std::make_shared<NumberNode>((double)(li | ri));
         if(op == "^")  return std::make_shared<NumberNode>((double)(li ^ ri));
         if(op == "<<") return std::make_shared<NumberNode>((double)(li << ri));
-        if(op == ">>") return std::make_shared<NumberNode>((double)(li >> ri));
-        if(op == "%")  return std::make_shared<NumberNode>((double)(li % ri));
+        if(op == ">>") return std::make_shared<NumberNode>((double)((uint32_t)li >> (ri & 0x1F)));
+        if(op == "%")  {
+            if(ri == 0) return std::make_shared<BinaryOpNode>(op, left, right);
+            return std::make_shared<NumberNode>((double)(li % ri));
+        }
+        if(op == "%/") {
+            if(r == 0) return std::make_shared<BinaryOpNode>(op, left, right);
+            return std::make_shared<NumberNode>(l / r - std::floor(l / r));
+        }
         if(op == "and") {
             return std::make_shared<NumberNode>((l != 0 && r != 0) ? 1.0 : 0.0);
         }
@@ -34,6 +47,25 @@ std::shared_ptr<ASTNode> Parser::createBinaryNode(const std::string& op,
         if (op == "!=") return std::make_shared<NumberNode>(l != r ? 1.0 : 0.0);
     }
     return std::make_shared<BinaryOpNode>(op, left, right);
+}
+
+std::shared_ptr<ASTNode> Parser::resolveVariableNode(const std::string& name) {
+    int32_t localOffset = 0;
+    if (symTable.tryGetLocalOffset(name, localOffset)) {
+        return std::make_shared<VariableNode>(localOffset);
+    }
+
+    size_t globalAddr = 0;
+    if (symTable.tryGetGlobalAddress(name, globalAddr)) {
+        return std::make_shared<VariableNode>(globalAddr);
+    }
+
+    state = ParserState::Error;
+    throw std::runtime_error("Undefined variable: " + name);
+}
+
+bool Parser::shouldDefaultToLocal(bool explicitGlobal) const {
+    return !explicitGlobal && symTable.hasActiveScope();
 }
 
 std::shared_ptr<ASTNode> Parser::createUnaryNode(const std::string& op,
@@ -227,18 +259,8 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
     else if (explicitGlobal) {
         isLocalVar = false;
     } 
-    else if (insideFunction) {
-        // Default to local when inside any function
-        isLocalVar = true;
-    } 
     else {
-        isLocalVar = false;
-    }
-
-    if (isLocalVar) {
-        symTable.getLocalOffset(name);
-    } else {
-        symTable.getGlobalAddress(name);
+        isLocalVar = shouldDefaultToLocal(explicitGlobal);
     }
 
     if(currentToken.type != TokenType::Assign && 
@@ -257,8 +279,32 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
     }
 
     if(assignOp != "=") {
+        int32_t localOffset = 0;
+        size_t globalAddr = 0;
+
+        if (explicitLocal) {
+            if (!symTable.tryGetLocalOffset(name, localOffset)) {
+                state = ParserState::Error;
+                throw std::runtime_error("Undefined local variable in compound assignment: " + name);
+            }
+            isLocalVar = true;
+        } else if (explicitGlobal) {
+            if (!symTable.tryGetGlobalAddress(name, globalAddr)) {
+                state = ParserState::Error;
+                throw std::runtime_error("Undefined global variable in compound assignment: " + name);
+            }
+            isLocalVar = false;
+        } else if (symTable.tryGetLocalOffset(name, localOffset)) {
+            isLocalVar = true;
+        } else if (symTable.tryGetGlobalAddress(name, globalAddr)) {
+            isLocalVar = false;
+        } else {
+            state = ParserState::Error;
+            throw std::runtime_error("Undefined variable in compound assignment: " + name);
+        }
+
         std::string mathOp;
-        if(assignOp == "+=") mathOp = "+";
+        if(assignOp == "+=")      mathOp = "+";
         else if(assignOp == "-=") mathOp = "-";
         else if(assignOp == "*=") mathOp = "*";
         else if(assignOp == "/=") mathOp = "/";
@@ -267,14 +313,18 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
 
         std::shared_ptr<ASTNode> varNode;
         if (isLocalVar) {
-            int32_t off = symTable.getLocalOffset(name);
-            varNode = std::make_shared<VariableNode>(off);
+            varNode = std::make_shared<VariableNode>(localOffset);
         } else {
-            size_t addr = symTable.getGlobalAddress(name);
-            varNode = std::make_shared<VariableNode>(addr);
+            varNode = std::make_shared<VariableNode>(globalAddr);
         }
 
         valueExpr = std::make_shared<BinaryOpNode>(mathOp, varNode, valueExpr);
+    } else {
+        if (isLocalVar) {
+            symTable.getLocalOffset(name);
+        } else {
+            symTable.getGlobalAddress(name);
+        }
     }
 
     if (isLocalVar) {
@@ -345,13 +395,7 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                         nodes.push(callNode);
                         state = ParserState::ExpectOperator;
                     } else {
-                        if (symTable.isLocal(name)) {
-                            int32_t off = symTable.getLocalOffset(name);
-                            nodes.push(std::make_shared<VariableNode>(off));
-                        } else {
-                            size_t addr = symTable.getGlobalAddress(name);
-                            nodes.push(std::make_shared<VariableNode>(addr));
-                        }
+                        nodes.push(resolveVariableNode(name));
                         state = ParserState::ExpectOperator;
                     }
                 } else if(token.type == TokenType::StringLiteral) {
@@ -390,29 +434,15 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                     if(!ops.empty() && ops.top() == "(") {
                         ops.pop();
                         state = ParserState::ExpectOperator; nextToken();
+                    } else if (ops.empty()) {
+                        break;
                     } else {
-                        state = ParserState::Done;
-                    }
-                } else if(token.type == TokenType::Name) {
-                    std::string name = token.value;
-                    nextToken();
-                    if(currentToken.type == TokenType::OpenParen) {
-                        auto callNode = parseFunctionCall(name);
-                        nodes.push(callNode);
-                        state = ParserState::ExpectOperator;
-                    } else {
-                        if (symTable.isLocal(name)) {
-                            int32_t off = symTable.getLocalOffset(name);
-                            nodes.push(std::make_shared<VariableNode>(off));
-                        } else {
-                            size_t addr = symTable.getGlobalAddress(name);
-                            nodes.push(std::make_shared<VariableNode>(addr));
-                        }
-                        state = ParserState::ExpectOperator;
+                        state = ParserState::Error;
                     }
                 } else if(token.type == TokenType::Number ||
                           token.type == TokenType::Name   ||
-                          token.type == TokenType::OpenParen) {
+                          token.type == TokenType::OpenParen ||
+                          token.type == TokenType::StringLiteral) {
                     processOperatorStack("*"); ops.push("*");
                     if(token.type == TokenType::Number) {
                         nodes.push(std::make_shared<NumberNode>(std::stod(token.value)));
@@ -420,25 +450,41 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                     } else if(token.type == TokenType::Name) {
                         std::string name = token.value;
                         nextToken();
-                        if (symTable.isLocal(name)) {
-                            int32_t off = symTable.getLocalOffset(name);
-                            nodes.push(std::make_shared<VariableNode>(off));
+                        if(currentToken.type == TokenType::OpenParen) {
+                            auto callNode = parseFunctionCall(name);
+                            nodes.push(callNode);
                         } else {
-                            size_t addr = symTable.getGlobalAddress(name);
-                            nodes.push(std::make_shared<VariableNode>(addr));
+                            nodes.push(resolveVariableNode(name));
                         }
                         state = ParserState::ExpectOperator;
+                    } else if(token.type == TokenType::StringLiteral) {
+                        nodes.push(std::make_shared<StringNode>(token.value));
+                        state = ParserState::ExpectOperator;
+                        nextToken();
                     } else {
                         ops.push("(");
                         state = ParserState::ExpectOperand; nextToken();
                     }
+                } else {
+                    state = ParserState::Error;
                 }
                 break;
             default: break;
         }
+        if(state == ParserState::Error) break;
     }
-    while(!ops.empty()) createNodeFromOp();
-    return nodes.empty() ? nullptr : nodes.top();
+    while(state != ParserState::Error && !ops.empty()) {
+        if(ops.top() == "(") {
+            state = ParserState::Error;
+            break;
+        }
+        createNodeFromOp();
+    }
+    if(state == ParserState::Error || nodes.size() != 1) {
+        state = ParserState::Error;
+        return nullptr;
+    }
+    return nodes.top();
 }
 
 std::shared_ptr<StatementNode> Parser::parseFor() {
@@ -446,8 +492,7 @@ std::shared_ptr<StatementNode> Parser::parseFor() {
     if(currentToken.value != "(") { state = ParserState::Error; return nullptr; }
     nextToken(); // skip '('
 
-    // Enter new scope for the entire for loop
-    // This makes the loop variable and body variables all local to the for loop
+    // Enter new scope for the entire for loop.
     symTable.enterBlockScope();
 
     // i = 0;
@@ -460,12 +505,16 @@ std::shared_ptr<StatementNode> Parser::parseFor() {
     // i += 1;
     auto update = parseAssignment();
 
-    if(currentToken.value != ")") { state = ParserState::Error; return nullptr; }
+    if(currentToken.value != ")") {
+        state = ParserState::Error;
+        symTable.exitBlockScope();
+        return nullptr;
+    }
     nextToken();
 
     // {...}
     auto body = parseStatement();
-    
+
     // Exit the for loop scope
     symTable.exitBlockScope();
     
@@ -526,19 +575,36 @@ std::shared_ptr<StatementNode> Parser::parseFunction() {
 std::shared_ptr<ASTNode> Parser::parseFunctionCall(const std::string& name) {
     nextToken(); // skip '('
     std::vector<std::shared_ptr<ASTNode>> args;
+    auto savedOps = ops;
+    auto savedNodes = nodes;
+    auto savedState = state;
     while(currentToken.value != ")" && currentToken.type != TokenType::EndOfExpr) {
-        args.push_back(parseExpression());
+        auto arg = parseExpression();
+        if (state == ParserState::Error || !arg) {
+            return nullptr;
+        }
+        args.push_back(arg);
+        ops = savedOps;
+        nodes = savedNodes;
+        state = savedState;
         if(currentToken.type == TokenType::Comma) nextToken();
     }
     if(currentToken.value != ")") {
         state = ParserState::Error;
         return nullptr;
     }
+    ops = savedOps;
+    nodes = savedNodes;
+    state = savedState;
     nextToken(); // skip ')'
     return std::make_shared<FunctionCallNode>(name, std::move(args));
 }
 
 std::shared_ptr<StatementNode> Parser::parseReturn() {
+    if (!insideFunction) {
+        state = ParserState::Error;
+        throw std::runtime_error("return is only allowed inside functions");
+    }
 
     nextToken(); // skip 'return'
 

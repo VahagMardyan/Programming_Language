@@ -26,6 +26,8 @@ private:
         std::shared_ptr<ASTNode> left, std::shared_ptr<ASTNode> right);
     std::shared_ptr<ASTNode> createUnaryNode(const std::string& op,
         std::shared_ptr<ASTNode> child);
+    std::shared_ptr<ASTNode> resolveVariableNode(const std::string& name);
+    bool shouldDefaultToLocal(bool explicitGlobal) const;
 
     std::shared_ptr<StatementNode> parseStatement();
     std::shared_ptr<StatementNode> parseIf();

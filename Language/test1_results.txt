@@ -1,0 +1,32 @@
+--- Scoping --- 
+
+Inside function: local x = 20 global y (modified) = 15
+Function result: 35
+Outside: global x = 500 (should be 500), y = 15
+
+--- Advanced Math --- 
+
+17 // 5 = 3
+17 %/ 5 = 0.4
+2 ** 3 ** 2 = 512
+
+--- Nested Loops (3x3 Table) --- 
+
+1*1=1  1*2=2  1*3=3  
+
+2*1=2  2*2=4  2*3=6  
+
+3*1=3  3*2=6  3*3=9  
+
+
+--- Logical Chain --- 
+
+Empty and Zero are both Falsy
+
+String 'VHG' is Truthy
+
+Complex logic works
+
+
+=== Test v2.0 Completed ===
+
