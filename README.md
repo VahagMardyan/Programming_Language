@@ -212,13 +212,3 @@ Run it:
 ```
 
 ---
-
-## 🔮 Roadmap / Possible Improvements
-
-- [ ] Add array / list support.
-- [ ] Implement a simple garbage collector for strings.
-- [ ] Inline caching for faster global variable access.
-- [ ] More aggressive peephole optimizations.
-- [ ] Source‑level debug information.
-
----
