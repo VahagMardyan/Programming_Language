@@ -145,7 +145,7 @@ print(result);
 
 ### Built‑in I/O
 - `print(expr1, expr2, ...)` – prints each argument; automatically appends a newline **if only one argument is given** (otherwise you must include `"\n"` explicitly).
-- `length(string)` - returns the length of given string.
+- `length(string)` - returns the size of given string.
 ---
 
 ## 🧠 Architecture Deep Dive
