@@ -1,0 +1,65 @@
+#* =============================================
+VHG Test Suite v2.0: Complex Logic & Scoping
+=============================================
+*#
+
+# 1. Shadowing & Scoping Test
+global x = 500;
+y = 10;
+
+function scope_test(a) {
+    local x = 20; # Սա պետք է չփոխի գլոբալ x-ը
+    global y = y + a;    # Սա պետք է փոխի գլոբալ y-ը (քանի որ local չէ)
+    print("Inside function: local x = ", x, " global y (modified) = ", y, "\n");
+    return x + y;
+}
+
+print("--- Scoping --- \n");
+res = scope_test(5);
+print("Function result: ", res, "\n");
+print("Outside: global x = ", x, " (should be 500), y = ", y, "\n");
+
+# 2. Complex Math & New Operators
+print("\n--- Advanced Math --- \n");
+val1 = 17;
+val2 = 5;
+
+f_div = val1 // val2;    # 3
+m_div = val1 %/ val2;    # 0.4
+p_res = 2 ** 3 ** 2;    # Python style: 2^(3^2) = 2^9 = 512
+
+print("17 // 5 = ", f_div, "\n");
+print("17 %/ 5 = ", m_div, "\n");
+print("2 ** 3 ** 2 = ", p_res, "\n");
+
+# 3. Nested Loops (Multiplication Table for 3)
+print("\n--- Nested Loops (3x3 Table) --- \n");
+for (i = 1; i <= 3; i = i + 1) {
+    for (j = 1; j <= 3; j = j + 1) {
+        print(i, "*", j, "=", i * j, "  ");
+    }
+    print("\n");
+}
+
+# 4. Logical Chain with Falsy Values
+print("\n--- Logical Chain --- \n");
+empty = "";
+zero = 0;
+text = "VHG";
+
+# (not "" is true) and (not 0 is true) -> true
+if (not empty and not zero) {
+    print("Empty and Zero are both Falsy\n");
+}
+
+# ("VHG" is truthy)
+if (text) {
+    print("String 'VHG' is Truthy\n");
+}
+
+# Complex expression: (true or false) and true
+if ((10 > 5 or 5 > 10) and 1 == 1) {
+    print("Complex logic works\n");
+}
+
+print("\n=== Test v2.0 Completed ===\n");

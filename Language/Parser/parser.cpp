@@ -80,9 +80,16 @@ void Parser::createNodeFromOp() {
 }
 
 void Parser::processOperatorStack(const std::string& currentOp) {
-    while(!ops.empty() && ops.top() != "(" &&
-          precedence(ops.top()) >= precedence(currentOp))
+    while(!ops.empty() && ops.top() != "(") {
+        int topPrec = precedence(ops.top());
+        int currentPrec = precedence(currentOp);
+        if(topPrec < currentPrec) break;
+
+        if(topPrec == currentPrec) {
+            if(currentOp == "**") break;
+        }
         createNodeFromOp();
+    }
 }
 
 std::shared_ptr<StatementNode> Parser::parseProgram() {
@@ -292,6 +299,10 @@ std::shared_ptr<StatementNode> Parser::parsePrint() {
 
     if(currentToken.value != ")") { state = ParserState::Error; return nullptr; }
     nextToken(); // skip ')'
+
+    if(exprs.size() <= 1) {
+        exprs.push_back(std::make_shared<StringNode>("\n"));
+    }
 
     if(currentToken.type == TokenType::Semicolon) {
         nextToken();
