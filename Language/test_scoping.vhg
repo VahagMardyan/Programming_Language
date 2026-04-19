@@ -1,0 +1,82 @@
+# Test program demonstrating block-level scoping
+
+# Test 1: For loop scope
+print("=== Test 1: For loop creates its own scope ===");
+x = 100;  # global x
+for(i = 0; i < 3; i += 1) {
+    result = i * 2;  # local to for loop
+    print("Inside for: i =", i, "result =", result);
+}
+# i and result should NOT be accessible here anymore
+# (they were local to the for loop)
+
+print("");
+
+# Test 2: If/else block scope
+print("=== Test 2: If/else blocks create their own scopes ===");
+condition = 1;
+if(condition) {
+    thenVar = 42;  # local to if block
+    print("Inside if: thenVar =", thenVar);
+} else {
+    elseVar = 99;  # local to else block
+    print("Inside else: elseVar =", elseVar);
+}
+# thenVar and elseVar should NOT be accessible here
+
+print("");
+
+# Test 3: While loop scope
+print("=== Test 3: While loop creates its own scope ===");
+counter = 0;  # global
+while(counter < 3) {
+    loopVar = counter * 10;  # local to while loop
+    print("Inside while: counter =", counter, "loopVar =", loopVar);
+    counter += 1;
+}
+# loopVar should NOT be accessible here
+
+print("");
+
+# Test 4: Nested blocks
+print("=== Test 4: Nested blocks create nested scopes ===");
+outer = 1;  # global
+{
+    middle = 2;  # local to outer block
+    print("Outer block: middle =", middle);
+    {
+        inner = 3;  # local to inner block
+        print("Inner block: inner =", inner);
+    }
+    # inner should NOT be accessible here
+    print("Back in outer block");
+}
+# middle should NOT be accessible here
+
+print("");
+
+# Test 5: Function with local scopes
+print("=== Test 5: Function with nested scopes ===");
+function testFunc(param) {
+    funcVar = 10;  # local to function
+    print("Function start: param =", param, "funcVar =", funcVar);
+    
+    if(param > 5) {
+        ifVar = 20;  # local to if block inside function
+        print("Inside if: ifVar =", ifVar);
+    }
+    
+    for(j = 0; j < 2; j += 1) {
+        forVar = 30;  # local to for loop inside function
+        print("Inside for: j =", j, "forVar =", forVar);
+    }
+    
+    print("Function end: funcVar =", funcVar);
+    return funcVar + param;
+}
+
+result = testFunc(7);
+print("Function returned:", result);
+
+print("");
+print("=== All tests completed ===");

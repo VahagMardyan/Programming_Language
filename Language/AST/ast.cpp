@@ -8,6 +8,8 @@ OpCode BinaryOpNode::getOpCode() const {
     if(op == "+")  return OpCode::ADD;
     if(op == "-")  return OpCode::SUB;
     if(op == "/")  return OpCode::DIV;
+    if(op == "//") return OpCode::FLOOR_DIV;
+    if(op == "%/") return OpCode::FRAC_DIV;
     if(op == "*")  return OpCode::MUL;
     if(op == "**") return OpCode::POW;
     if(op == "&")  return OpCode::AND;

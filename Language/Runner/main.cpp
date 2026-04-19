@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
             throw std::runtime_error("Expected .vhg source, or use compile/run modes");
         }
         std::string source = readAllText(filename);
-        VirtualMachine vm(false);
+        VirtualMachine vm(true);
         vm.load(source, st);
         vm.run();
     } catch(const std::exception& e) {

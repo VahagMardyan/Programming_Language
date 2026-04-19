@@ -51,6 +51,7 @@ class Compiler {
         // Forward declarations
         std::vector<std::pair<size_t, std::string>> forwardCalls;
         int allocateTempRegister();
+        void emitMainPrologue(std::vector<Instruction>& code);
 
         std::vector<std::shared_ptr<ASTNode>> postOrderTraverse(std::shared_ptr<ASTNode> root);
         std::vector<Instruction> generateByteCode(const std::vector<std::shared_ptr<ASTNode>>& nodes);

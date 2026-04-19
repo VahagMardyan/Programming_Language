@@ -6,6 +6,14 @@
 const int SP = 2;
 const int FP = 8;
 
+void Compiler::emitMainPrologue(std::vector<Instruction>& code) {
+    int slots = symTable.getProgramFrameSlotCount();
+    if (slots < 1) slots = 1;
+    int frameSize = (slots + 4) * 4;
+    code.push_back({(uint32_t)OpCode::ADDI, SP, SP, (uint32_t)(int32_t)(-frameSize)});
+    code.push_back({(uint32_t)OpCode::ADDI, FP, SP, (uint32_t)frameSize});
+}
+
 int Compiler::allocateTempRegister() {
     while(nextTempIndex == SP || nextTempIndex == FP) {
         ++nextTempIndex;
@@ -41,6 +49,8 @@ std::shared_ptr<ASTNode> Compiler::optimize(std::shared_ptr<ASTNode> node) {
                 case OpCode::MUL: result = v1*v2; break;
                 case OpCode::POW: result = std::pow(v1, v2); break;
                 case OpCode::DIV: result = v2 ? v1/v2 : 0; break;
+                case OpCode::FLOOR_DIV: result = v2 ? std::floor(v1/v2) : 0; break;
+                case OpCode::FRAC_DIV: result = v2 ? (v1 / v2 - std::floor(v1/v2)) : 0; break;
                 case OpCode::AND: result = (double)((long long)v1 & (long long)v2); break;
                 case OpCode::OR:  result = (double)((long long)v1 | (long long)v2); break;
                 case OpCode::XOR: result = (double)((long long)v1 ^ (long long)v2); break;
@@ -120,9 +130,16 @@ ByteCode Compiler::compile(std::shared_ptr<ASTNode> root) {
     if(!root) return {insts, constantPool, stringPool};
     
     auto optimizedRoot = optimize(root);
-    auto stmt = std::dynamic_pointer_cast<StatementNode>(optimizedRoot);
-    if(stmt) compileStatement(stmt, insts);
-    
+    emitMainPrologue(insts);
+
+    if (auto block = std::dynamic_pointer_cast<BlockCode>(optimizedRoot)) {
+        for (auto& s : block->getStatements()) {
+            compileStatement(s, insts);
+        }
+    } else if (auto stmt = std::dynamic_pointer_cast<StatementNode>(optimizedRoot)) {
+        compileStatement(stmt, insts);
+    }
+
     for(auto& [idx, name] : forwardCalls) {
         if(functionTable.count(name)) {
             setAddress(insts[idx], (uint16_t)functionTable[name].address);
@@ -321,10 +338,10 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         // FP = SP + frameSize
         code.push_back({(uint32_t)OpCode::ADDI, FP, SP, (uint32_t)frameSize});
 
-        // պարամետրեր
+        // Parameters use FP offsets assigned at parse time (first at -4, then -8, ...).
+        // Do not consult symTable here: parsing calls exitFunctionScope() and clears scopes.
         for(int i = 0; i < (int)funcDef->getParams().size(); i++) {
-            std::string p = funcDef->getParams()[i];
-            int32_t off = symTable.getLocalOffset(p);
+            int32_t off = -4 * (static_cast<int32_t>(i) + 1);
             int reg = allocateTempRegister();
 
             code.push_back({(uint32_t)OpCode::LOAD_PARAM, (uint32_t)reg, (uint32_t)i, 0});

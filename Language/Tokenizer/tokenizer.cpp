@@ -6,7 +6,8 @@ const std::unordered_map<std::string, TokenType> operations = {
     {"&", TokenType::Operator}, {"|", TokenType::Operator},
     {"^", TokenType::Operator}, {"%", TokenType::Operator},
     {">>", TokenType::Operator}, {"<<", TokenType::Operator},
-    {"**", TokenType::Operator},
+    {"**", TokenType::Operator}, {"//", TokenType::Operator},
+    {"%/", TokenType::Operator},
 };
 
 Tokenizer::Tokenizer(Lexer& l) : lexer(l) {}
@@ -127,7 +128,9 @@ Token Tokenizer::getNextToken() {
            (current == '*' && next == '=') || // *=
            (current == '%' && next == '=') || // %=
            (current == '^' && next == '=') ||
-           (current == '*' && next == '*')) { // **
+           (current == '*' && next == '*') || // **
+           (current == '/' && next == '/') || // floor division operator (//) 
+           (current == '%' && next == '/')) { // fractional division operator (a%/b = a/b - a//b). Fractional part
             op += next;
             lexer.advance();
         }

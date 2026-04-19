@@ -24,7 +24,7 @@ enum class OpCode : uint8_t {
     LW, SW,
 
     // Existing VM extensions
-    MUL, DIV, MODULO, POW,
+    MUL, DIV, MODULO, POW, FLOOR_DIV, FRAC_DIV,
     UNARY, LOAD_CONST, LOAD_VAR, LOAD_STR,
     UNDEFINED,
     CMP_GT, CMP_LT, CMP_GET, CMP_LET, CMP_EQ, CMP_NEQ,

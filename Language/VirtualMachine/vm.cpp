@@ -81,7 +81,19 @@ double VirtualMachine::run() {
         case OpCode::POW:    registers[inst.dst] = std::pow(asNumber(registers[inst.left]), asNumber(registers[inst.right])); break;
         case OpCode::DIV:
             if(asNumber(registers[inst.right]) == 0) throw std::runtime_error("Division by zero");
-            registers[inst.dst] = asNumber(registers[inst.left]) / asNumber(registers[inst.right]); break;
+            registers[inst.dst] = asNumber(registers[inst.left]) / asNumber(registers[inst.right]); 
+        break;
+        case OpCode::FLOOR_DIV:
+            if(asNumber(registers[inst.right]) == 0) throw std::runtime_error("Division by zero");
+            registers[inst.dst] = std::floor(asNumber(registers[inst.left]) / asNumber(registers[inst.right]));
+        break;
+        case OpCode::FRAC_DIV: {
+            double l = asNumber(registers[inst.left]);
+            double r = asNumber(registers[inst.right]);
+            if(r == 0) throw std::runtime_error("Division by zero");
+            registers[inst.dst] = l/r - std::floor(l/r);
+        }
+        break;
         case OpCode::UNARY:  registers[inst.dst] = -asNumber(registers[inst.left]); break;
         case OpCode::MODULO: registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) % toInt32(registers[inst.right])); break;
         case OpCode::AND:    registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) & toInt32(registers[inst.right])); break;
@@ -285,6 +297,8 @@ void VirtualMachine::visualize(const std::vector<Instruction>& program) const {
             case OpCode::SUB:     std::cout << "SUB";     break;
             case OpCode::MUL:     std::cout << "MUL";     break;
             case OpCode::DIV:     std::cout << "DIV";     break;
+            case OpCode::FLOOR_DIV: std::cout << "FLOOR_DIV"; break;
+            case OpCode::FRAC_DIV: std::cout << "FRAC_DIV"; break;
             case OpCode::POW:     std::cout << "POW";     break;
             case OpCode::MODULO:  std::cout << "MODULO";  break;
             case OpCode::UNARY:   std::cout << "NEG";     break;
