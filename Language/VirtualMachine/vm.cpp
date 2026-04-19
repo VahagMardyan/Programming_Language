@@ -154,6 +154,16 @@ double VirtualMachine::run() {
         }
         break;
 
+        case OpCode::LENGTH: {
+            const Value& val = registers[inst.left];
+            if(isString(val)) {
+                registers[inst.dst] = static_cast<double>(asString(val).size());
+            } else {
+                throw std::runtime_error("length() excepts a string argument");
+            }
+        }
+        break;
+
         case OpCode::RETURN: {
                 Value retVal = registers[inst.dst];
                 if(callStack.empty()) break;
@@ -346,6 +356,11 @@ void VirtualMachine::visualize(const std::vector<Instruction>& program) const {
                 std::cout << "CALL" << std::setw(6) << "-" << std::setw(6) << "-"
                           << std::setw(6) << inst.dst << " ADDR: " << getAddress(inst);
                 break;
+
+            case OpCode::LENGTH:
+                std::cout << "LENGTH" << std::setw(6) << inst.left << std::setw(6) << "-"
+                          << std::setw(6) << inst.dst;
+            break;
 
             case OpCode::RETURN:
                 std::cout << "RETURN" << std::setw(6) << inst.dst << std::setw(6) << "-" << std::setw(6) << "-";

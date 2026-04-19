@@ -361,6 +361,35 @@ std::shared_ptr<StatementNode> Parser::parsePrint() {
     return std::make_shared<PrintNode>(std::move(exprs));
 }
 
+std::shared_ptr<ASTNode> Parser::parseBuiltInCall(const std::string& name) {
+    if(name == "length") {
+        nextToken(); // skip '('
+        
+        // Save parser state before parseExpression()
+        auto savedOps = ops;
+        auto savedNodes = nodes;
+        auto savedState = state;
+        
+        auto arg = parseExpression();
+        
+        // Restore parser state after recursive call
+        ops = savedOps;
+        nodes = savedNodes;
+        state = savedState;
+        
+        if(!arg) return nullptr;
+        if(currentToken.value != ")") {
+            state = ParserState::Error;
+            return nullptr;
+        }
+        nextToken(); // skip ')'
+        return std::make_shared<LengthNode>(arg);
+    }
+    // future built-ins
+    state = ParserState::Error;
+    return nullptr;
+}
+
 std::shared_ptr<ASTNode> Parser::parseExpression() {
     state = ParserState::ExpectOperand;
     while(!ops.empty()) ops.pop();
@@ -387,18 +416,25 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                     nodes.push(std::make_shared<NumberNode>(val));
                     state = ParserState::ExpectOperator;
                     nextToken();
-                } else if(token.type == TokenType::Name) {
-                    std::string name = token.value;
-                    nextToken();
-                    if(currentToken.type == TokenType::OpenParen) {
-                        auto callNode = parseFunctionCall(name);
-                        nodes.push(callNode);
-                        state = ParserState::ExpectOperator;
-                    } else {
-                        nodes.push(resolveVariableNode(name));
-                        state = ParserState::ExpectOperator;
-                    }
-                } else if(token.type == TokenType::StringLiteral) {
+                
+                    } else if(token.type == TokenType::Name) {
+                        std::string name = token.value;
+                        nextToken();
+                        if(currentToken.type == TokenType::OpenParen) {
+                            std::shared_ptr<ASTNode> node;
+                            if(name == "length") { // or any other built-in
+                                node = parseBuiltInCall(name);
+                            } else {
+                                node = parseFunctionCall(name);
+                            }
+                            if(!node) return nullptr;
+                            nodes.push(node);
+                            state = ParserState::ExpectOperator;
+                        } else {
+                            nodes.push(resolveVariableNode(name));
+                            state = ParserState::ExpectOperator;
+                        }
+                    } else if(token.type == TokenType::StringLiteral) {
                     nodes.push(std::make_shared<StringNode>(token.value));
                     state = ParserState::ExpectOperator;
                     nextToken();
@@ -447,20 +483,26 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                     if(token.type == TokenType::Number) {
                         nodes.push(std::make_shared<NumberNode>(std::stod(token.value)));
                         state = ParserState::ExpectOperator; nextToken();
-                    } else if(token.type == TokenType::Name) {
-                        std::string name = token.value;
-                        nextToken();
-                        if(currentToken.type == TokenType::OpenParen) {
-                            auto callNode = parseFunctionCall(name);
-                            nodes.push(callNode);
-                        } else {
-                            nodes.push(resolveVariableNode(name));
-                        }
-                        state = ParserState::ExpectOperator;
-                    } else if(token.type == TokenType::StringLiteral) {
-                        nodes.push(std::make_shared<StringNode>(token.value));
-                        state = ParserState::ExpectOperator;
-                        nextToken();
+                        } else if(token.type == TokenType::Name) {
+                            std::string name = token.value;
+                            nextToken();
+                            if(currentToken.type == TokenType::OpenParen) {
+                                std::shared_ptr<ASTNode> node;
+                                if(name == "length") {
+                                    node = parseBuiltInCall(name);
+                                } else {
+                                    node = parseFunctionCall(name);
+                                }
+                                if(!node) return nullptr;
+                                nodes.push(node);
+                            } else {
+                                nodes.push(resolveVariableNode(name));
+                            }
+                            state = ParserState::ExpectOperator;
+                        } else if(token.type == TokenType::StringLiteral) {
+                            nodes.push(std::make_shared<StringNode>(token.value));
+                            state = ParserState::ExpectOperator;
+                            nextToken();
                     } else {
                         ops.push("(");
                         state = ParserState::ExpectOperand; nextToken();

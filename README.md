@@ -1,292 +1,224 @@
-**Please don't take this `README.md` too seriously - I'll update it once the project is finished.🙂**
+# 🧪 VHG Language Compiler & Virtual Machine
 
-# 🧮 Compiler
-
-A high-performance C++ mathematical expression evaluator that follows a full compiler pipeline: from lexical analysis to Abstract Syntax Tree (AST) construction, and finally to bytecode execution via a Register-based Virtual Machine.
-
----
-## 🚀 Technical Highlights
-
-This project implements a full compilation pipeline for mathematical expressions, following modern compiler design principles.
-
-### 🏛️ Architecture & Design Patterns
-
-* **Three-Stage Pipeline**:
-1. **Lexical Analysis**: Custom `Lexer` and `Tokenizer` with state management.
-2. **Syntax Analysis**: `Recursive Descent Parser` combined with the **Shunting-Yard algorithm** for operator precedence.
-3. **Code Generation**: AST (Abstract Syntax Tree) transformation into linear **Three-Address Bytecode**.
-
-
-* **AST (Abstract Syntax Tree)**: Implemented using **Polymorphism** and `std::shared_ptr` for automatic memory management and clear node hierarchy.
-* **Virtual Machine (VM)**: A register-based VM that executes optimized bytecode instructions, mimicking a real CPU execution cycle.
-
-### ⚡ Optimization Techniques
-
-* **Constant Folding**: Expressions like `5 + 10` or unary operations like `---5` are evaluated during the compilation phase to reduce VM overhead.
-* **Implicit Multiplication**: Supports for mathematical shorthand like `5x` or `2(a+b)` through look-ahead        parsing logic.
-* **RISC-style Instruction Set**: Purposefully chosen atomic instructions (e.g., `LOAD` + `NEG` instead of complex `LOAD_NEG`) to maintain architectural clarity and execution predictability.
-* **Efficient Symbol Mapping**: Fast variable lookup using a `SymbolTable` that maps variable names to memory addresses before execution.
-
-### 🛠️ Memory & Performance
-
-* **Bytecode Linearization**: The AST is flattened into a `std::vector<Instruction>`, which provides high **Cache Locality** during VM execution compared to traversing a tree structure.
-* **RAII (Resource Acquisition Is Initialization)**: Clean handling of objects and memory using modern C++ smart pointers.
----
-
-## 📁 Project Structure
-
-### 🔍 Lexical Analysis (Lexer & Tokenizer)
-
-This layer is responsible for scanning the raw input string and breaking it into meaningful units.
-
-* **`lexer.h / lexer.cpp`**: Reads the input string as an `istream` and provides low-level character navigation using `peek()` and `advance()`.
-* **`tokenizer.h / tokenizer.cpp`**: Groups characters into logical **Tokens** (Numbers, Names, Operators) and filters out whitespaces.
-
-### 🗄️ Symbol Table
-
-* **`symbol_table.h / symbol_table.cpp`**: Manages variable storage. It maps variable names (like `x`, `y`, `z`) to specific memory addresses, allowing the VM to efficiently load values during execution.
-
-### 🌳 Abstract Syntax Tree (AST)
-
-Defines the hierarchical structure of the parsed expression.
-
-* **`ast.h / ast.cpp`**:
-* `enum class OpCode`: Instruction set for the Virtual Machine (`ADD`, `SUB`, `MUL`, `DIV`, `UNARY`, `LOAD_CONST`, `LOAD_VAR`).
-* `struct Instruction`: The core bytecode unit containing an `OpCode`, operand addresses, and destination index.
-
-
-* **`class ASTNode`**: The abstract base class providing two vital interfaces:
-* `print()`: Recursively displays the AST structure with visual markers (`|-->`) for debugging.
-* `transform()`: A recursive method (Post-order traversal) that transforms the hierarchical tree into a linear vector of `Instruction` objects.
-
-
-* **Concrete Nodes**: `NumberNode`, `VariableNode`, `BinaryOpNode`, `UnaryOpNode`.
-
-### ⚙️ Parser
-
-* **`parser.h / parser.cpp`**: Converts tokens into a structured **AST**. It implements operator precedence and handles parentheses to ensure correct mathematical evaluation order.
-
-### 💻 Execution Engine
-
-* **`calc.h / calc.cpp`**:
-* `debug_mode`: Enables `visualize()` and `root->print()` methods. It's turned off by default.
-* `compile()` : From expression creates AST. After that, it transforms that AST based on `Instruction`.
-* `execute()`: Runs the bytecode using a linear memory buffer (`std::vector<double>`), making it significantly faster than direct tree evaluation.
----
-
-## 🚀 Execution Pipeline
-
-1. **Source Code** (String) ➡️ **Lexer/Tokenizer** (Tokens)
-2. **Tokens** ➡️ **Parser** (AST Construction)
-3. **AST Tree** ➡️ **Transform** (Bytecode Generation)
-4. **Bytecode** ➡️ **VM Execution** (Final Result)
+**VHG** is a small, self‑contained programming language that compiles to a custom **register‑based bytecode** and runs on a **virtual machine**. The entire toolchain is written in modern C++ and demonstrates a complete compiler pipeline: lexical analysis, recursive‑descent parsing with operator precedence, an abstract syntax tree (AST), constant folding optimizations, and a RISC‑inspired instruction set.
 
 ---
 
-## 📊 Visual Output Examples
+## 🚀 Highlights
 
-### 🌳 AST Tree View 
-```text
-    std::string expression = "(x*x + y*y + z*z) * (-0.5 + x*y / 100)";
-    
-    └── BinaryOp: *
-    ├── BinaryOp: +
-    │   ├── BinaryOp: +
-    │   │   ├── BinaryOp: *
-    │   │   │   ├── Var (Addr: 0)
-    │   │   │   └── Var (Addr: 0)
-    │   │   └── BinaryOp: *
-    │   │       ├── Var (Addr: 1)
-    │   │       └── Var (Addr: 1)
-    │   └── BinaryOp: *
-    │       ├── Var (Addr: 2)
-    │       └── Var (Addr: 2)
-    └── BinaryOp: +
-        ├── Number: -0.5
-        └── BinaryOp: /
-            ├── BinaryOp: *
-            │   ├── Var (Addr: 0)
-            │   └── Var (Addr: 1)
-            └── Number: 100
-```
+- **Full compiler pipeline** – Lexer → Tokenizer → Parser → AST → Compiler → Bytecode → VM.
+- **Rich language features** – variables (global/local), block scoping, `if`/`else`, `while`, `for` loops, functions with parameters and return values.
+- **Strong typing for numbers and strings** – arithmetic, bitwise, logical, and comparison operators; string concatenation.
+- **Optimizations** – constant folding, implicit multiplication, post‑order code generation.
+- **Standalone bytecode** – binary `.vhb` files with a `VHB1` magic header, loadable and executable by the VM without re‑parsing.
+- **Clean, modular C++20** – extensive use of standard library, smart pointers, and RAII.
 
 ---
-### 📑 Disassembly View
 
-```text
-[SYMBOLIC Visualization]
-Addr  OpCode      L     R     Dst   Value
----------------------------------------------
-[0]  LOAD_VAR    0     -     0     *var
-[1]  LOAD_VAR    0     -     1     *var
-[2]  MUL         0     1     2     ?
-[3]  LOAD_VAR    1     -     3     *var
-[4]  LOAD_VAR    1     -     4     *var
-[5]  MUL         3     4     5     ?
-[6]  ADD         2     5     6     ?
-[7]  LOAD_VAR    2     -     7     *var
-[8]  LOAD_VAR    2     -     8     *var
-[9]  MUL         7     8     9     ?
-[10]  ADD         6     9     10    ?
-[11]  LOAD_CONST  -     -     11    -0.5
-[12]  LOAD_VAR    0     -     12    *var
-[13]  LOAD_VAR    1     -     13    *var
-[14]  MUL         12    13    14    ?
-[15]  LOAD_CONST  -     -     15    100
-[16]  DIV         14    15    16    ?
-[17]  ADD         11    16    17    ?
-[18]  MUL         10    17    18    ?
----------------------------------------------
-```
+## 📦 Project Structure
+
+| Directory / File         | Purpose                                                                 |
+|--------------------------|-------------------------------------------------------------------------|
+| `main.cpp`               | CLI entry point – compile, run, or directly execute `.vhg` files.        |
+| `Lexer/`                 | Character‑by‑character input stream handling.                            |
+| `Tokenizer/`             | Converts characters into tokens (keywords, operators, literals).         |
+| `SymbolTable/`           | Manages variable scopes, stack offsets, and global addresses.            |
+| `AST/`                   | AST node definitions and the `OpCode` enumeration.                       |
+| `Parser/`                | Recursive‑descent parser with shunting‑yard expression handling.         |
+| `Compiler/`              | Transforms AST into bytecode; performs constant folding.                 |
+| `VirtualMachine/`        | Executes bytecode; includes register file, memory, and call stack.       |
 
 ---
-## 🛠️ Build and Run
 
-To compile and run the project, use the following commands depending on your compiler:
+## 🛠️ Building the Compiler
 
-### **Using g++ (Linux / MinGW)**
+### Requirements
+- C++20 compatible compiler (g++ ≥ 11, clang ≥ 14, or MSVC 2022).
+- Standard library with filesystem support.
 
+### Linux / macOS (g++ / clang)
 ```bash
-g++ -O3 *.cpp -static -o out.exe && ./out.exe ./file_name.txt
-```
-#### **g++ Flag Definitions:**
-* `-O3` ➡️ Enables the highest level of optimization for speed. The compiler performs aggressive code              transformations to make the VM run as fast as possible. 
-* `*.cpp` ➡️ Compiles all C++ source files in the current directory.
-* `-static` ➡️ Links libraries statically. This ensures the `.exe` contains all necessary dependencies and can run on other machines without requiring additional DLLs or libraries.
-* `-o out.exe` ➡️ Specifies the output executable file name.
-
-### **Using MSVC (Windows - Developer Command Prompt)**
-
-```bash
-cl /EHsc /O2 /W4 *.cpp /Fe:out.exe && out.exe ./file_name.txt
-# Or you can create a function in PowerShell or bash
-```shell
-    function run_vhg {
-    param([string]$inputFile)
-
-    Write-Host "Compiling VHG Language..." -ForegroundColor Cyan
-
-    $sourceFiles = Get-ChildItem -Recurse *.cpp | Select-Object -ExpandProperty FullName
-
-    cl /EHsc /O2 /W4 /std:c++20 $sourceFiles /I. /I./Compiler /I./AST /I./VirtualMachine /I./Lexer /I./Parser /I./SymbolTable /I./Tokenizer /I./Runner /Fe:out.exe
-
-    if($?) {
-        Write-Host "`nCompilation successful!`n" -ForegroundColor Green
-        if($inputFile) {
-            if(Test-Path $inputFile) {
-                ./out.exe $inputFile    
-            } else {
-                Write-Host "Error: Input file '$inputFile' not found!" -ForegroundColor Red
-            }
-        } else {
-            ./out.exe    
-        }
-    } else {
-        Write-Host "`nCompilation failed!" -ForegroundColor Red
-    }
-}
+g++ -std=c++20 -O3 *.cpp -o vhg
+# or with static linking (Linux)
+g++ -std=c++20 -O3 -static *.cpp -o vhg
 ```
 
-### **Compile and run VHG language**
-* Compile command: `out.exe compile <filename.vhg>`
-    It will give you a `filename.vhb` binary file.
-* Run command: `out.exe run <filename.vhb>`
+### Windows (MSVC Developer Command Prompt)
+```cmd
+cl /EHsc /O2 /std:c++20 *.cpp /Fe:vhg.exe
+```
 
-#### **MSVC Flag Definitions:**
+> **Note:** The project does not depend on any external libraries beyond the C++ standard library.
 
-* `/EHsc` ➡️ Enables standard C++ stack unwinding (Exception Handling).
-* `/O2` ➡️ Creates fast code (Maximum Optimization).
-* `/W4` ➡️ Displays all relevant warnings for code quality.
-* `*.cpp` ➡️ Compiles all C++ source files in the directory.
-* `/Fe:out.exe` ➡️ Specifies the output executable file name.
 ---
 
-### **Program example. Use the '.vhg' extension.**
+## 🏃 Usage
+
+The executable `vhg` (or `vhg.exe`) accepts three modes:
+
+### 1. Run source directly (backward‑compatible)
+```bash
+./vhg program.vhg
+```
+Parses, compiles, and executes the `.vhg` source in one step.
+
+### 2. Compile to bytecode
+```bash
+./vhg compile input.vhg [output.vhb]
+```
+If no output path is given, it defaults to `input.vhb`.
+
+### 3. Run pre‑compiled bytecode
+```bash
+./vhg run program.vhb
+```
+Loads the `.vhb` binary and executes it on the VM.
+
+---
+
+## 📝 Language Syntax Overview
+
+### Variables & Scoping
+- **Global** variables persist throughout the program.
+- **Local** variables are declared inside blocks (including function bodies) and use stack‑based allocation.
+- Use the `local` or `global` keyword to explicitly control storage; otherwise, the parser defaults to **local** inside any block and **global** at the top level.
 
 ```vhg
-# 1. Global variables and basic operations
-a = 10;
-b = 20.5;
-str1 = "Hello";
-str2 = 'World';
+global counter = 0;          # explicit global
+local  temp    = 42;         # explicit local
 
-print("=== Global variables and math ===\n");
-print("a = ", a, "\n");
-print("b = ", b, "\n");
-print("a + b = ", a + b, "\n");
-print("a * 2 = ", a * 2, "\n");
-print("str1 + str2 = ", str1 + " " + str2, "\n");
-
-# 2.Global variables
-global x = 100;
-global y = 200;
-
-print("\n=== Local variables ===\n");
-print("x = ", x, "\n");
-print("y = ", y, "\n");
-
-# 3. If - else if - else
-print("\n=== If-else ===\n");
-if (a > 5) {
-    print("a > 5 is true\n");
-} else if (a == 5) {
-    print("a == 5\n");
-} else {
-    print("a <= 5\n");
+for (i = 0; i < 10; i += 1) {
+    local square = i * i;    # block‑scoped local
+    print(square, "\n");
 }
-
-# 4. While loop
-print("\n=== While loop ===\n");
-i = 0;
-while (i < 5) {
-    print("while i = ", i, "\n");
-    i = i + 1;
-}
-
-# 5. For loop
-print("\n=== For loop ===\n");
-for (j = 0; j < 4; j = j + 1) {
-    print("for local j = ", j, "\n");
-}
-
-for (k = 0; k < 3; k = k + 1) {
-    print("for global k = ", k, "\n");
-}
-
-# 6. Function with parameters
-function test_func(n, m) {
-    local result = n + m * 2;
-    print("Inside test_func: n=", n, " m=", m, " result=", result, "\n");
-    return result;
-}
-
-print("\n=== Function test ===\n");
-func_result = test_func(5, 10);
-print("Function returned: ", func_result, "\n");
-
-# 7. String operations and print with multiple arguments
-print("\n=== String and multi-arg print ===\n");
-print("Mixed: ", "Number=", 42, " String=", "Test", "\n");
-
-# 8. Unary operations
-print("\n=== Unary ===\n");
-neg = -15;
-print("neg = ", neg, "\n");
-print("-neg = ", -neg, "\n");
-
-# 9. Comparison operators
-print("\n=== Comparisons ===\n");
-if (10 > 5 and 5 < 10) {
-    print("10 > 5 and 5 < 10 → true\n");
-}
-if (10 != 15 or 5 == 6) {
-    print("10 != 15 or 5 == 6 → true\n");
-}
-empty_text = "";
-if(not empty_text) {
-    print("true");
-} else {
-    print('false');
-}
-print("\n=== All tests completed ===\n");
 ```
+
+### Data Types
+- **Numbers** – double‑precision floating point (internally `double`).
+- **Strings** – double‑ or single‑quoted literals; supports escape sequences `\n`, `\t`, `\"`, `\\`.
+- **Booleans** – `true` and `false` are stored as `1.0` and `0.0`.
+
+### Operators
+| Category          | Operators                                               |
+|-------------------|---------------------------------------------------------|
+| Arithmetic        | `+` `-` `*` `/` `%` `//` (floor) `%/` (fractional) `**` |
+| Bitwise           | `&` `\|` `^` `<<` `>>`                                  |
+| Logical           | `and` `or` `not`                                        |
+| Comparison        | `==` `!=` `<` `>` `<=` `>=`                             |
+| Assignment        | `=` `+=` `-=` `*=` `/=` `%=` `^=`                       |
+| String            | `+` (concatenation), `length(s)` -> s.size()            |
+
+### Control Flow
+```vhg
+if (x > 0) {
+    print("positive\n");
+} else if (x < 0) {
+    print("negative\n");
+} else {
+    print("zero\n");
+}
+
+while (n > 0) {
+    n -= 1;
+}
+
+for (i = 0; i < 5; i += 1) {
+    print(i, " ");
+}
+```
+
+### Functions (NOTE: VHG doesn't support recursive functions yet. Please use loop-iterative version of them).
+```vhg
+function add(a, b) {
+    return a + b;
+}
+
+result = add(10, 20);
+print(result);
+```
+
+- Parameters are passed by value.
+- A `return` statement is optional; falling off the end returns `0`.
+- Functions can be called before they are defined (forward declaration via bytecode patching).
+
+### Built‑in I/O
+- `print(expr1, expr2, ...)` – prints each argument; automatically appends a newline **if only one argument is given** (otherwise you must include `"\n"` explicitly).
+
+---
+
+## 🧠 Architecture Deep Dive
+
+### Lexer & Tokenizer
+- `Lexer` provides a stream interface with `peek()` and `advance()`.
+- `Tokenizer` groups characters into tokens, skipping whitespace and comments (`# ...` and `#* ... *#`).
+
+### Parser
+- Recursive descent for statements (`if`, `while`, `for`, `function`, `return`, blocks).
+- **Shunting‑Yard algorithm** for expressions, respecting operator precedence and associativity.
+- Implicit multiplication (e.g., `2x` or `(a+b)(c+d)`) is handled by injecting a `*` token when appropriate.
+- **Constant folding** is performed *during parsing* to simplify the AST immediately.
+
+### Symbol Table
+- Manages nested block scopes via a stack of `ScopeLevel` objects.
+- Global variables are stored in a flat address space.
+- Local variables receive negative offsets relative to the **frame pointer** (`FP` / `x8`).
+- Function definitions push a fresh scope stack, preserving outer scopes for later restoration.
+
+### Compiler
+- Traverses the AST in post‑order, generating a linear sequence of `Instruction`s.
+- Allocates virtual registers on‑the‑fly (except `x2` = SP, `x8` = FP).
+- Emits function prologues/epilogues that adjust SP and FP.
+- Patches forward function calls after all code is generated.
+- **Constant folding** is re‑applied during optimization (redundant constants are merged).
+- Outputs a `ByteCode` structure containing instructions, constant pool (numbers), and string pool.
+
+### Bytecode Format (`.vhb`)
+| Offset | Field               | Size            |
+|--------|---------------------|-----------------|
+| 0      | Magic `"VHB1"`      | 4 bytes         |
+| 4      | Instruction count   | 4 bytes (uint32)|
+| 8      | Constant count      | 4 bytes (uint32)|
+| 12     | String count        | 4 bytes (uint32)|
+| 16     | Instructions        | `count * 4` bytes (op, dst, left, right each 1 byte) |
+| …      | Constants           | `count * 8` bytes (double) |
+| …      | Strings             | each: length (uint32) + UTF‑8 data |
+
+### Virtual Machine
+- **Register file** – 256+ registers (indexed by `uint8_t`), with `x2` as stack pointer and `x8` as frame pointer.
+- **Memory** – linear array of `Value` (variant of double and string).
+- **Call stack** – saves return address, caller’s SP/FP, and argument buffer.
+- **Instruction set** – includes RISC‑V inspired arithmetic (`ADD`, `SUB`, `AND`, …), control flow (`JMP`, `JZ`, `CALL`, `RETURN`), and memory access (`LOAD`/`STORE` relative to FP).
+- Debug mode (`VirtualMachine(true)`) prints the AST and a disassembly of the generated bytecode.
+
+---
+
+## 📊 Example Program
+
+```vhg
+
+# Loop and local scoping
+sum = 0;
+for (i = 1; i <= 10; i += 1) {
+    local square = i * i;
+    sum += square;
+}
+print("Sum of squares 1..10 = ", sum, "\n");
+```
+
+Run it:
+```bash
+./vhg compile fact.vhg
+./vhg run fact.vhb
+```
+
+---
+
+## 🔮 Roadmap / Possible Improvements
+
+- [ ] Add array / list support.
+- [ ] Implement a simple garbage collector for strings.
+- [ ] Inline caching for faster global variable access.
+- [ ] More aggressive peephole optimizations.
+- [ ] Source‑level debug information.
+
+---

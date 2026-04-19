@@ -40,6 +40,7 @@ private:
     std::shared_ptr<StatementNode> parseFunction();
     std::shared_ptr<StatementNode> parseReturn();
     std::shared_ptr<ASTNode> parseFunctionCall(const std::string& name);
+    std::shared_ptr<ASTNode> parseBuiltInCall(const std::string& name);
 public:
     Parser(Tokenizer& tok, SymbolTable& st)
         : tokenizer(tok), symTable(st), state(ParserState::ExpectOperand) { nextToken(); }

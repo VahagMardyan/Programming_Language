@@ -5,6 +5,7 @@
         { "include": "#comments" },
         { "include": "#strings" },
         { "include": "#keywords" },
+        { "include": "#builtIn" },
         { "include": "#boolean"},
         { "include": "#logical_operators" },
         { "include": "#numbers" },
@@ -65,6 +66,14 @@
         "variables": {
             "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b",
             "name": "variable.other.vhg"
+        },
+        "builtIn": {
+            "patterns": [
+                {
+                    "match": "\\b(length)\\b",
+                    "name": "support.function.vhg"
+                }
+            ]
         }
     },
     "operators" : {

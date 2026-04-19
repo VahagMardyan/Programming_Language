@@ -231,7 +231,12 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
             }
             code.push_back(callInst);
             storage.push(resultReg);
-        }  
+        } else if(auto lengthNode = std::dynamic_pointer_cast<LengthNode>(node)) {
+            int argReg = storage.top(); storage.pop();
+            int resultReg = allocateTempRegister();
+            code.push_back({(uint32_t)OpCode::LENGTH, (uint32_t)resultReg, (uint32_t)argReg, 0});
+            storage.push(resultReg);
+        }
     }
     return code;
 }

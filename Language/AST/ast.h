@@ -34,6 +34,7 @@ enum class OpCode : uint8_t {
     LOGICAL_AND, LOGICAL_OR, LOGICAL_NOT,
     CALL, RETURN, PUSH_ARG, LOAD_PARAM,
     LOAD, STORE,
+    LENGTH, // string length
 };
 
 class ASTNode {
@@ -103,6 +104,19 @@ class StatementNode : public ASTNode {
         virtual ~StatementNode() = default;
         virtual void print(std::string prefix, bool isLast) const = 0;
         std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
+};
+
+class LengthNode : public ASTNode {
+    private:
+        std::shared_ptr<ASTNode> arg;
+    public:
+        LengthNode(std::shared_ptr<ASTNode> a) : arg(std::move(a)) {}
+        std::shared_ptr<ASTNode> getArg() const { return arg; }
+        void print(std::string prefix, bool isLast) const override {
+            std::cout << prefix << (isLast ? "└── " : "├── ") << "Length" << std::endl;
+            arg->print(prefix + (isLast ? "    " : "│   "), true);
+        }
+    std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {arg}; }
 };
 
 class BlockCode : public StatementNode {

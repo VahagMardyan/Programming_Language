@@ -75,6 +75,8 @@ This file defines the behavior of the editor (comments and brackets).
         { "include": "#comments" },
         { "include": "#strings" },
         { "include": "#keywords" },
+        { "include": "#builtIn" },
+        { "include": "#boolean"},
         { "include": "#logical_operators" },
         { "include": "#numbers" },
         { "include": "#variables" }
@@ -119,8 +121,12 @@ This file defines the behavior of the editor (comments and brackets).
             "match": "\\b(if|else|while|for|print|function|return)\\b",
             "name": "keyword.control.vhg"
         },
+        "boolean": {
+            "match": "\\b(true|false)\\b",
+            "name": "keyword.control_boolean.vhg"
+        },
         "logical_operators": {
-            "match": "\\b(and|or|not)\\b",
+            "match": "\\b(and|or|not|local|global)\\b",
             "name": "keyword.operator.logical.vhg"
         },
         "numbers": {
@@ -130,7 +136,19 @@ This file defines the behavior of the editor (comments and brackets).
         "variables": {
             "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b",
             "name": "variable.other.vhg"
+        },
+        "builtIn": {
+            "patterns": [
+                {
+                    "match": "\\b(length)\\b",
+                    "name": "support.function.vhg"
+                }
+            ]
         }
+    },
+    "operators" : {
+        "match" : "(\\+|-|\\*|/|%|&|\\||\\^|<<|>>)?=",
+        "name" : "keyword.operator.assignment.vhg"
     }
 }
 ```
@@ -166,7 +184,8 @@ To apply colors to your language, add the following block to your `settings.json
         { "scope": "constant.numeric.vhg", "settings": { "foreground": "#B5CEA8" } },
         { "scope": "variable.other.vhg", "settings": { "foreground": "#9CDCFE" } },
         { "scope": "comment.line.vhg", "settings": { "foreground": "#6A9955", "fontStyle": "italic" } },
-        { "scope": "comment.block.vhg", "settings": { "foreground": "#6A9955", "fontStyle": "italic" } }
+        { "scope": "comment.block.vhg", "settings": { "foreground": "#6A9955", "fontStyle": "italic" } },
+        { "scope": "support.function.vhg", "settings": { "foreground": "#007bff" } }
     ]
     },
 ```
