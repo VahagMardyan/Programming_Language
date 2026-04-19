@@ -63,7 +63,6 @@ public:
     const std::vector<std::string>& getStringPool() const {
         return stringPool;
     }
-    int calculateFrameSize(std::shared_ptr<StatementNode>body);
 };
 
 void writeByteCodeToFile(const ByteCode& bc, const std::string& path);

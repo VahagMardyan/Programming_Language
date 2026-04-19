@@ -100,12 +100,12 @@ double VirtualMachine::run() {
         case OpCode::CMP_NEQ: registers[inst.dst] = registers[inst.left] != registers[inst.right] ? 1.0 : 0.0; break;
         case OpCode::JZ: {
                 if(isFalsy(registers[inst.dst])) {
-                    pc = inst.left;
+                    pc = getAddress(inst);
                     jumped = true;
             }
         }
         break;
-        case OpCode::JMP: pc = inst.left; jumped = true; 
+        case OpCode::JMP: pc = getAddress(inst); jumped = true;
         break;
         case OpCode::PRINT: {
             const Value& val = registers[inst.dst];
@@ -319,10 +319,10 @@ void VirtualMachine::visualize(const std::vector<Instruction>& program) const {
                 break;
 
             case OpCode::JZ:
-                std::cout << "JZ" << std::setw(6) << inst.dst << " TO ADDR: " << inst.left;
+                std::cout << "JZ" << std::setw(6) << inst.dst << " TO ADDR: " << getAddress(inst);
                 break;
             case OpCode::JMP:
-                std::cout << "JMP" << std::setw(6) << inst.dst << std::setw(6) << inst.left;
+                std::cout << "JMP" << std::setw(6) << inst.dst << " TO: " << getAddress(inst);
                 break;
 
             case OpCode::PRINT:

@@ -13,23 +13,6 @@ int Compiler::allocateTempRegister() {
     return nextTempIndex++;
 }
 
-int Compiler::calculateFrameSize(std::shared_ptr<StatementNode> body) {
-    if (!body) return 8;
-
-    int localCount = 0;
-
-    if (auto block = std::dynamic_pointer_cast<BlockCode>(body)) {
-        for (const auto& stmt : block->getStatements()) {
-            if (auto assign = std::dynamic_pointer_cast<AssignmentNode>(stmt)) {
-                if (assign->isLocal()) {
-                    localCount++;
-                }
-            }
-        }
-    }
-    return (localCount + 4) * 4;
-}
-
 std::vector<std::shared_ptr<ASTNode>> Compiler::postOrderTraverse(std::shared_ptr<ASTNode> root) {
     if(!root) return {};
     std::vector<std::shared_ptr<ASTNode>> postOrder;
@@ -225,7 +208,8 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
     if(!stmt) return;
     
     if (auto assign = std::dynamic_pointer_cast<AssignmentNode>(stmt)) {
-    
+        globalCtx.consts.clear();
+        globalCtx.vars.clear();
         auto exprCode = generateByteCode(postOrderTraverse(assign->getValue()));
         code.insert(code.end(), exprCode.begin(), exprCode.end());
         
@@ -257,9 +241,9 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         compileStatement(ifStmt->getThenBr(), code);
         size_t jmpIdx = code.size();
         code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
-        code[jzIdx].left = (uint32_t)code.size();
+        setAddress(code[jzIdx], (uint16_t)code.size());
         if(ifStmt->getElseBr()) compileStatement(ifStmt->getElseBr(), code);
-        code[jmpIdx].left = (uint32_t)code.size();
+        setAddress(code[jmpIdx], (uint16_t)code.size());
     } else if(auto whileStmt = std::dynamic_pointer_cast<WhileStatementNode>(stmt)) {
         size_t startAddr = code.size();
         globalCtx.consts.clear(); globalCtx.vars.clear();
@@ -269,8 +253,10 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         size_t jzIdx = code.size();
         code.push_back({(uint32_t)OpCode::JZ, (uint32_t)condReg, 0, 0});
         compileStatement(whileStmt->getBody(), code);
-        code.push_back({(uint32_t)OpCode::JMP, 0, (uint32_t)startAddr, 0});
-        code[jzIdx].left = (uint32_t)code.size();
+        Instruction jmpBack = {(uint32_t)OpCode::JMP, 0, 0, 0};
+        setAddress(jmpBack, (uint16_t)startAddr);
+        code.push_back(jmpBack);
+        setAddress(code[jzIdx], (uint16_t)code.size());
     } else if(auto block = std::dynamic_pointer_cast<BlockCode>(stmt)) {
         for(auto& s : block->getStatements()) compileStatement(s, code);
     } else if(auto printStmt = std::dynamic_pointer_cast<PrintNode>(stmt)) {
@@ -312,8 +298,10 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         // update
         compileStatement(forStmt -> getUpdate(), code);
 
-        code.push_back({(uint32_t)OpCode::JMP, 0, (uint32_t)startAddr, 0});
-        code[jzIdx].left = (uint32_t)code.size();
+        Instruction jmpFor = {(uint32_t)OpCode::JMP, 0, 0, 0};
+        setAddress(jmpFor, (uint16_t)startAddr);
+        code.push_back(jmpFor);
+        setAddress(code[jzIdx], (uint16_t)code.size());
     }
 
     else if(auto funcDef = std::dynamic_pointer_cast<FunctionDefNode>(stmt)) {
@@ -323,7 +311,9 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         size_t funcAddr = code.size();
         functionTable[funcDef->getName()] = {funcAddr, (int)funcDef->getParams().size()};
 
-        int frameSize = calculateFrameSize(funcDef->getBody());
+        int slots = funcDef->getLocalSlotCount();
+        if (slots < 1) slots = 1;
+        int frameSize = (slots + 4) * 4;
 
         // SP = SP - frameSize
         code.push_back({(uint32_t)OpCode::ADDI, SP, SP, (uint32_t)(int32_t)(-frameSize)});

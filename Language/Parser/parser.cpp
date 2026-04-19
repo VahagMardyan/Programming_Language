@@ -488,10 +488,11 @@ std::shared_ptr<StatementNode> Parser::parseFunction() {
 
     auto body = parseBlock();
 
+    int slotCount = symTable.getLocalCount();
     symTable.exitFunctionScope();
     insideFunction = false;
 
-    return std::make_shared<FunctionDefNode>(name, params, body);
+    return std::make_shared<FunctionDefNode>(name, params, body, slotCount);
 }
 
 std::shared_ptr<ASTNode> Parser::parseFunctionCall(const std::string& name) {
