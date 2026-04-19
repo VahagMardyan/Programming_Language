@@ -127,7 +127,7 @@ for (i = 0; i < 5; i += 1) {
 }
 ```
 
-### Functions (NOTE: VHG doesn't support recursive functions yet. Please use loop-iterative version of them).
+### Functions
 ```vhg
 function add(a, b) {
     return a + b;
@@ -141,9 +141,11 @@ print(result);
 - A `return` statement is optional; falling off the end returns `0`.
 - Functions can be called before they are defined (forward declaration via bytecode patching).
 
+> **Note:** VHG doesn't support recursive functions yet. Please use loop-iterative versions instead of recursion.
+
 ### Built‑in I/O
 - `print(expr1, expr2, ...)` – prints each argument; automatically appends a newline **if only one argument is given** (otherwise you must include `"\n"` explicitly).
-
+- `length(string)` - returns the length of given string.
 ---
 
 ## 🧠 Architecture Deep Dive
