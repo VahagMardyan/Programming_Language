@@ -140,7 +140,7 @@ This file defines the behavior of the editor (comments and brackets).
         "builtIn": {
             "patterns": [
                 {
-                    "match": "\\b(length)\\b",
+                    "match": "\\b(length|void)\\b",
                     "name": "support.function.vhg"
                 }
             ]

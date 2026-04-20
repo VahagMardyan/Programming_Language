@@ -48,7 +48,7 @@
             ]
         },
         "keywords": {
-            "match": "\\b(if|else|while|for|print|function|return|void)\\b",
+            "match": "\\b(if|else|while|for|print|function|return)\\b",
             "name": "keyword.control.vhg"
         },
         "boolean": {
@@ -70,7 +70,7 @@
         "builtIn": {
             "patterns": [
                 {
-                    "match": "\\b(length)\\b",
+                    "match": "\\b(length|void)\\b",
                     "name": "support.function.vhg"
                 }
             ]

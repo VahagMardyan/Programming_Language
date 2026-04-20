@@ -246,3 +246,4 @@ function add(a, b) {
 greet();            # Prints Hello!
 result = add(3, 5); # result = 8
 print(result);
+

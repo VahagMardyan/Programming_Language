@@ -129,16 +129,21 @@ for (i = 0; i < 5; i += 1) {
 
 ### Functions
 ```vhg
+# # non-void function requires "return"
 function add(a, b) {
     return a + b;
 }
 
+void function foo() {
+    print("Hello world");
+}
+
 result = add(10, 20);
+foo();
 print(result);
 ```
 
 - Parameters are passed by value.
-- A `return` statement is optional; falling off the end returns `0`.
 - Functions can be called before they are defined (forward declaration via bytecode patching).
 
 > **Note:** VHG doesn't support recursive functions yet. Please use loop-iterative versions instead of recursion.
