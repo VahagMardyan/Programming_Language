@@ -107,6 +107,7 @@ Token Tokenizer::getNextToken() {
         if(name == "return") return {TokenType::Return, name};
         if(name == "local") return {TokenType::Local, name};
         if(name == "global") return {TokenType::Global, name};
+        if(name == "void") return {TokenType::Void, name};
         return {TokenType::Name, name};
     }
 

@@ -118,7 +118,7 @@ This file defines the behavior of the editor (comments and brackets).
             ]
         },
         "keywords": {
-            "match": "\\b(if|else|while|for|print|function|return)\\b",
+            "match": "\\b(if|else|while|for|print|function|return|void)\\b",
             "name": "keyword.control.vhg"
         },
         "boolean": {

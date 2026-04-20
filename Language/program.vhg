@@ -230,6 +230,19 @@
 # print("Outside function: x=", x, "\n"); # # 8
 # print("Outside function: z=", z, "\n"); # # VAHAG
 
-x = "Some string goes here";
-l = length(x);
-print(l); # # 21
+# x = "Some string goes here";
+# l = length(x);
+# print(l); # # 21
+
+
+void function greet() {
+   print("Hello!");
+}
+
+function add(a, b) {
+   return a+b;
+}
+
+greet();            # Prints Hello!
+result = add(3, 5); # result = 8
+print(result);

@@ -21,6 +21,7 @@ enum class TokenType {
     Return, // return value
     Global, // global variable
     Local, // local variable
+    Void, // for void functions
 };
 
 struct Token {

@@ -145,6 +145,7 @@ std::shared_ptr<StatementNode> Parser::parseStatement() {
         case TokenType::Print:     return parsePrint();
         case TokenType::For:       return parseFor();
         case TokenType::Function:  return parseFunction();
+        case TokenType::Void:      return parseFunction();
         case TokenType::Return:    return parseReturn();
         case TokenType::Name:      return parseAssignment();
 
@@ -563,15 +564,30 @@ std::shared_ptr<StatementNode> Parser::parseFor() {
     return std::make_shared<ForStatementNode>(init, cond, update, body);
 }
 
-
 std::shared_ptr<StatementNode> Parser::parseFunction() {
+
+    bool isVoid = false;
+    if (currentToken.type == TokenType::Void) {
+        isVoid = true;
+        nextToken();   // skip 'void'
+    }
+
+    if (currentToken.type != TokenType::Function) {
+        state = ParserState::Error;
+        throw std::runtime_error("Expected 'function' keyword");
+    }
     nextToken(); // skip 'function'
+
+    if (currentToken.type != TokenType::Name) {
+        state = ParserState::Error;
+        throw std::runtime_error("Expected function name");
+    }
     std::string name = currentToken.value;
-    nextToken(); // skip function name
+    nextToken();
 
     if (currentToken.value != "(") {
         state = ParserState::Error;
-        return nullptr;
+        throw std::runtime_error("Expected '(' after function name");
     }
     nextToken(); // skip '('
 
@@ -579,39 +595,66 @@ std::shared_ptr<StatementNode> Parser::parseFunction() {
     while (currentToken.value != ")" && currentToken.type != TokenType::EndOfExpr) {
         if (currentToken.type != TokenType::Name) {
             state = ParserState::Error;
-            return nullptr;
+            throw std::runtime_error("Expected parameter name");
         }
         params.push_back(currentToken.value);
         nextToken();
-        if (currentToken.type == TokenType::Comma) nextToken();
+        if (currentToken.type == TokenType::Comma) {
+            nextToken();
+        }
     }
 
     if (currentToken.value != ")") {
         state = ParserState::Error;
-        return nullptr;
+        throw std::runtime_error("Expected ')' after parameters");
     }
     nextToken(); // skip ')'
 
-    insideFunction = true;
-    symTable.enterFunctionScope();  // This creates the first scope level
+    if (currentToken.type != TokenType::OpenBrace) {
+        state = ParserState::Error;
+        throw std::runtime_error("Expected '{' before function body");
+    }
 
-    // Register parameters in the function's first scope
+    insideFunction = true;
+    symTable.enterFunctionScope();
+
     for (const auto& p : params) {
         symTable.getLocalOffset(p);
     }
 
-    if (currentToken.type != TokenType::OpenBrace) {
-        state = ParserState::Error;
-        return nullptr;
+    auto body = parseBlock();
+
+    if (!isVoid) {
+
+        auto block = std::dynamic_pointer_cast<BlockCode>(body);
+        if (!block) {
+            symTable.exitFunctionScope();
+            insideFunction = false;
+            state = ParserState::Error;
+            throw std::runtime_error("Function body is not a block");
+        }
+
+        const auto& statements = block->getStatements();
+        bool hasReturn = false;
+        if (!statements.empty()) {
+            if (std::dynamic_pointer_cast<ReturnNode>(statements.back())) {
+                hasReturn = true;
+            }
+        }
+        if (!hasReturn) {
+            symTable.exitFunctionScope();
+            insideFunction = false;
+            state = ParserState::Error;
+            throw std::runtime_error("Non-void function '" + name + "' must end with a return statement");
+        }
     }
 
-    auto body = parseBlock();  // parseBlock will manage its own nested scope
-
     int slotCount = symTable.getLocalSlotCountForFrame();
+
     symTable.exitFunctionScope();
     insideFunction = false;
 
-    return std::make_shared<FunctionDefNode>(name, params, body, slotCount);
+    return std::make_shared<FunctionDefNode>(name, params, body, slotCount, isVoid);
 }
 
 std::shared_ptr<ASTNode> Parser::parseFunctionCall(const std::string& name) {

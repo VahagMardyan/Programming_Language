@@ -341,7 +341,8 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         setAddress(code[jzIdx], (uint16_t)code.size());
     }
 
-    else if(auto funcDef = std::dynamic_pointer_cast<FunctionDefNode>(stmt)) {
+    else if (auto funcDef = std::dynamic_pointer_cast<FunctionDefNode>(stmt)) {
+
         size_t jmpIdx = code.size();
         code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
 
@@ -351,27 +352,24 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         int slots = funcDef->getLocalSlotCount();
         if (slots < 1) slots = 1;
         int frameSize = (slots + 4) * 4;
-
+        
         // SP = SP - frameSize
         code.push_back({(uint32_t)OpCode::ADDI, SP, SP, (uint32_t)(int32_t)(-frameSize)});
-
         // FP = SP + frameSize
         code.push_back({(uint32_t)OpCode::ADDI, FP, SP, (uint32_t)frameSize});
 
-        // Parameters use FP offsets assigned at parse time (first at -4, then -8, ...).
-        // Do not consult symTable here: parsing calls exitFunctionScope() and clears scopes.
-        for(int i = 0; i < (int)funcDef->getParams().size(); i++) {
-            int32_t off = -4 * (static_cast<int32_t>(i) + 1);
+        for (int i = 0; i < (int)funcDef->getParams().size(); i++) {
+            int32_t off = -4 * (i + 1);   // առաջին պարամետրը -4(FP), երկրորդը՝ -8(FP)...
             int reg = allocateTempRegister();
-
             code.push_back({(uint32_t)OpCode::LOAD_PARAM, (uint32_t)reg, (uint32_t)i, 0});
             code.push_back({(uint32_t)OpCode::STORE, (uint32_t)reg, (uint32_t)FP, (uint32_t)off});
         }
 
         compileStatement(funcDef->getBody(), code);
 
-        // Implicit fallthrough returns 0; VM restores caller SP/FP from the saved frame.
-        code.push_back({(uint32_t)OpCode::RETURN, 0, 0, 0});
+        if (funcDef->getIsVoid()) {
+            code.push_back({(uint32_t)OpCode::RETURN, 0, 0, 0});
+        }
 
         setAddress(code[jmpIdx], (uint16_t)code.size());
     } 

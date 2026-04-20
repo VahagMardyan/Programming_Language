@@ -230,15 +230,16 @@ class FunctionDefNode : public StatementNode {
         std::vector<std::string> params;
         std::shared_ptr<StatementNode> body;
         int localSlotCount;
+        bool isVoid;
     public:
         FunctionDefNode(const std::string& n, std::vector<std::string> p,
-                        std::shared_ptr<StatementNode> b, int slots)
-        : name(n), params(std::move(p)), body(std::move(b)), localSlotCount(slots) {}
+                        std::shared_ptr<StatementNode> b, int slots, bool v = false)
+        : name(n), params(std::move(p)), body(std::move(b)), localSlotCount(slots), isVoid(v) {}
         const std::string& getName() const { return name; }
         const std::vector<std::string>& getParams() const { return params; }
         std::shared_ptr<StatementNode> getBody() const { return body; }
         int getLocalSlotCount() const { return localSlotCount; }
-
+        bool getIsVoid() const { return isVoid; }
         void print(std::string prefix, bool isLast) const override;
         std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
