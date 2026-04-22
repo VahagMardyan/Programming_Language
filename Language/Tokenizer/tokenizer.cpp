@@ -21,12 +21,13 @@ namespace {
         return s;
     }
 
-    const std::unordered_set<std::string> mathBuiltins = {
+    const std::unordered_set<std::string> BuiltIns = {
         "sin", "cos", "tan",
         "asin", "acos", "atan", "atan2",
         "sqrt", "exp", "log", "ln", "log10",
         "ceil", "floor", "abs", "round",
         "fmod", "cbrt", "log2", "pow", "log_ab", // log(b)/log(a)
+        "input", // user-input
     };
 }
 
@@ -130,7 +131,7 @@ Token Tokenizer::getNextToken() {
         if(lowered == "global") return {TokenType::Global, lowered};
         if(lowered == "void") return {TokenType::Void, lowered};
         if(lowered == "m_pi" || lowered == "m_e") return {TokenType::Math_const_vars, lowered};
-        if(mathBuiltins.find(lowered) != mathBuiltins.end()) return {TokenType::Name, lowered};
+        if(BuiltIns.find(lowered) != BuiltIns.end()) return {TokenType::Name, lowered};
         return {TokenType::Name, name};
     }
 

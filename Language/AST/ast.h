@@ -34,6 +34,7 @@ enum class OpCode : uint8_t {
     LOGICAL_AND, LOGICAL_OR, LOGICAL_NOT,
     CALL, RETURN, PUSH_ARG, LOAD_PARAM,
     LOAD, STORE,
+    INPUT, // user-input
     LENGTH, // string length
     // math functions
     SIN, COS, TAN,

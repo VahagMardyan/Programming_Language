@@ -146,7 +146,7 @@ This file defines the behavior of the editor (comments and brackets).
             "name": "constant.numeric.vhg"
         },
         "builtIn": {
-            "match": "\\b(length|void|m_e|m_pi)\\b",
+            "match": "\\b(input|length|void|m_e|m_pi)\\b",
             "name": "support.function.vhg"
         },
         "math_functions": {
@@ -350,6 +350,11 @@ This file defines the behavior of the editor (comments and brackets).
             "}"
         ],
         "description": "Void function definition"
+    },
+    "input statement": {
+        "prefix": "input",
+        "body" : "input(${1:prompt})",
+        "description": "User-input"
     },
     "print statement": {
         "prefix": "print",

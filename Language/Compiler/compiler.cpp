@@ -74,6 +74,19 @@ bool Compiler::tryEmitMathBuiltinCall(
     if(name == "fmod") return emitBinary(OpCode::FMOD);
     if(name == "log_ab") return emitBinary(OpCode::LOG_AB);
 
+    if(name == "input") {
+        if(args.size() > 1) return false; // input can have 0 or 1 argument
+        resultReg = allocateTempRegister();
+
+        // for prompt
+        if(args.size() == 1) {
+            int promptReg = emitArg(args[0]);
+            code.push_back({(uint32_t)OpCode::PRINT, (uint32_t)promptReg, 0, 0});
+        }
+        code.push_back({(uint32_t)OpCode::INPUT, (uint32_t)resultReg, 0, 0});
+        return true;
+    }
+
     return false;
 }
 

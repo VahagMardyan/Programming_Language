@@ -171,6 +171,41 @@ double VirtualMachine::run() {
             }
         }
         break;
+
+        case OpCode::INPUT: {
+            std::cout << std::flush;
+            std::string inputStr;
+
+            if (!std::getline(std::cin, inputStr)) {
+                registers[inst.dst] = "";
+                break;
+            }
+
+            if (!inputStr.empty() && inputStr.back() == '\r') {
+                inputStr.pop_back();
+            }
+
+            size_t start = inputStr.find_first_not_of(" \t");
+            if (start == std::string::npos) {
+                registers[inst.dst] = "";
+                break;
+            }
+
+            const char* str = inputStr.c_str() + start;
+            char* endPtr;
+            double numValue = std::strtod(str, &endPtr);
+
+            while (*endPtr == ' ' || *endPtr == '\t') {
+                ++endPtr;
+            }
+
+            if (endPtr != str && *endPtr == '\0') {
+                registers[inst.dst] = numValue;
+            } else {
+                registers[inst.dst] = inputStr;
+            }
+        }
+        break;
         case OpCode::SIN:   registers[inst.dst] = std::sin(asNumber(registers[inst.left])); break;
         case OpCode::COS:   registers[inst.dst] = std::cos(asNumber(registers[inst.left])); break;
         case OpCode::TAN:   registers[inst.dst] = std::tan(asNumber(registers[inst.left])); break;

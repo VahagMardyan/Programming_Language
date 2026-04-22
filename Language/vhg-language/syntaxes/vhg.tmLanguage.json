@@ -68,7 +68,7 @@
             "name": "constant.numeric.vhg"
         },
         "builtIn": {
-            "match": "\\b(length|void|m_e|m_pi)\\b",
+            "match": "\\b(input|length|void|m_e|m_pi)\\b",
             "name": "support.function.vhg"
         },
         "math_functions": {

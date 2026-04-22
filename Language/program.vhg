@@ -255,3 +255,7 @@ print(log_ab(5,25)); # log5(25)=2
 print(ln(4)); # # log_e(4)
 print(log(4)); # # log_e(4)
 #* And other math functions (check README.md for more) *#
+
+# # User-input
+name = input("What's your name? ");
+print("Hello " + name + '!');
