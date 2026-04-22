@@ -106,7 +106,7 @@ for (i = 0; i < 10; i += 1) {
 | Logical           | `and` `or` `not`                                        |
 | Comparison        | `==` `!=` `<` `>` `<=` `>=`                             |
 | Assignment        | `=` `+=` `-=` `*=` `/=` `%=` `^=`                       |
-| String            | `+` (concatenation), `length(s)` -> s.size()            |
+| String            | `+` +=`` (concatenation), `length(s)` -> s.size()            |
 
 ### Mathematical Functions
 
