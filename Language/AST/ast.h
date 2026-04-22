@@ -35,6 +35,14 @@ enum class OpCode : uint8_t {
     CALL, RETURN, PUSH_ARG, LOAD_PARAM,
     LOAD, STORE,
     LENGTH, // string length
+    // math functions
+    SIN, COS, TAN,
+    ASIN, ACOS, ATAN, ATAN2,
+    SQRT, EXP, LOG, LOG10,
+    CEIL, FLOOR, ABS, ROUND,
+    FMOD, CBRT, MATH_POW, LOG2, LOG_AB, // log(b)/log(a)
+    // math constants
+    M_PI, M_E, // pi, e
 };
 
 class ASTNode {
@@ -51,6 +59,19 @@ public:
     double getValue() const { return value; }
     void print(std::string prefix, bool isLast) const override;
     std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
+};
+
+class MathConstantNode : public ASTNode {
+    private:
+        OpCode constant;
+    public:
+        MathConstantNode(OpCode c) : constant(c) {}
+        OpCode getConstant() const { return constant; }
+        void print(std::string prefix, bool isLast) const override {
+        std::cout << prefix << (isLast ? "└── " : "├── ")
+                  << (constant == OpCode::M_PI ? "Constant: PI" : "Constant: E") << std::endl;
+        }
+        std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 
 class VariableNode : public ASTNode {

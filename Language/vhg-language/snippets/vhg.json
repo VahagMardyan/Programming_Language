@@ -1,0 +1,183 @@
+{
+    "sin function": {
+        "prefix": "sin",
+        "body": "sin(${1:angle})",
+        "description": "Sine function (sinus)"
+    },
+    "cos function": {
+        "prefix": "cos",
+        "body": "cos(${1:angle})",
+        "description": "Cosine function"
+    },
+    "tan function": {
+        "prefix": "tan",
+        "body": "tan(${1:angle})",
+        "description": "Tangent function"
+    },
+    "asin function": {
+        "prefix": "asin",
+        "body": "asin(${1:value})",
+        "description": "Arc sine (inverse sine)"
+    },
+    "acos function": {
+        "prefix": "acos",
+        "body": "acos(${1:value})",
+        "description": "Arc cosine"
+    },
+    "atan function": {
+        "prefix": "atan",
+        "body": "atan(${1:value})",
+        "description": "Arc tangent"
+    },
+    "atan2 function": {
+        "prefix": "atan2",
+        "body": "atan2(${1:y}, ${2:x})",
+        "description": "2-argument arctangent (y, x)"
+    },
+    "sqrt function": {
+        "prefix": "sqrt",
+        "body": "sqrt(${1:number})",
+        "description": "Square root"
+    },
+    "cbrt function": {
+        "prefix": "cbrt",
+        "body": "cbrt(${1:number})",
+        "description": "Cube root"
+    },
+    "pow function": {
+        "prefix": "pow",
+        "body": "pow(${1:base}, ${2:exponent})",
+        "description": "Power function (base^exponent)"
+    },
+    "exp function": {
+        "prefix": "exp",
+        "body": "exp(${1:number})",
+        "description": "Exponential function (e^x)"
+    },
+    "log function": {
+        "prefix": "log",
+        "body": "log(${1:number})",
+        "description": "Natural logarithm (base e)"
+    },
+    "log2 function": {
+        "prefix": "log2",
+        "body": "log2(${1:number})",
+        "description": "Base-2 logarithm"
+    },
+    "log10 function": {
+        "prefix": "log10",
+        "body": "log10(${1:number})",
+        "description": "Base-10 logarithm"
+    },
+    "ln function": {
+        "prefix": "ln",
+        "body": "ln(${1:number})",
+        "description": "Natural logarithm (same as log)"
+    },
+    "ceil function": {
+        "prefix": "ceil",
+        "body": "ceil(${1:number})",
+        "description": "Round up to nearest integer"
+    },
+    "floor function": {
+        "prefix": "floor",
+        "body": "floor(${1:number})",
+        "description": "Round down to nearest integer"
+    },
+    "round function": {
+        "prefix": "round",
+        "body": "round(${1:number})",
+        "description": "Round to nearest integer"
+    },
+    "abs function": {
+        "prefix": "abs",
+        "body": "abs(${1:number})",
+        "description": "Absolute value"
+    },
+    "fmod function": {
+        "prefix": "fmod",
+        "body": "fmod(${1:x}, ${2:y})",
+        "description": "Floating-point remainder (x mod y)"
+    },
+    "length function": {
+        "prefix": "length",
+        "body": "length(${1:string})",
+        "description": "String length"
+    },
+    "m_pi constant": {
+        "prefix": "m_pi",
+        "body": "m_pi",
+        "description": "Mathematical constant π (3.14159...)"
+    },
+    "m_e constant": {
+        "prefix": "m_e",
+        "body": "m_e",
+        "description": "Mathematical constant e (2.71828...)"
+    },
+    "if statement": {
+        "prefix": "if",
+        "body": [
+            "if (${1:condition}) {",
+            "\t${2:// code}",
+            "}"
+        ],
+        "description": "If statement"
+    },
+    "if-else statement": {
+        "prefix": "ife",
+        "body": [
+            "if (${1:condition}) {",
+            "\t${2:// code}",
+            "} else {",
+            "\t${3:// code}",
+            "}"
+        ],
+        "description": "If-else statement"
+    },
+    "while loop": {
+        "prefix": "while",
+        "body": [
+            "while (${1:condition}) {",
+            "\t${2:// code}",
+            "}"
+        ],
+        "description": "While loop"
+    },
+    "for loop": {
+        "prefix": "for",
+        "body": [
+            "for (${1:i = 0}; ${2:i < 10}; ${3:i = i + 1}) {",
+            "\t${4:// code}",
+            "}"
+        ],
+        "description": "For loop"
+    },
+    "function definition": {
+        "prefix": "func",
+        "body": [
+            "function ${1:name}(${2:params}) {",
+            "\t${3:// body}",
+            "}"
+        ],
+        "description": "Function definition"
+    },
+    "void function": {
+        "prefix": "void",
+        "body": [
+            "void function ${1:name}(${2:params}) {",
+            "\t${3:// body}",
+            "}"
+        ],
+        "description": "Void function definition"
+    },
+    "print statement": {
+        "prefix": "print",
+        "body": "print(${1:expression});",
+        "description": "Print statement"
+    },
+    "return statement": {
+        "prefix": "return",
+        "body": "return ${1:value};",
+        "description": "Return statement"
+    }
+}

@@ -21,6 +21,62 @@ int Compiler::allocateTempRegister() {
     return nextTempIndex++;
 }
 
+bool Compiler::tryEmitMathBuiltinCall(
+    const std::string& name,
+    const std::vector<std::shared_ptr<ASTNode>>& args,
+    std::vector<Instruction>& code,
+    int& resultReg
+) {
+    auto emitArg = [&](const std::shared_ptr<ASTNode>& arg) -> int {
+        globalCtx.consts.clear();
+        globalCtx.vars.clear();
+        auto argCode = generateByteCode(postOrderTraverse(arg));
+        code.insert(code.end(), argCode.begin(), argCode.end());
+        return argCode.empty() ? 0 : static_cast<int>(argCode.back().dst);
+    };
+
+    auto emitUnary = [&](OpCode op) -> bool {
+        if(args.size() != 1) return false;
+        int argReg = emitArg(args[0]);
+        resultReg = allocateTempRegister();
+        code.push_back({(uint32_t)op, (uint32_t)resultReg, (uint32_t)argReg, 0});
+        return true;
+    };
+
+    auto emitBinary = [&](OpCode op) -> bool {
+        if(args.size() != 2) return false;
+        int leftReg = emitArg(args[0]);
+        int rightReg = emitArg(args[1]);
+        resultReg = allocateTempRegister();
+        code.push_back({(uint32_t)op, (uint32_t)resultReg, (uint32_t)leftReg, (uint32_t)rightReg});
+        return true;
+    };
+
+    if(name == "sin") return emitUnary(OpCode::SIN);
+    if(name == "cos") return emitUnary(OpCode::COS);
+    if(name == "tan") return emitUnary(OpCode::TAN);
+    if(name == "asin") return emitUnary(OpCode::ASIN);
+    if(name == "acos") return emitUnary(OpCode::ACOS);
+    if(name == "atan") return emitUnary(OpCode::ATAN);
+    if(name == "atan2") return emitBinary(OpCode::ATAN2);
+    if(name == "sqrt") return emitUnary(OpCode::SQRT);
+    if(name == "cbrt") return emitUnary(OpCode::CBRT);
+    if(name == "pow") return emitBinary(OpCode::MATH_POW);
+    if(name == "exp") return emitUnary(OpCode::EXP);
+    if(name == "log") return emitUnary(OpCode::LOG);
+    if(name == "ln") return emitUnary(OpCode::LOG);
+    if(name == "log10") return emitUnary(OpCode::LOG10);
+    if(name == "log2") return emitUnary(OpCode::LOG2);
+    if(name == "ceil") return emitUnary(OpCode::CEIL);
+    if(name == "floor") return emitUnary(OpCode::FLOOR);
+    if(name == "abs") return emitUnary(OpCode::ABS);
+    if(name == "round") return emitUnary(OpCode::ROUND);
+    if(name == "fmod") return emitBinary(OpCode::FMOD);
+    if(name == "log_ab") return emitBinary(OpCode::LOG_AB);
+
+    return false;
+}
+
 std::vector<std::shared_ptr<ASTNode>> Compiler::postOrderTraverse(std::shared_ptr<ASTNode> root) {
     if(!root) return {};
     std::vector<std::shared_ptr<ASTNode>> postOrder;
@@ -80,6 +136,8 @@ std::shared_ptr<ASTNode> Compiler::optimize(std::shared_ptr<ASTNode> node) {
                 case OpCode::CMP_GET: result = (v1 >= v2) ? 1.0 : 0.0; break;
                 case OpCode::CMP_EQ: result = (v1 == v2) ? 1.0 : 0.0; break;
                 case OpCode::CMP_NEQ: result = (v1 != v2) ? 1.0 : 0.0; break;
+                case OpCode::M_E: result = 2.718281828459045; break;
+                case OpCode::M_PI: result = 3.14159265358979323846; break;
                 default: break;
             }
             return std::make_shared<NumberNode>(result);
@@ -210,6 +268,12 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
             });
             storage.push(reg);
         } else if(auto callExpr = std::dynamic_pointer_cast<FunctionCallNode>(node)) {
+            int builtinResultReg = 0;
+            if(tryEmitMathBuiltinCall(callExpr->getName(), callExpr->getArgs(), code, builtinResultReg)) {
+                storage.push(builtinResultReg);
+                continue;
+            }
+
             for(const auto& arg : callExpr->getArgs()) {
                 globalCtx.consts.clear();
                 globalCtx.vars.clear();
@@ -236,6 +300,10 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
             int resultReg = allocateTempRegister();
             code.push_back({(uint32_t)OpCode::LENGTH, (uint32_t)resultReg, (uint32_t)argReg, 0});
             storage.push(resultReg);
+        } else if(auto mathConst = std::dynamic_pointer_cast<MathConstantNode>(node)) {
+            int reg = allocateTempRegister();
+            code.push_back({(uint32_t)mathConst -> getConstant(), (uint32_t)reg, 0, 0});
+            storage.push(reg);
         }
     }
     return code;
@@ -376,6 +444,10 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
     
     else if(auto callStmt = std::dynamic_pointer_cast<FunctionCallStatementNode>(stmt)) {
         auto call = callStmt->getCall();
+        int builtinResultReg = 0;
+        if(tryEmitMathBuiltinCall(call->getName(), call->getArgs(), code, builtinResultReg)) {
+            return;
+        }
 
         for(const auto& arg : call->getArgs()) {
             globalCtx.consts.clear();

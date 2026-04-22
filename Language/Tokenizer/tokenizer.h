@@ -22,6 +22,7 @@ enum class TokenType {
     Global, // global variable
     Local, // local variable
     Void, // for void functions
+    Math_const_vars, // constants PI, E
 };
 
 struct Token {

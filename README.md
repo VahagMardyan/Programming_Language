@@ -107,6 +107,13 @@ for (i = 0; i < 10; i += 1) {
 | Comparison        | `==` `!=` `<` `>` `<=` `>=`                             |
 | Assignment        | `=` `+=` `-=` `*=` `/=` `%=` `^=`                       |
 | String            | `+` (concatenation), `length(s)` -> s.size()            |
+| Mathematical Constants | `m_pi` -> π, `m_e` -> e                            |
+| Built-in mathematical functions | 
+`sin`, `cos`, `tan`, `asin`
+`acos`, `atan`, `atan2`, `sqrt`
+`cbrt`, `pow`, `exp`, `log`, `ln`
+`log10`, `log2`, `log_ab`, `fmod`
+`ceil`, `floor`, `abs`, `round`|
 
 ### Control Flow
 ```vhg

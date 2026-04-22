@@ -1,14 +1,15 @@
 {
     "name": "vhg-language",
-    "displayName": "VHG Language",
+    "displayName": "VHG Language Support",
     "version": "0.0.1",
-    "engines": { "vscode": "^1.60.0" },
+    "publisher": "vahagn-mardyan",
+    "engines": {
+        "vscode": "^1.80.0"
+    },
     "categories": ["Programming Languages"],
-    "publisher": "Vahagn Mardyan",
     "contributes": {
         "languages": [{
             "id": "vhg",
-            "aliases": ["VHG"],
             "extensions": [".vhg"],
             "configuration": "./language-configuration.json"
         }],
@@ -16,6 +17,10 @@
             "language": "vhg",
             "scopeName": "source.vhg",
             "path": "./syntaxes/vhg.tmLanguage.json"
+        }],
+        "snippets": [{
+            "language": "vhg",
+            "path": "./snippets/vhg.json"
         }]
     }
 }

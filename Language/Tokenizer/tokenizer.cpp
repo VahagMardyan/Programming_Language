@@ -1,4 +1,7 @@
 #include "tokenizer.h"
+#include <algorithm>
+#include <cctype>
+#include <unordered_set>
 
 const std::unordered_map<std::string, TokenType> operations = {
     {"+", TokenType::Operator}, {"-", TokenType::Operator},
@@ -9,6 +12,23 @@ const std::unordered_map<std::string, TokenType> operations = {
     {"**", TokenType::Operator}, {"//", TokenType::Operator},
     {"%/", TokenType::Operator},
 };
+
+namespace {
+    std::string toLower(std::string s) {
+        std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) {
+            return static_cast<char>(std::tolower(c));
+        });
+        return s;
+    }
+
+    const std::unordered_set<std::string> mathBuiltins = {
+        "sin", "cos", "tan",
+        "asin", "acos", "atan", "atan2",
+        "sqrt", "exp", "log", "ln", "log10",
+        "ceil", "floor", "abs", "round",
+        "fmod", "cbrt", "log2", "pow", "log_ab", // log(b)/log(a)
+    };
+}
 
 Tokenizer::Tokenizer(Lexer& l) : lexer(l) {}
 
@@ -94,20 +114,23 @@ Token Tokenizer::getNextToken() {
             name += (char)lexer.peek();
             lexer.advance();
         }
-        if(name == "if")    return {TokenType::If,    name};
-        if(name == "else")  return {TokenType::Else,  name};
-        if(name == "while") return {TokenType::While, name};
-        if(name == "for")   return {TokenType::For,   name};
-        if(name == "print") return {TokenType::Print, name};
-        if(name == "and")   return {TokenType::And,   name};
-        if(name == "or")    return {TokenType::Or,    name};
-        if(name == "not")   return {TokenType::Not,   name};
-        if(name == "true" || name == "false") return {TokenType::Boolean, name};
-        if(name == "function") return {TokenType::Function, name};
-        if(name == "return") return {TokenType::Return, name};
-        if(name == "local") return {TokenType::Local, name};
-        if(name == "global") return {TokenType::Global, name};
-        if(name == "void") return {TokenType::Void, name};
+        const std::string lowered = toLower(name);
+        if(lowered == "if")    return {TokenType::If,    lowered};
+        if(lowered == "else")  return {TokenType::Else,  lowered};
+        if(lowered == "while") return {TokenType::While, lowered};
+        if(lowered == "for")   return {TokenType::For,   lowered};
+        if(lowered == "print") return {TokenType::Print, lowered};
+        if(lowered == "and")   return {TokenType::And,   lowered};
+        if(lowered == "or")    return {TokenType::Or,    lowered};
+        if(lowered == "not")   return {TokenType::Not,   lowered};
+        if(lowered == "true" || lowered == "false") return {TokenType::Boolean, lowered};
+        if(lowered == "function") return {TokenType::Function, lowered};
+        if(lowered == "return") return {TokenType::Return, lowered};
+        if(lowered == "local") return {TokenType::Local, lowered};
+        if(lowered == "global") return {TokenType::Global, lowered};
+        if(lowered == "void") return {TokenType::Void, lowered};
+        if(lowered == "m_pi" || lowered == "m_e") return {TokenType::Math_const_vars, lowered};
+        if(mathBuiltins.find(lowered) != mathBuiltins.end()) return {TokenType::Name, lowered};
         return {TokenType::Name, name};
     }
 

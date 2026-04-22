@@ -94,6 +94,14 @@ double VirtualMachine::run() {
             registers[inst.dst] = l/r - std::floor(l/r);
         }
         break;
+        case OpCode::M_PI: {
+            registers[inst.dst] = 3.14159265358979323846;
+        }
+        break;
+        case OpCode::M_E: {
+            registers[inst.dst] = 2.718281828459045;
+        }
+        break;
         case OpCode::UNARY:  registers[inst.dst] = -asNumber(registers[inst.left]); break;
         case OpCode::MODULO: registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) % toInt32(registers[inst.right])); break;
         case OpCode::AND:    registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) & toInt32(registers[inst.right])); break;
@@ -163,6 +171,27 @@ double VirtualMachine::run() {
             }
         }
         break;
+        case OpCode::SIN:   registers[inst.dst] = std::sin(asNumber(registers[inst.left])); break;
+        case OpCode::COS:   registers[inst.dst] = std::cos(asNumber(registers[inst.left])); break;
+        case OpCode::TAN:   registers[inst.dst] = std::tan(asNumber(registers[inst.left])); break;
+        case OpCode::ASIN:  registers[inst.dst] = std::asin(asNumber(registers[inst.left])); break;
+        case OpCode::ACOS:  registers[inst.dst] = std::acos(asNumber(registers[inst.left])); break;
+        case OpCode::ATAN:  registers[inst.dst] = std::atan(asNumber(registers[inst.left])); break;
+        case OpCode::ATAN2: registers[inst.dst] = std::atan2(asNumber(registers[inst.left]), asNumber(registers[inst.right])); break;
+        case OpCode::SQRT:  registers[inst.dst] = std::sqrt(asNumber(registers[inst.left])); break;
+        case OpCode::EXP:   registers[inst.dst] = std::exp(asNumber(registers[inst.left])); break;
+        case OpCode::LOG:   registers[inst.dst] = std::log(asNumber(registers[inst.left])); break;
+        case OpCode::LOG10: registers[inst.dst] = std::log10(asNumber(registers[inst.left])); break;
+        case OpCode::CEIL:  registers[inst.dst] = std::ceil(asNumber(registers[inst.left])); break;
+        case OpCode::FLOOR: registers[inst.dst] = std::floor(asNumber(registers[inst.left])); break;
+        case OpCode::ABS:   registers[inst.dst] = std::fabs(asNumber(registers[inst.left])); break;
+        case OpCode::ROUND: registers[inst.dst] = std::round(asNumber(registers[inst.left])); break;
+        case OpCode::FMOD:  registers[inst.dst] = std::fmod(asNumber(registers[inst.left]), asNumber(registers[inst.right])); break;
+        case OpCode::CBRT: registers[inst.dst] = std::cbrt(asNumber(registers[inst.left])); break;
+        case OpCode::MATH_POW: registers[inst.dst] = std::pow(asNumber(registers[inst.left]), asNumber(registers[inst.right])); break;
+        case OpCode::LOG2: registers[inst.dst] = std::log2(asNumber(registers[inst.left])); break;
+        case OpCode::LOG_AB: registers[inst.dst] 
+            = std::log(asNumber(registers[inst.right])) / std::log(asNumber(registers[inst.left])); break;
 
         case OpCode::RETURN: {
                 Value retVal = registers[inst.dst];
@@ -360,6 +389,30 @@ void VirtualMachine::visualize(const std::vector<Instruction>& program) const {
             case OpCode::LENGTH:
                 std::cout << "LENGTH" << std::setw(6) << inst.left << std::setw(6) << "-"
                           << std::setw(6) << inst.dst;
+            break;
+            case OpCode::SIN:   std::cout << "SIN"; break;
+            case OpCode::COS:   std::cout << "COS"; break;
+            case OpCode::TAN:   std::cout << "TAN"; break;
+            case OpCode::ASIN:  std::cout << "ASIN"; break;
+            case OpCode::ACOS:  std::cout << "ACOS"; break;
+            case OpCode::ATAN:  std::cout << "ATAN"; break;
+            case OpCode::ATAN2: std::cout << "ATAN2"; break;
+            case OpCode::SQRT:  std::cout << "SQRT"; break;
+            case OpCode::EXP:   std::cout << "EXP"; break;
+            case OpCode::LOG:   std::cout << "LOG"; break;
+            case OpCode::LOG10: std::cout << "LOG10"; break;
+            case OpCode::CEIL:  std::cout << "CEIL"; break;
+            case OpCode::FLOOR: std::cout << "FLOOR"; break;
+            case OpCode::ABS:   std::cout << "ABS"; break;
+            case OpCode::ROUND: std::cout << "ROUND"; break;
+            case OpCode::FMOD:  std::cout << "FMOD"; break;
+
+            case OpCode::M_PI:
+                std::cout << "LOAD_CONST PI" << std::setw(6);
+            break;
+
+            case OpCode::M_E:
+                std::cout << "LOAD_CONST E" << std::setw(6);
             break;
 
             case OpCode::RETURN:

@@ -6,9 +6,12 @@ This setup allows VS Code to recognize `.vhg` files as a formal language, enabli
 1. Open your File Explorer.
 2. Navigate to the VS Code extensions folder. You can do this by pasting this path into your address bar:
    `%USERPROFILE%\.vscode\extensions` (on Windows).
+   `~/.vscode/extensions` (on Linux).
+   `~/.vscode/extensions` (on macOS).
+
 3. Create a new folder named `vhg-lang`.
 
-* Or you can just simply copy and paste this folder into `%USERPROFILE%\.vscode\extensions`. Rename this folder to: 
+* Or you can just simply copy and paste this folder into `EXTENSION_PATH` (based on OS you're using). Rename this folder to: 
     `vahagn-mardyan.vhg-language-0.0.1`
 ---
 
@@ -20,15 +23,16 @@ This file registers the language ID and connects the `.vhg` extension.
 ```json
 {
     "name": "vhg-language",
-    "displayName": "VHG Language",
+    "displayName": "VHG Language Support",
     "version": "0.0.1",
-    "engines": { "vscode": "^1.60.0" },
-    "categories": ["Programming Languages"],
     "publisher": "vahagn-mardyan",
+    "engines": {
+        "vscode": "^1.80.0"
+    },
+    "categories": ["Programming Languages"],
     "contributes": {
         "languages": [{
             "id": "vhg",
-            "aliases": ["VHG"],
             "extensions": [".vhg"],
             "configuration": "./language-configuration.json"
         }],
@@ -36,6 +40,10 @@ This file registers the language ID and connects the `.vhg` extension.
             "language": "vhg",
             "scopeName": "source.vhg",
             "path": "./syntaxes/vhg.tmLanguage.json"
+        }],
+        "snippets": [{
+            "language": "vhg",
+            "path": "./snippets/vhg.json"
         }]
     }
 }
@@ -76,9 +84,13 @@ This file defines the behavior of the editor (comments and brackets).
         { "include": "#strings" },
         { "include": "#keywords" },
         { "include": "#builtIn" },
-        { "include": "#boolean"},
+        { "include": "#math_functions" },
+        { "include": "#function_definition" },
+        { "include": "#function_call" },
+        { "include": "#boolean" },
         { "include": "#logical_operators" },
         { "include": "#numbers" },
+        { "include": "#operators" },
         { "include": "#variables" }
     ],
     "repository": {
@@ -118,7 +130,7 @@ This file defines the behavior of the editor (comments and brackets).
             ]
         },
         "keywords": {
-            "match": "\\b(if|else|while|for|print|function|return|void)\\b",
+            "match": "\\b(if|else|while|for|print|function|return)\\b",
             "name": "keyword.control.vhg"
         },
         "boolean": {
@@ -133,26 +145,224 @@ This file defines the behavior of the editor (comments and brackets).
             "match": "\\b\\d+(\\.\\d+)?\\b",
             "name": "constant.numeric.vhg"
         },
+        "builtIn": {
+            "match": "\\b(length|void|m_e|m_pi)\\b",
+            "name": "support.function.vhg"
+        },
+        "math_functions": {
+            "match": "\\b(sin|cos|tan|asin|acos|atan|atan2|sqrt|cbrt|exp|log|log2|log10|log_ab|ceil|floor|round|abs|fmod)\\b",
+            "name": "support.math.functions.vhg"
+        },
+        "function_definition": {
+            "match": "\\bfunction\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(",
+            "captures": {
+                "1": { "name": "entity.name.function.vhg" }
+            }
+        },
+        "function_call": {
+            "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(",
+            "captures": {
+                "1": { "name": "support.function.user.vhg" }
+            }
+        },
+        "operators": {
+            "match": "(\\+|-|\\*|/|%|&|\\||\\^|<<|>>|\\+\\=|\\-\\=|\\*\\=|\\/\\=|\\%\\=|\\^\\=)?=",
+            "name": "keyword.operator.assignment.vhg"
+        },
         "variables": {
             "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b",
             "name": "variable.other.vhg"
-        },
-        "builtIn": {
-            "patterns": [
-                {
-                    "match": "\\b(length|void)\\b",
-                    "name": "support.function.vhg"
-                }
-            ]
         }
-    },
-    "operators" : {
-        "match" : "(\\+|-|\\*|/|%|&|\\||\\^|<<|>>)?=",
-        "name" : "keyword.operator.assignment.vhg"
     }
 }
 ```
 
+#### 4. `snippets/vhg.json`
+```json
+{
+    "sin function": {
+        "prefix": "sin",
+        "body": "sin(${1:angle})",
+        "description": "Sine function (sinus)"
+    },
+    "cos function": {
+        "prefix": "cos",
+        "body": "cos(${1:angle})",
+        "description": "Cosine function"
+    },
+    "tan function": {
+        "prefix": "tan",
+        "body": "tan(${1:angle})",
+        "description": "Tangent function"
+    },
+    "asin function": {
+        "prefix": "asin",
+        "body": "asin(${1:value})",
+        "description": "Arc sine (inverse sine)"
+    },
+    "acos function": {
+        "prefix": "acos",
+        "body": "acos(${1:value})",
+        "description": "Arc cosine"
+    },
+    "atan function": {
+        "prefix": "atan",
+        "body": "atan(${1:value})",
+        "description": "Arc tangent"
+    },
+    "atan2 function": {
+        "prefix": "atan2",
+        "body": "atan2(${1:y}, ${2:x})",
+        "description": "2-argument arctangent (y, x)"
+    },
+    "sqrt function": {
+        "prefix": "sqrt",
+        "body": "sqrt(${1:number})",
+        "description": "Square root"
+    },
+    "cbrt function": {
+        "prefix": "cbrt",
+        "body": "cbrt(${1:number})",
+        "description": "Cube root"
+    },
+    "pow function": {
+        "prefix": "pow",
+        "body": "pow(${1:base}, ${2:exponent})",
+        "description": "Power function (base^exponent)"
+    },
+    "exp function": {
+        "prefix": "exp",
+        "body": "exp(${1:number})",
+        "description": "Exponential function (e^x)"
+    },
+    "log function": {
+        "prefix": "log",
+        "body": "log(${1:number})",
+        "description": "Natural logarithm (base e)"
+    },
+    "log2 function": {
+        "prefix": "log2",
+        "body": "log2(${1:number})",
+        "description": "Base-2 logarithm"
+    },
+    "log10 function": {
+        "prefix": "log10",
+        "body": "log10(${1:number})",
+        "description": "Base-10 logarithm"
+    },
+    "ln function": {
+        "prefix": "ln",
+        "body": "ln(${1:number})",
+        "description": "Natural logarithm (same as log)"
+    },
+    "ceil function": {
+        "prefix": "ceil",
+        "body": "ceil(${1:number})",
+        "description": "Round up to nearest integer"
+    },
+    "floor function": {
+        "prefix": "floor",
+        "body": "floor(${1:number})",
+        "description": "Round down to nearest integer"
+    },
+    "round function": {
+        "prefix": "round",
+        "body": "round(${1:number})",
+        "description": "Round to nearest integer"
+    },
+    "abs function": {
+        "prefix": "abs",
+        "body": "abs(${1:number})",
+        "description": "Absolute value"
+    },
+    "fmod function": {
+        "prefix": "fmod",
+        "body": "fmod(${1:x}, ${2:y})",
+        "description": "Floating-point remainder (x mod y)"
+    },
+    "length function": {
+        "prefix": "length",
+        "body": "length(${1:string})",
+        "description": "String length"
+    },
+    "m_pi constant": {
+        "prefix": "m_pi",
+        "body": "m_pi",
+        "description": "Mathematical constant π (3.14159...)"
+    },
+    "m_e constant": {
+        "prefix": "m_e",
+        "body": "m_e",
+        "description": "Mathematical constant e (2.71828...)"
+    },
+    "if statement": {
+        "prefix": "if",
+        "body": [
+            "if (${1:condition}) {",
+            "\t${2:// code}",
+            "}"
+        ],
+        "description": "If statement"
+    },
+    "if-else statement": {
+        "prefix": "ife",
+        "body": [
+            "if (${1:condition}) {",
+            "\t${2:// code}",
+            "} else {",
+            "\t${3:// code}",
+            "}"
+        ],
+        "description": "If-else statement"
+    },
+    "while loop": {
+        "prefix": "while",
+        "body": [
+            "while (${1:condition}) {",
+            "\t${2:// code}",
+            "}"
+        ],
+        "description": "While loop"
+    },
+    "for loop": {
+        "prefix": "for",
+        "body": [
+            "for (${1:i = 0}; ${2:i < 10}; ${3:i = i + 1}) {",
+            "\t${4:// code}",
+            "}"
+        ],
+        "description": "For loop"
+    },
+    "function definition": {
+        "prefix": "func",
+        "body": [
+            "function ${1:name}(${2:params}) {",
+            "\t${3:// body}",
+            "}"
+        ],
+        "description": "Function definition"
+    },
+    "void function": {
+        "prefix": "void",
+        "body": [
+            "void function ${1:name}(${2:params}) {",
+            "\t${3:// body}",
+            "}"
+        ],
+        "description": "Void function definition"
+    },
+    "print statement": {
+        "prefix": "print",
+        "body": "print(${1:expression});",
+        "description": "Print statement"
+    },
+    "return statement": {
+        "prefix": "return",
+        "body": "return ${1:value};",
+        "description": "Return statement"
+    }
+}
+```
 ---
 
 ### Step 3: Update VS Code Global Settings
@@ -174,20 +384,24 @@ Now, tell VS Code to use this new "vhg" language for your files.
 ### Step 4: Custom Syntax Highlighting (Colors)
 To apply colors to your language, add the following block to your `settings.json` under the `highlight.regexes` section. This ensures keywords, numbers, and comments are colored specifically for the `vhg` language:
 ```json
-    "editor.tokenColorCustomizations": {
+"editor.tokenColorCustomizations": {
     "textMateRules": [
         { "scope": "keyword.control.vhg", "settings": { "foreground": "#C586C0" } },
         { "scope": "keyword.operator.logical.vhg", "settings": { "foreground": "#0b4da3" } },
-        { "scope": "keyword.control_boolean.vhg", "settings": {"foreground": "#1e73ea",} },
+        { "scope": "keyword.control_boolean.vhg", "settings": {"foreground": "#1e73ea"} },
         { "scope": "string.quoted.double.vhg", "settings": { "foreground": "#CE7744" } },
         { "scope": "string.quoted.single.vhg", "settings": { "foreground": "#CE7744" } },
         { "scope": "constant.numeric.vhg", "settings": { "foreground": "#B5CEA8" } },
         { "scope": "variable.other.vhg", "settings": { "foreground": "#9CDCFE" } },
         { "scope": "comment.line.vhg", "settings": { "foreground": "#6A9955", "fontStyle": "italic" } },
         { "scope": "comment.block.vhg", "settings": { "foreground": "#6A9955", "fontStyle": "italic" } },
-        { "scope": "support.function.vhg", "settings": { "foreground": "#007bff" } }
+        { "scope": "support.function.vhg", "settings": { "foreground": "#007bff" } },
+        { "scope": "support.math.functions.vhg", "settings": { "foreground": "#DCCE80" } },
+        { "scope": "entity.name.function.vhg", "settings": { "foreground": "#DCDCAA" } },
+        { "scope": "support.function.user.vhg", "settings": { "foreground": "#DCDCAA" } },
+        { "scope": "keyword.operator.assignment.vhg", "settings": { "foreground": "#C586C0" } }
     ]
-    },
+},
 ```
 
 ### Step 5: Finalize

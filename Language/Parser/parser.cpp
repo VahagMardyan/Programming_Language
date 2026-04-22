@@ -435,8 +435,13 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                             nodes.push(resolveVariableNode(name));
                             state = ParserState::ExpectOperator;
                         }
-                    } else if(token.type == TokenType::StringLiteral) {
+                } else if(token.type == TokenType::StringLiteral) {
                     nodes.push(std::make_shared<StringNode>(token.value));
+                    state = ParserState::ExpectOperator;
+                    nextToken();
+                }  else if(token.type == TokenType::Math_const_vars) {
+                    OpCode constOp = (token.value == "m_pi") ? OpCode::M_PI : OpCode::M_E;
+                    nodes.push(std::make_shared<MathConstantNode>(constOp));
                     state = ParserState::ExpectOperator;
                     nextToken();
                 } else if(token.type == TokenType::OpenParen) {

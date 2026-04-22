@@ -55,6 +55,12 @@ class Compiler {
 
         std::vector<std::shared_ptr<ASTNode>> postOrderTraverse(std::shared_ptr<ASTNode> root);
         std::vector<Instruction> generateByteCode(const std::vector<std::shared_ptr<ASTNode>>& nodes);
+        bool tryEmitMathBuiltinCall(
+            const std::string& name,
+            const std::vector<std::shared_ptr<ASTNode>>& args,
+            std::vector<Instruction>& code,
+            int& resultReg
+        );
 public:
     Compiler(SymbolTable& st) : symTable(st) {}
     ByteCode compile(std::shared_ptr<ASTNode> root);
