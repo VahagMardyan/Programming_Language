@@ -107,13 +107,39 @@ for (i = 0; i < 10; i += 1) {
 | Comparison        | `==` `!=` `<` `>` `<=` `>=`                             |
 | Assignment        | `=` `+=` `-=` `*=` `/=` `%=` `^=`                       |
 | String            | `+` (concatenation), `length(s)` -> s.size()            |
-| Mathematical Constants | `m_pi` -> π, `m_e` -> e                            |
-| Built-in mathematical functions | 
-                                        |`sin`, `cos`, `tan`, `asin`,
-                                        `acos`, `atan`, `atan2`, `sqrt`,
-                                        `cbrt`, `pow`, `exp`, `log`, `ln`,
-                                        `log10`, `log2`, `log_ab`, `fmod`,
-                                        `ceil`, `floor`, `abs`, `round`|
+
+### Mathematical Functions
+
+| Function | Description | Number of Arguments |
+|----------|-------------|---------------------|
+| `sin(x)` | Sine | 1 |
+| `cos(x)` | Cosine | 1 |
+| `tan(x)` | Tangent | 1 |
+| `asin(x)` | Arc sine | 1 |
+| `acos(x)` | Arc cosine | 1 |
+| `atan(x)` | Arc tangent | 1 |
+| `atan2(y, x)` | Arc tangent (two arguments) | 2 |
+| `sqrt(x)` | Square root | 1 |
+| `cbrt(x)` | Cube root | 1 |
+| `pow(x, y)` | Power (x^y) | 2 |
+| `exp(x)` | Exponential (e^x) | 1 |
+| `log(x)` | Natural logarithm (base e) | 1 |
+| `ln(x)` | Natural logarithm (base e) | 1 |
+| `log10(x)` | Base-10 logarithm | 1 |
+| `log2(x)` | Base-2 logarithm | 1 |
+| `log_ab(a, b)` | Logarithm of `b` with base `a` (log(b)/log(a)) | 2 |
+| `ceil(x)` | Round up | 1 |
+| `floor(x)` | Round down | 1 |
+| `round(x)` | Round to nearest integer | 1 |
+| `abs(x)` | Absolute value | 1 |
+| `fmod(x, y)` | Floating-point remainder | 2 |
+
+### Mathematical Constants
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `m_pi` | 3.141592653589793 | π (Pi) |
+| `m_e`  | 2.718281828459045 | e (Euler's number) |
 
 ### Control Flow
 ```vhg
