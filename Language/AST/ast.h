@@ -43,7 +43,7 @@ enum class OpCode : uint8_t {
     CEIL, FLOOR, ABS, ROUND,
     FMOD, CBRT, MATH_POW, LOG2, LOG_AB, // log(b)/log(a)
     // math constants
-    M_PI, M_E, // pi, e
+    CONST_PI, CONST_E, // pi, e
 };
 
 class ASTNode {
@@ -70,7 +70,7 @@ class MathConstantNode : public ASTNode {
         OpCode getConstant() const { return constant; }
         void print(std::string prefix, bool isLast) const override {
         std::cout << prefix << (isLast ? "└── " : "├── ")
-                  << (constant == OpCode::M_PI ? "Constant: PI" : "Constant: E") << std::endl;
+                  << (constant == OpCode::CONST_PI ? "Constant: PI" : "Constant: E") << std::endl;
         }
         std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };

@@ -149,8 +149,8 @@ std::shared_ptr<ASTNode> Compiler::optimize(std::shared_ptr<ASTNode> node) {
                 case OpCode::CMP_GET: result = (v1 >= v2) ? 1.0 : 0.0; break;
                 case OpCode::CMP_EQ: result = (v1 == v2) ? 1.0 : 0.0; break;
                 case OpCode::CMP_NEQ: result = (v1 != v2) ? 1.0 : 0.0; break;
-                case OpCode::M_E: result = 2.718281828459045; break;
-                case OpCode::M_PI: result = 3.14159265358979323846; break;
+                case OpCode::CONST_E: result = 2.718281828459045; break;
+                case OpCode::CONST_PI: result = 3.14159265358979323846; break;
                 default: break;
             }
             return std::make_shared<NumberNode>(result);

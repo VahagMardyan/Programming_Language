@@ -94,11 +94,11 @@ double VirtualMachine::run() {
             registers[inst.dst] = l/r - std::floor(l/r);
         }
         break;
-        case OpCode::M_PI: {
+        case OpCode::CONST_PI: {
             registers[inst.dst] = 3.14159265358979323846;
         }
         break;
-        case OpCode::M_E: {
+        case OpCode::CONST_E: {
             registers[inst.dst] = 2.718281828459045;
         }
         break;
@@ -442,11 +442,11 @@ void VirtualMachine::visualize(const std::vector<Instruction>& program) const {
             case OpCode::ROUND: std::cout << "ROUND"; break;
             case OpCode::FMOD:  std::cout << "FMOD"; break;
 
-            case OpCode::M_PI:
+            case OpCode::CONST_PI:
                 std::cout << "LOAD_CONST PI" << std::setw(6);
             break;
 
-            case OpCode::M_E:
+            case OpCode::CONST_E:
                 std::cout << "LOAD_CONST E" << std::setw(6);
             break;
 

@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <string>
-#include "ast.h"
+#include "../AST/ast.h"
 
 struct Instruction {
     uint32_t op:    8;
