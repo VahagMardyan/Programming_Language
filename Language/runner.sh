@@ -1,1 +1,26 @@
-g++ -std=c++20 -O3 AST/ast.cpp Compiler/compiler.cpp Lexer/lexer.cpp Parser/parser.cpp Runner/main.cpp Tokenizer/tokenizer.cpp VirtualMachine/vm.cpp -o vhg
+#!/bin/bash
+
+set -e
+
+SOURCES="AST/ast.cpp Compiler/compiler.cpp Lexer/lexer.cpp Parser/parser.cpp Runner/main.cpp Tokenizer/tokenizer.cpp VirtualMachine/vm.cpp"
+
+CXX="g++"
+CXXFLAGS="-std=c++20 -O3"
+
+echo "Compiling VHG..."
+
+$CXX $CXXFLAGS $SOURCES -o vhg
+
+if [ $? -eq 0 ]; then
+    echo ""
+    echo "[OK] Build successful!"
+    echo ""
+    echo "Usage:"
+    echo "  ./vhg program.vhg"
+    echo "  ./vhg compile input.vhg output.vhb"
+    echo "  ./vhg run program.vhb"
+else
+    echo ""
+    echo "[ERROR] Build failed!"
+    echo "Check the error messages above."
+fi

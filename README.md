@@ -35,6 +35,7 @@
 ### Requirements
 - C++20 compatible compiler (g++ ≥ 11, clang ≥ 14, or MSVC 2022).
 - Standard library with filesystem support.
+- Simply run `runner.{ext}` on your OS.
 
 ### Linux / macOS (g++ / clang)
 ```bash
@@ -43,9 +44,17 @@ g++ -std=c++20 -O3 *.cpp -o vhg
 g++ -std=c++20 -O3 -static *.cpp -o vhg
 ```
 
+```bash
+./runner.sh
+```
+
 ### Windows (MSVC Developer Command Prompt)
 ```cmd
 cl /EHsc /O2 /std:c++20 *.cpp /Fe:vhg.exe
+```
+
+```cmd
+./runner.bat
 ```
 
 > **Note:** The project does not depend on any external libraries beyond the C++ standard library.
