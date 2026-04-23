@@ -44,13 +44,73 @@ g++ -std=c++20 -O3 *.cpp -o vhg
 g++ -std=c++20 -O3 -static *.cpp -o vhg
 ```
 
-```bash
+```sh (runner.sh)
+#!/bin/bash
+
+set -e
+
+SOURCES="AST/ast.cpp Compiler/compiler.cpp Lexer/lexer.cpp Parser/parser.cpp Runner/main.cpp Tokenizer/tokenizer.cpp VirtualMachine/vm.cpp"
+
+CXX="g++"
+CXXFLAGS="-std=c++20 -O3"
+
+echo "Compiling VHG..."
+
+$CXX $CXXFLAGS $SOURCES -o vhg
+
+if [ $? -eq 0 ]; then
+    echo ""
+    echo "[OK] Build successful!"
+    echo ""
+    echo "Usage:"
+    echo "  ./vhg program.vhg"
+    echo "  ./vhg compile input.vhg output.vhb"
+    echo "  ./vhg run program.vhb"
+else
+    echo ""
+    echo "[ERROR] Build failed!"
+    echo "Check the error messages above."
+fi
+```
+
+```shell
+chmod +x runner.sh
 ./runner.sh
 ```
 
 ### Windows (MSVC Developer Command Prompt)
 ```cmd
 cl /EHsc /O2 /std:c++20 *.cpp /Fe:vhg.exe
+```
+
+```batch (runner.bat)
+@echo off
+setlocal enabledelayedexpansion
+
+set SOURCES=AST\ast.cpp Compiler\compiler.cpp Lexer\lexer.cpp Parser\parser.cpp Runner\main.cpp Tokenizer\tokenizer.cpp VirtualMachine\vm.cpp
+
+set CXX=cl
+set CXXFLAGS=/EHsc /O2 /std:c++20 /W3
+
+echo Compiling VHG...
+
+%CXX% %CXXFLAGS% %SOURCES% /Fe:vhg.exe
+
+if %errorlevel% equ 0 (
+    echo.
+    echo [OK] Build successful!
+    echo.
+    echo Usage:
+    echo   ./vhg.exe program.vhg
+    echo   ./vhg.exe compile input.vhg output.vhb
+    echo   ./vhg.exe run program.vhb
+) else (
+    echo.
+    echo [ERROR] Build failed!
+    echo Check the error messages above.
+)
+
+endlocal
 ```
 
 ```cmd
