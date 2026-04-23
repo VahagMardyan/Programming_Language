@@ -17,6 +17,7 @@ struct CallFrame {
     Value callerSp;
     Value callerFp;
     std::vector<Value> args;
+    std::vector<Value> callerRegisters;
 };
 
 class VirtualMachine {

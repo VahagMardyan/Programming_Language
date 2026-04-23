@@ -154,7 +154,7 @@ double VirtualMachine::run() {
         case OpCode::CALL: {
             size_t retAddr = pc + 1;
             uint16_t funcAddr = getAddress(inst);
-            callStack.push({retAddr, inst.dst, registers[2], registers[8], argBuffer});
+            callStack.push({retAddr, inst.dst, registers[2], registers[8], argBuffer, registers});
             argBuffer.clear();
 
             pc = funcAddr;
@@ -233,6 +233,7 @@ double VirtualMachine::run() {
                 if(callStack.empty()) break;
                 CallFrame frame = callStack.top();
                 callStack.pop();
+                registers = frame.callerRegisters;
                 registers[2] = frame.callerSp;
                 registers[8] = frame.callerFp;
                 registers[frame.returnDest] = retVal;

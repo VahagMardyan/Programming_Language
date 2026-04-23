@@ -1,0 +1,42 @@
+# # Factorial
+function factorial(n) {
+    if(n == 0 or n == 1) {
+        return 1;
+    }
+    return n * factorial(n-1);
+}
+
+# # Fibonacci
+function fib(n) {
+    if(n <= 1) {
+        return n;
+    }
+    return fib(n-1) + fib(n-2);
+}
+
+# # Greatest Common Divisor
+function gcd(a, b) {
+    if(b == 0) {
+        return a;
+    }
+    return gcd(b, a % b);
+}
+
+# # Least Common Multiple
+function lcm(a, b) {
+    return (a * b) / gcd(a,b);
+}
+
+# # x^n
+function x_n(x,n) {
+    if(n == 0) {
+        return 1;
+    }
+    return x * x**(n-1);
+}
+
+print(factorial(6));
+print(fib(6));
+print(gcd(4,18));
+print(lcm(4,18));
+print(x_n(3,4));

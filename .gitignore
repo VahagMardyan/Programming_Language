@@ -8,7 +8,6 @@
 
 # VHG binary files
 *.vhb
-*vhg
 
 # Python related
 __pycache__

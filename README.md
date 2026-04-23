@@ -248,7 +248,7 @@ print(result);
 - Parameters are passed by value.
 - Functions can be called before they are defined (forward declaration via bytecode patching).
 
-> **Note:** VHG doesn't support recursive functions yet. Please use loop-iterative versions instead of recursion.
+<!-- > **Note:** VHG doesn't support recursive functions yet. Please use loop-iterative versions instead of recursion. -->
 
 ### Built‑in I/O
 - `input(prompt)` - User Input.
