@@ -402,6 +402,7 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
         if(token.type == TokenType::EndOfExpr ||
            token.type == TokenType::Semicolon ||
            token.type == TokenType::Comma ||
+           token.type == TokenType::Colon ||
            (token.type == TokenType::CloseParen && ops.empty())) {
             break;
         }
@@ -458,7 +459,39 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                 break;
 
             case ParserState::ExpectOperator:
-                if(token.type == TokenType::Operator ||
+                if(token.type == TokenType::QuestionMark) {
+                    while(!ops.empty() && ops.top() != "(") {
+                        createNodeFromOp();
+                    }
+                    if(state == ParserState::Error || nodes.empty()) {
+                        state = ParserState::Error;
+                        return nullptr;
+                    }
+                    nextToken(); // skip "?"
+                    auto savedOps = std::move(ops);
+                    auto savedNodes = std::move(nodes);
+                    auto trueExpr = parseExpression();
+                    ops = std::move(savedOps);
+                    nodes = std::move(savedNodes);
+                    if(currentToken.type != TokenType::Colon) {
+                        state = ParserState::Error;
+                        return nullptr;
+                    }
+                    nextToken(); // skip ":"
+                    savedOps = std::move(ops);
+                    savedNodes = std::move(nodes);
+                    auto falseExpr = parseExpression();
+                    ops = std::move(savedOps);
+                    nodes = std::move(savedNodes);
+                    if(!trueExpr || !falseExpr || nodes.empty()) {
+                        state = ParserState::Error;
+                        return nullptr;
+                    }
+                    auto cond = nodes.top(); nodes.pop();
+                    nodes.push(std::make_shared<TernaryOpNode>(cond, trueExpr, falseExpr));
+                    state = ParserState::ExpectOperator;
+                    break;
+                } else if(token.type == TokenType::Operator ||
                    token.type == TokenType::CompareOp || 
                    token.value == "and" || token.value == "or") {
                     processOperatorStack(token.value);

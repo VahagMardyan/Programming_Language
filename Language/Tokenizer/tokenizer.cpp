@@ -95,6 +95,8 @@ Token Tokenizer::getNextToken() {
     if(current == '}') { lexer.advance(); return {TokenType::CloseBrace,  "}"}; }
     if(current == ';') { lexer.advance(); return {TokenType::Semicolon,   ";"}; }
     if(current == ',') { lexer.advance(); return {TokenType::Comma,       ","}; }
+    if(current == '?') { lexer.advance(); return {TokenType::QuestionMark, "?"}; }
+    if(current == ':') { lexer.advance(); return {TokenType::Colon, ":"}; }
 
     // 4. Numbers
     if(isdigit(current) || current == '.') {

@@ -14,6 +14,12 @@ function fib(n) {
     return fib(n-1) + fib(n-2);
 }
 
+function isFib(n) {
+    n1 = sqrt(5*n**2 + 4);
+    n2 = sqrt(5*n**2 - 4);
+    return (fmod(n1, 1) == 0 or fmod(n2,1) == 0);
+}
+
 # # Greatest Common Divisor
 function gcd(a, b) {
     if(b == 0) {
@@ -44,9 +50,26 @@ void function foo() {
     print(x*5);
 }
 
-print(factorial(6));
-print(fib(6));
-print(gcd(4,18));
-print(lcm(4,18));
-print(x_n(3,4));
-foo();
+void function even_odd() {
+    for(i=0;i<5;i+=1) {
+        print(i, " ",i % 2 == 0 ? "Even" : "Odd","\n"); # # Ternary operator
+    }
+}
+
+x = 5 > 0 ? 6 : 7;
+print(x); # 6
+print(factorial(6)); # 720
+print(fib(6)); # 8
+print(isFib(6) ? "true" : "false"); # false
+print(gcd(4,18)); # 2
+print(lcm(4,18)); # 36
+print(x_n(3,4)); # 81
+foo(); # 35
+even_odd();
+#*
+    0 Even
+    1 Odd 
+    2 Even 
+    3 Odd
+    4 Even
+*#

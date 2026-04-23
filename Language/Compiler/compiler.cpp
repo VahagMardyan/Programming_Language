@@ -6,6 +6,14 @@
 const int SP = 2;
 const int FP = 8;
 
+static void rebaseJumpTargets(std::vector<Instruction>& instructions, uint16_t baseOffset) {
+    for(auto& inst : instructions) {
+        if(inst.op == (uint32_t)OpCode::JZ || inst.op == (uint32_t)OpCode::JMP) {
+            setAddress(inst, static_cast<uint16_t>(getAddress(inst) + baseOffset));
+        }
+    }
+}
+
 void Compiler::emitMainPrologue(std::vector<Instruction>& code) {
     int slots = symTable.getProgramFrameSlotCount();
     if (slots < 1) slots = 1;
@@ -42,6 +50,7 @@ bool Compiler::tryEmitMathBuiltinCall(
         globalCtx.consts.clear();
         globalCtx.vars.clear();
         auto argCode = generateByteCode(postOrderTraverse(arg));
+        rebaseJumpTargets(argCode, static_cast<uint16_t>(code.size()));
         code.insert(code.end(), argCode.begin(), argCode.end());
         return argCode.empty() ? 0 : static_cast<int>(argCode.back().dst);
     };
@@ -108,6 +117,9 @@ std::vector<std::shared_ptr<ASTNode>> Compiler::postOrderTraverse(std::shared_pt
     s1.push(root);
     while(!s1.empty()) {
         auto node = s1.top(); s1.pop(); s2.push(node);
+        if(std::dynamic_pointer_cast<TernaryOpNode>(node)) {
+            continue;
+        }
         for(auto& child : node->getChildren()) s1.push(child);
     }
     while(!s2.empty()) { postOrder.push_back(s2.top()); s2.pop(); }
@@ -309,6 +321,7 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
                 globalCtx.consts.clear();
                 globalCtx.vars.clear();
                 auto argCode = generateByteCode(postOrderTraverse(arg));
+                rebaseJumpTargets(argCode, static_cast<uint16_t>(code.size()));
                 code.insert(code.end(), argCode.begin(), argCode.end());
                 int argReg = argCode.empty() ? 0 : argCode.back().dst;
                 code.push_back({(uint32_t)OpCode::PUSH_ARG, (uint32_t)argReg, 0, 0});
@@ -339,6 +352,42 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
             int reg = allocateTempRegister();
             code.push_back({(uint32_t)mathConst->getConstant(), (uint32_t)reg, 0, 0});
             storage.push(reg);
+        } else if(auto ternary = std::dynamic_pointer_cast<TernaryOpNode>(node)) {
+            int resultReg = allocateTempRegister();
+                
+            // Generate condition
+            auto condCode = generateByteCode(postOrderTraverse(ternary->getCondition()));
+            rebaseJumpTargets(condCode, static_cast<uint16_t>(code.size()));
+            code.insert(code.end(), condCode.begin(), condCode.end());
+            int condReg = condCode.empty() ? 0 : condCode.back().dst;
+                
+            // Generate true branch and store to resultReg
+            size_t jzIdx = code.size();
+            code.push_back({(uint32_t)OpCode::JZ, (uint32_t)condReg, 0, 0});
+                
+            auto trueCode = generateByteCode(postOrderTraverse(ternary->getTrueExpr()));
+            rebaseJumpTargets(trueCode, static_cast<uint16_t>(code.size()));
+            code.insert(code.end(), trueCode.begin(), trueCode.end());
+            int trueReg = trueCode.empty() ? 0 : trueCode.back().dst;
+            code.push_back({(uint32_t)OpCode::MOV, (uint32_t)resultReg, (uint32_t)trueReg, 0});
+            freeTempRegister(trueReg);
+                
+            size_t jmpIdx = code.size();
+            code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
+            setAddress(code[jzIdx], (uint16_t)code.size());
+                
+            // Generate false branch and store to resultReg
+            auto falseCode = generateByteCode(postOrderTraverse(ternary->getFalseExpr()));
+            rebaseJumpTargets(falseCode, static_cast<uint16_t>(code.size()));
+            code.insert(code.end(), falseCode.begin(), falseCode.end());
+            int falseReg = falseCode.empty() ? 0 : falseCode.back().dst;
+            code.push_back({(uint32_t)OpCode::MOV, (uint32_t)resultReg, (uint32_t)falseReg, 0});
+            freeTempRegister(falseReg);
+                
+            setAddress(code[jmpIdx], (uint16_t)code.size());
+            freeTempRegister(condReg);
+                
+            storage.push(resultReg);
         }
     }
     return code;
@@ -351,6 +400,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         globalCtx.consts.clear();
         globalCtx.vars.clear();
         auto exprCode = generateByteCode(postOrderTraverse(assign->getValue()));
+        rebaseJumpTargets(exprCode, static_cast<uint16_t>(code.size()));
         code.insert(code.end(), exprCode.begin(), exprCode.end());
         
         int srcReg = exprCode.empty() ? 0 : exprCode.back().dst;
@@ -375,6 +425,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
     else if(auto ifStmt = std::dynamic_pointer_cast<IfStatementNode>(stmt)) {
         globalCtx.consts.clear(); globalCtx.vars.clear();
         auto condCode = generateByteCode(postOrderTraverse(ifStmt->getCondition()));
+        rebaseJumpTargets(condCode, static_cast<uint16_t>(code.size()));
         code.insert(code.end(), condCode.begin(), condCode.end());
         int condReg = condCode.empty() ? 0 : condCode.back().dst;
         size_t jzIdx = code.size();
@@ -392,6 +443,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         size_t startAddr = code.size();
         globalCtx.consts.clear(); globalCtx.vars.clear();
         auto condCode = generateByteCode(postOrderTraverse(whileStmt->getCondition()));
+        rebaseJumpTargets(condCode, static_cast<uint16_t>(code.size()));
         code.insert(code.end(), condCode.begin(), condCode.end());
         int condReg = condCode.empty() ? 0 : condCode.back().dst;
         size_t jzIdx = code.size();
@@ -416,6 +468,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
             } else {
                 globalCtx.consts.clear(); globalCtx.vars.clear();
                 auto exprCode = generateByteCode(postOrderTraverse(expr));
+                rebaseJumpTargets(exprCode, static_cast<uint16_t>(code.size()));
                 code.insert(code.end(), exprCode.begin(), exprCode.end());
                 int lastReg = exprCode.empty() ? 0 : exprCode.back().dst;
                 code.push_back({(uint32_t)OpCode::PRINT, (uint32_t)lastReg, 0, 0});
@@ -430,6 +483,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         globalCtx.consts.clear(); globalCtx.vars.clear();
 
         auto condCode = generateByteCode(postOrderTraverse(forStmt->getCondition()));
+        rebaseJumpTargets(condCode, static_cast<uint16_t>(code.size()));
         code.insert(code.end(), condCode.begin(), condCode.end());
         int condReg = condCode.empty() ? 0 : condCode.back().dst;
         size_t jzIdx = code.size();
@@ -480,6 +534,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
             globalCtx.consts.clear();
             globalCtx.vars.clear();
             auto exprCode = generateByteCode(postOrderTraverse(arg));
+            rebaseJumpTargets(exprCode, static_cast<uint16_t>(code.size()));
             code.insert(code.end(), exprCode.begin(), exprCode.end());
             int argReg = exprCode.empty() ? 0 : exprCode.back().dst;
             code.push_back({(uint32_t)OpCode::PUSH_ARG, (uint32_t)argReg, 0, 0});
@@ -504,6 +559,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
             globalCtx.consts.clear();
             globalCtx.vars.clear();
             auto exprCode = generateByteCode(postOrderTraverse(retStmt->getExpression()));
+            rebaseJumpTargets(exprCode, static_cast<uint16_t>(code.size()));
             code.insert(code.end(), exprCode.begin(), exprCode.end());
             int lastReg = exprCode.empty() ? 0 : exprCode.back().dst;
             code.push_back({(uint32_t)OpCode::RETURN, (uint32_t)lastReg, 0, 0});

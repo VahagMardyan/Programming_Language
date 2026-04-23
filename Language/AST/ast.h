@@ -9,7 +9,7 @@
 
 enum class OpCode : uint8_t {
     // RV32I arithmetic and logic
-    ADD, SUB, AND, OR, XOR,
+    ADD, MOV, SUB, AND, OR, XOR,
     SLL, SRL, SRA,
     SLT, SLTU,
     ADDI, ANDI, ORI, XORI,
@@ -119,6 +119,32 @@ public:
     void print(std::string prefix, bool isLast) const override;
     std::string getOp() const { return op; }
     std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {child}; }
+};
+
+class TernaryOpNode : public ASTNode {
+    private:
+        std::shared_ptr<ASTNode> condition;
+        std::shared_ptr<ASTNode> trueExpr;
+        std::shared_ptr<ASTNode> falseExpr;
+    public:
+        TernaryOpNode(std::shared_ptr<ASTNode> cond, std::shared_ptr<ASTNode> trueExp, std::shared_ptr<ASTNode> falseExp)
+            : condition(std::move(cond)), trueExpr(std::move(trueExp)), falseExpr(std::move(falseExp)) {}
+
+        std::shared_ptr<ASTNode> getCondition() const { return condition; }
+        std::shared_ptr<ASTNode> getTrueExpr() const { return trueExpr; }
+        std::shared_ptr<ASTNode> getFalseExpr() const { return falseExpr; }
+        
+        void print(std::string prefix, bool isLast) const override {
+            std::cout << prefix << (isLast ? "└── " : "├── ") << "Ternary: ? :" << std::endl;
+            std::string newPrefix = prefix + (isLast ? "    " : "│   ");
+            condition->print(newPrefix, false);
+            trueExpr->print(newPrefix, false);
+            falseExpr->print(newPrefix, true);
+        }
+        
+        std::vector<std::shared_ptr<ASTNode>> getChildren() const override {
+            return {condition, trueExpr, falseExpr};
+        }
 };
 
 class StatementNode : public ASTNode {

@@ -23,6 +23,8 @@ enum class TokenType {
     Local, // local variable
     Void, // for void functions
     Math_const_vars, // constants PI, E
+    QuestionMark, // ?
+    Colon, // :
 };
 
 struct Token {

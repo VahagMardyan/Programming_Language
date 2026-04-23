@@ -67,6 +67,7 @@ double VirtualMachine::run() {
             case OpCode::LOAD_VAR:   registers[inst.dst] = memory[inst.left]; break;
             case OpCode::LOAD_STR: registers[inst.dst] = current_strings[inst.left]; break;
             case OpCode::STORE_VAR:  memory[inst.left] = registers[inst.right]; break;
+            case OpCode::MOV: registers[inst.dst] = registers[inst.left]; break;
             
             case OpCode::ADD:  {
                 if(isString(registers[inst.left]) || isString(registers[inst.right])) {
@@ -364,6 +365,7 @@ void VirtualMachine::visualize(const std::vector<Instruction>& program) const {
                 break;
 
             case OpCode::ADD:     std::cout << "ADD";     break;
+            case OpCode::MOV:     std::cout << "MOV";     break;
             case OpCode::SUB:     std::cout << "SUB";     break;
             case OpCode::MUL:     std::cout << "MUL";     break;
             case OpCode::DIV:     std::cout << "DIV";     break;
