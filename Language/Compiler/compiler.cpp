@@ -485,6 +485,8 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
     }
      else if(auto retStmt = std::dynamic_pointer_cast<ReturnNode>(stmt)) {
         if(retStmt -> getExpression()) {
+            globalCtx.consts.clear();
+            globalCtx.vars.clear();
             auto exprCode = generateByteCode(postOrderTraverse(retStmt -> getExpression()));
             code.insert(code.end(), exprCode.begin(), exprCode.end());
             int lastReg = exprCode.empty() ? 0 : exprCode.back().dst;
