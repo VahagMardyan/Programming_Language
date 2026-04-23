@@ -15,10 +15,21 @@ void Compiler::emitMainPrologue(std::vector<Instruction>& code) {
 }
 
 int Compiler::allocateTempRegister() {
+    if(!freeRegisters.empty()) {
+        int reg = freeRegisters.top();
+        freeRegisters.pop();
+        return reg;
+    }
     while(nextTempIndex == SP || nextTempIndex == FP) {
         ++nextTempIndex;
     }
     return nextTempIndex++;
+}
+
+void Compiler::freeTempRegister(int reg) {
+    if(reg != SP && reg != FP) {
+        freeRegisters.push(reg);
+    }
 }
 
 bool Compiler::tryEmitMathBuiltinCall(
@@ -239,17 +250,20 @@ ByteCode Compiler::compile(std::shared_ptr<ASTNode> root) {
 std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::shared_ptr<ASTNode>>& nodes) {
     std::vector<Instruction> code;
     std::stack<int> storage;
+    
     for(const auto& node : nodes) {
         if(auto num = std::dynamic_pointer_cast<NumberNode>(node)) {
             double val = num->getValue();
             if(globalCtx.consts.find(val) == globalCtx.consts.end()) {
-                int reg = allocateTempRegister(), idx = (int)constantPool.size();
+                int reg = allocateTempRegister();
+                int idx = (int)constantPool.size();
                 constantPool.push_back(val);
                 code.push_back({(uint32_t)OpCode::LOAD_CONST, (uint32_t)reg, (uint32_t)idx, 0});
                 globalCtx.consts[val] = reg;
             }
             storage.push(globalCtx.consts[val]);        
-        } else if(auto var = std::dynamic_pointer_cast<VariableNode>(node)) {
+        }
+        else if(auto var = std::dynamic_pointer_cast<VariableNode>(node)) {
             int rd = allocateTempRegister();
             if (var->getIsLocal()) {
                 int32_t off = var->getLocalOffset();
@@ -265,22 +279,26 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
             int l = storage.top(); storage.pop();
             int target = allocateTempRegister();
             code.push_back({(uint32_t)bin->getOpCode(), (uint32_t)target, (uint32_t)l, (uint32_t)r});
+            freeTempRegister(l);
+            freeTempRegister(r);
             storage.push(target);
-        } else if(auto un = std::dynamic_pointer_cast<UnaryOpNode>(node)) {
+        }
+        else if(auto un = std::dynamic_pointer_cast<UnaryOpNode>(node)) {
             int childIdx = storage.top(); storage.pop();
             int target = allocateTempRegister();
-            OpCode opcode = (un -> getOp() == "not") ? OpCode::LOGICAL_NOT : OpCode::UNARY;
+            OpCode opcode = (un->getOp() == "not") ? OpCode::LOGICAL_NOT : OpCode::UNARY;
             code.push_back({(uint32_t)opcode, (uint32_t)target, (uint32_t)childIdx, 0});
+            freeTempRegister(childIdx);
             storage.push(target);
-        } else if(auto strNode = std::dynamic_pointer_cast<StringNode>(node)) {
+        }
+        else if(auto strNode = std::dynamic_pointer_cast<StringNode>(node)) {
             int strIdx = (int)stringPool.size();
-            stringPool.push_back(strNode -> getValue());
+            stringPool.push_back(strNode->getValue());
             int reg = allocateTempRegister();
-            code.push_back({
-                (uint32_t)OpCode::LOAD_STR, (uint32_t)reg, (uint32_t)strIdx, 0
-            });
+            code.push_back({(uint32_t)OpCode::LOAD_STR, (uint32_t)reg, (uint32_t)strIdx, 0});
             storage.push(reg);
-        } else if(auto callExpr = std::dynamic_pointer_cast<FunctionCallNode>(node)) {
+        }
+        else if(auto callExpr = std::dynamic_pointer_cast<FunctionCallNode>(node)) {
             int builtinResultReg = 0;
             if(tryEmitMathBuiltinCall(callExpr->getName(), callExpr->getArgs(), code, builtinResultReg)) {
                 storage.push(builtinResultReg);
@@ -294,6 +312,7 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
                 code.insert(code.end(), argCode.begin(), argCode.end());
                 int argReg = argCode.empty() ? 0 : argCode.back().dst;
                 code.push_back({(uint32_t)OpCode::PUSH_ARG, (uint32_t)argReg, 0, 0});
+                freeTempRegister(argReg);
             }
         
             int resultReg = allocateTempRegister();
@@ -308,14 +327,17 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
             }
             code.push_back(callInst);
             storage.push(resultReg);
-        } else if(auto lengthNode = std::dynamic_pointer_cast<LengthNode>(node)) {
+        }
+        else if(auto lengthNode = std::dynamic_pointer_cast<LengthNode>(node)) {
             int argReg = storage.top(); storage.pop();
             int resultReg = allocateTempRegister();
             code.push_back({(uint32_t)OpCode::LENGTH, (uint32_t)resultReg, (uint32_t)argReg, 0});
+            freeTempRegister(argReg);
             storage.push(resultReg);
-        } else if(auto mathConst = std::dynamic_pointer_cast<MathConstantNode>(node)) {
+        }
+        else if(auto mathConst = std::dynamic_pointer_cast<MathConstantNode>(node)) {
             int reg = allocateTempRegister();
-            code.push_back({(uint32_t)mathConst -> getConstant(), (uint32_t)reg, 0, 0});
+            code.push_back({(uint32_t)mathConst->getConstant(), (uint32_t)reg, 0, 0});
             storage.push(reg);
         }
     }
@@ -347,6 +369,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
                             (uint32_t)addr,
                             (uint32_t)srcReg});
         }
+        freeTempRegister(srcReg);
     }
     
     else if(auto ifStmt = std::dynamic_pointer_cast<IfStatementNode>(stmt)) {
@@ -356,13 +379,16 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         int condReg = condCode.empty() ? 0 : condCode.back().dst;
         size_t jzIdx = code.size();
         code.push_back({(uint32_t)OpCode::JZ, (uint32_t)condReg, 0, 0});
+        freeTempRegister(condReg);
+        
         compileStatement(ifStmt->getThenBr(), code);
         size_t jmpIdx = code.size();
         code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
         setAddress(code[jzIdx], (uint16_t)code.size());
         if(ifStmt->getElseBr()) compileStatement(ifStmt->getElseBr(), code);
         setAddress(code[jmpIdx], (uint16_t)code.size());
-    } else if(auto whileStmt = std::dynamic_pointer_cast<WhileStatementNode>(stmt)) {
+    }
+    else if(auto whileStmt = std::dynamic_pointer_cast<WhileStatementNode>(stmt)) {
         size_t startAddr = code.size();
         globalCtx.consts.clear(); globalCtx.vars.clear();
         auto condCode = generateByteCode(postOrderTraverse(whileStmt->getCondition()));
@@ -370,98 +396,86 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         int condReg = condCode.empty() ? 0 : condCode.back().dst;
         size_t jzIdx = code.size();
         code.push_back({(uint32_t)OpCode::JZ, (uint32_t)condReg, 0, 0});
+        freeTempRegister(condReg);
+        
         compileStatement(whileStmt->getBody(), code);
         Instruction jmpBack = {(uint32_t)OpCode::JMP, 0, 0, 0};
         setAddress(jmpBack, (uint16_t)startAddr);
         code.push_back(jmpBack);
         setAddress(code[jzIdx], (uint16_t)code.size());
-    } else if(auto block = std::dynamic_pointer_cast<BlockCode>(stmt)) {
+    }
+    else if(auto block = std::dynamic_pointer_cast<BlockCode>(stmt)) {
         for(auto& s : block->getStatements()) compileStatement(s, code);
-    } else if(auto printStmt = std::dynamic_pointer_cast<PrintNode>(stmt)) {
+    }
+    else if(auto printStmt = std::dynamic_pointer_cast<PrintNode>(stmt)) {
         for(const auto& expr : printStmt->getExpressions()) {
-            // String Literal
             if(auto strNode = std::dynamic_pointer_cast<StringNode>(expr)) {
                 int strIdx = (int)stringPool.size();
-                stringPool.push_back(strNode -> getValue());
+                stringPool.push_back(strNode->getValue());
                 code.push_back({(uint32_t)OpCode::PRINT_STR, (uint32_t)strIdx, 0, 0});
             } else {
-                // Number / expression
                 globalCtx.consts.clear(); globalCtx.vars.clear();
                 auto exprCode = generateByteCode(postOrderTraverse(expr));
                 code.insert(code.end(), exprCode.begin(), exprCode.end());
                 int lastReg = exprCode.empty() ? 0 : exprCode.back().dst;
                 code.push_back({(uint32_t)OpCode::PRINT, (uint32_t)lastReg, 0, 0});
+                // PRINT-ից հետո ազատել
+                freeTempRegister(lastReg);
             }
         }
-    } else if(auto forStmt = std::dynamic_pointer_cast<ForStatementNode>(stmt)) {
-        // init
-        compileStatement(forStmt -> getInit(), code);
-
-        // loop start
+    }
+    else if(auto forStmt = std::dynamic_pointer_cast<ForStatementNode>(stmt)) {
+        compileStatement(forStmt->getInit(), code);
         size_t startAddr = code.size();
-        globalCtx.consts.clear();
-        globalCtx.vars.clear();
+        globalCtx.consts.clear(); globalCtx.vars.clear();
 
-        // condition
-        auto condCode = generateByteCode(postOrderTraverse(forStmt -> getCondition()));
+        auto condCode = generateByteCode(postOrderTraverse(forStmt->getCondition()));
         code.insert(code.end(), condCode.begin(), condCode.end());
         int condReg = condCode.empty() ? 0 : condCode.back().dst;
-
         size_t jzIdx = code.size();
         code.push_back({(uint32_t)OpCode::JZ, (uint32_t)condReg, 0, 0});
+        freeTempRegister(condReg);
 
-        // body
-        compileStatement(forStmt -> getBody(), code);
-
-        // update
-        compileStatement(forStmt -> getUpdate(), code);
+        compileStatement(forStmt->getBody(), code);
+        compileStatement(forStmt->getUpdate(), code);
 
         Instruction jmpFor = {(uint32_t)OpCode::JMP, 0, 0, 0};
         setAddress(jmpFor, (uint16_t)startAddr);
         code.push_back(jmpFor);
         setAddress(code[jzIdx], (uint16_t)code.size());
     }
-
     else if (auto funcDef = std::dynamic_pointer_cast<FunctionDefNode>(stmt)) {
-
         size_t jmpIdx = code.size();
         code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
-
         size_t funcAddr = code.size();
         functionTable[funcDef->getName()] = {funcAddr, (int)funcDef->getParams().size()};
 
         int slots = funcDef->getLocalSlotCount();
         if (slots < 1) slots = 1;
         int frameSize = (slots + 4) * 4;
-        
-        // SP = SP - frameSize
         code.push_back({(uint32_t)OpCode::ADDI, SP, SP, (uint32_t)(int32_t)(-frameSize)});
-        // FP = SP + frameSize
         code.push_back({(uint32_t)OpCode::ADDI, FP, SP, (uint32_t)frameSize});
 
         for (int i = 0; i < (int)funcDef->getParams().size(); i++) {
-            int32_t off = -4 * (i + 1);   // առաջին պարամետրը -4(FP), երկրորդը՝ -8(FP)...
+            int32_t off = -4 * (i + 1);
             int reg = allocateTempRegister();
             code.push_back({(uint32_t)OpCode::LOAD_PARAM, (uint32_t)reg, (uint32_t)i, 0});
             code.push_back({(uint32_t)OpCode::STORE, (uint32_t)reg, (uint32_t)FP, (uint32_t)off});
+            freeTempRegister(reg);
         }
 
         compileStatement(funcDef->getBody(), code);
-
         if (funcDef->getIsVoid()) {
             code.push_back({(uint32_t)OpCode::RETURN, 0, 0, 0});
         }
-
         setAddress(code[jmpIdx], (uint16_t)code.size());
     } 
-    
     else if(auto callStmt = std::dynamic_pointer_cast<FunctionCallStatementNode>(stmt)) {
         auto call = callStmt->getCall();
         int builtinResultReg = 0;
         if(tryEmitMathBuiltinCall(call->getName(), call->getArgs(), code, builtinResultReg)) {
             return;
         }
-
         for(const auto& arg : call->getArgs()) {
             globalCtx.consts.clear();
             globalCtx.vars.clear();
@@ -469,8 +483,8 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
             code.insert(code.end(), exprCode.begin(), exprCode.end());
             int argReg = exprCode.empty() ? 0 : exprCode.back().dst;
             code.push_back({(uint32_t)OpCode::PUSH_ARG, (uint32_t)argReg, 0, 0});
+            freeTempRegister(argReg);
         }
-
         int resultReg = allocateTempRegister();
         Instruction callInst;
         callInst.op  = (uint32_t)OpCode::CALL;
@@ -482,19 +496,21 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
             forwardCalls.push_back({code.size(), call->getName()});
         }
         code.push_back(callInst);
+        
+        freeTempRegister(resultReg);
     }
-     else if(auto retStmt = std::dynamic_pointer_cast<ReturnNode>(stmt)) {
-        if(retStmt -> getExpression()) {
+    else if(auto retStmt = std::dynamic_pointer_cast<ReturnNode>(stmt)) {
+        if(retStmt->getExpression()) {
             globalCtx.consts.clear();
             globalCtx.vars.clear();
-            auto exprCode = generateByteCode(postOrderTraverse(retStmt -> getExpression()));
+            auto exprCode = generateByteCode(postOrderTraverse(retStmt->getExpression()));
             code.insert(code.end(), exprCode.begin(), exprCode.end());
             int lastReg = exprCode.empty() ? 0 : exprCode.back().dst;
-            code.push_back({(uint32_t)OpCode::RETURN, (uint32_t)lastReg, 0, 0 });
+            code.push_back({(uint32_t)OpCode::RETURN, (uint32_t)lastReg, 0, 0});
         } else {
             code.push_back({(uint32_t)OpCode::RETURN, 0, 0, 0});
         }
-    } 
+    }
 }
 
 void Compiler::printByteCode(const std::vector<Instruction>& code) const {

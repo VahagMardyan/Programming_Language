@@ -35,8 +35,18 @@ function x_n(x,n) {
     return x * x**(n-1);
 }
 
+function add(a) {
+    return a + 4;
+}
+ 
+void function foo() {
+    x = add(3);
+    print(x*5);
+}
+
 print(factorial(6));
 print(fib(6));
 print(gcd(4,18));
 print(lcm(4,18));
 print(x_n(3,4));
+foo();
