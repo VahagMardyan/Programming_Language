@@ -214,5 +214,10 @@
         "prefix": "none",
         "body": "none",
         "description": "none type"
+    },
+    "import keyword": {
+        "prefix": "import",
+        "body": "import ''",
+        "description": "Import variables or functions from other files."
     }
 }

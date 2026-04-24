@@ -36,6 +36,8 @@ struct ByteCode {
     std::vector<Instruction> instructions;
     std::vector<double> constants;
     std::vector<std::string> strings;
+    std::unordered_map<std::string, size_t> functionSymbols;
+    std::vector<std::pair<size_t, std::string>> unresolvedCalls;
 };
 
 class Compiler {
@@ -65,7 +67,11 @@ class Compiler {
         );
 public:
     Compiler(SymbolTable& st) : symTable(st) {}
-    ByteCode compile(std::shared_ptr<ASTNode> root);
+    ByteCode compile(
+        std::shared_ptr<ASTNode> root,
+        bool allowUnresolvedCalls = false,
+        bool emitMainFramePrologue = true
+    );
     void printByteCode(const std::vector<Instruction>& code) const;
     std::shared_ptr<ASTNode> optimize(std::shared_ptr<ASTNode> node);
     void compileStatement(std::shared_ptr<StatementNode> stmt, std::vector<Instruction>& code);

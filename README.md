@@ -257,6 +257,10 @@ print(result);
 - `length(string)` - returns the size of given string.
 ---
 
+### Import preprocessing
+`import "path_to_file"`
+- This allows to import functions and variables (global) from other files.
+
 ## 🧠 Architecture Deep Dive
 
 ### Lexer & Tokenizer

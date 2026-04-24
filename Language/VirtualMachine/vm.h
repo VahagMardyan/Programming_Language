@@ -38,6 +38,7 @@ class VirtualMachine {
             memory.resize(20000, 0.0);
         }
         void load(const std::string& expr, SymbolTable& st);
+        void load(const ByteCode& bc);
         void loadFromFile(const std::string& byteCodePath);
         double run();
 };

@@ -17,7 +17,7 @@ if [ $? -eq 0 ]; then
     echo ""
     echo "Usage:"
     echo "  ./vhg program.vhg"
-    echo "  ./vhg compile input.vhg output.vhb"
+    echo "  ./vhg compile input.vhg [output.vhb]"
     echo "  ./vhg run program.vhb"
 else
     echo ""

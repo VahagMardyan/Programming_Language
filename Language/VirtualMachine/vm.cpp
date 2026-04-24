@@ -37,6 +37,13 @@ void VirtualMachine::loadFromFile(const std::string& byteCodePath) {
     }
 }
 
+void VirtualMachine::load(const ByteCode& bc) {
+    loadByteCode(bc);
+    if(debug_mode) {
+        visualize(current_program);
+    }
+}
+
 void VirtualMachine::loadByteCode(const ByteCode& bc) {
     current_program  = bc.instructions;
     current_consants = bc.constants;

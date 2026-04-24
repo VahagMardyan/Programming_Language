@@ -52,7 +52,7 @@
             ]
         },
         "keywords": {
-            "match": "\\b(if|else|while|for|print|function|return)\\b",
+            "match": "\\b(if|else|while|for|print|function|return|import)\\b",
             "name": "keyword.control.vhg"
         },
         "boolean": {

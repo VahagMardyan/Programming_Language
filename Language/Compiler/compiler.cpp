@@ -228,7 +228,11 @@ std::shared_ptr<ASTNode> Compiler::optimize(std::shared_ptr<ASTNode> node) {
     return node;
 }
 
-ByteCode Compiler::compile(std::shared_ptr<ASTNode> root) {
+ByteCode Compiler::compile(
+    std::shared_ptr<ASTNode> root,
+    bool allowUnresolvedCalls,
+    bool emitMainFramePrologue
+) {
     constantPool.clear();
     stringPool.clear();
     nextTempIndex = 0;
@@ -236,10 +240,18 @@ ByteCode Compiler::compile(std::shared_ptr<ASTNode> root) {
     forwardCalls.clear();
     
     std::vector<Instruction> insts;
-    if(!root) return {insts, constantPool, stringPool};
+    if(!root) {
+        ByteCode empty;
+        empty.instructions = insts;
+        empty.constants = constantPool;
+        empty.strings = stringPool;
+        return empty;
+    }
     
     auto optimizedRoot = optimize(root);
-    emitMainPrologue(insts);
+    if(emitMainFramePrologue) {
+        emitMainPrologue(insts);
+    }
 
     if (auto block = std::dynamic_pointer_cast<BlockCode>(optimizedRoot)) {
         for (auto& s : block->getStatements()) {
@@ -249,14 +261,26 @@ ByteCode Compiler::compile(std::shared_ptr<ASTNode> root) {
         compileStatement(stmt, insts);
     }
 
+    std::vector<std::pair<size_t, std::string>> unresolvedCalls;
     for(auto& [idx, name] : forwardCalls) {
         if(functionTable.count(name)) {
             setAddress(insts[idx], (uint16_t)functionTable[name].address);
-        } else {
+        } else if(!allowUnresolvedCalls) {
             throw std::runtime_error("Undefined function: " + name);
+        } else {
+            unresolvedCalls.push_back({idx, name});
         }
-    }    
-    return {insts, constantPool, stringPool};
+    }
+
+    ByteCode bc;
+    bc.instructions = std::move(insts);
+    bc.constants = constantPool;
+    bc.strings = stringPool;
+    for(const auto& [name, info] : functionTable) {
+        bc.functionSymbols[name] = info.address;
+    }
+    bc.unresolvedCalls = std::move(unresolvedCalls);
+    return bc;
 }
 
 std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::shared_ptr<ASTNode>>& nodes) {

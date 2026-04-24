@@ -16,7 +16,7 @@ if %errorlevel% equ 0 (
     echo.
     echo Usage:
     echo   ./vhg.exe program.vhg
-    echo   ./vhg.exe compile input.vhg output.vhb
+    echo   ./vhg.exe compile input.vhg [output.vhb]
     echo   ./vhg.exe run program.vhb
 ) else (
     echo.
