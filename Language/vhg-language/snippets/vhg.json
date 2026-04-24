@@ -184,5 +184,35 @@
         "prefix": "return",
         "body": "return ${1:value};",
         "description": "Return statement"
+    },
+    "or keyword": {
+        "prefix" : "or",
+        "body" : "or",
+        "description" : "Logical or"
+    },
+    "and keyword": {
+        "prefix" : "and",
+        "body" : "and",
+        "description" : "Logical and"
+    },
+    "not keyword": {
+        "prefix" : "not",
+        "body" : "not",
+        "description" : "Logical not"
+    },
+    "true keyword": {
+        "prefix" : "true",
+        "body" : "true",
+        "description" : "Boolean true"
+    },
+    "false keyword": {
+        "prefix" : "false",
+        "body" : "false",
+        "description" : "Boolean false"
+    },
+    "none keyword": {
+        "prefix": "none",
+        "body": "none",
+        "description": "none type"
     }
 }

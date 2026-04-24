@@ -25,6 +25,7 @@ enum class TokenType {
     Math_const_vars, // constants PI, E
     QuestionMark, // ?
     Colon, // :
+    None, // none
 };
 
 struct Token {

@@ -388,6 +388,10 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
             freeTempRegister(condReg);
                 
             storage.push(resultReg);
+        } else if(auto noneNode = std::dynamic_pointer_cast<NoneNode>(node)) {
+            int reg = allocateTempRegister();
+            code.push_back({(uint32_t)OpCode::LOAD_NONE, (uint32_t)reg, 0, 0});
+            storage.push(reg);
         }
     }
     return code;

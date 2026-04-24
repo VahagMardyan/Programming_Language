@@ -453,6 +453,10 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                     ops.push(token.value == "-" ? "_" : "#"); nextToken();
                 } else if(token.type == TokenType::Not) {
                     ops.push("not"); nextToken();
+                } else if(token.type == TokenType::None) {
+                    nodes.push(std::make_shared<NoneNode>());
+                    state = ParserState::ExpectOperator;
+                    nextToken();
                 } else {
                     state = ParserState::Error;
                 }

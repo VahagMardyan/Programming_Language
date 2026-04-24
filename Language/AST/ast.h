@@ -25,7 +25,7 @@ enum class OpCode : uint8_t {
 
     // Existing VM extensions
     MUL, DIV, MODULO, POW, FLOOR_DIV, FRAC_DIV,
-    UNARY, LOAD_CONST, LOAD_VAR, LOAD_STR,
+    UNARY, LOAD_CONST, LOAD_VAR, LOAD_STR, LOAD_NONE, 
     UNDEFINED,
     CMP_GT, CMP_LT, CMP_GET, CMP_LET, CMP_EQ, CMP_NEQ,
     JMP, JZ, JNZ,
@@ -145,6 +145,14 @@ class TernaryOpNode : public ASTNode {
         std::vector<std::shared_ptr<ASTNode>> getChildren() const override {
             return {condition, trueExpr, falseExpr};
         }
+};
+
+class NoneNode : public ASTNode {
+    public:
+    void print(std::string prefix, bool isLast) const override {
+        std::cout << prefix << (isLast ? "└── " : "├── ") << "None" << std::endl;
+    }
+    std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 
 class StatementNode : public ASTNode {

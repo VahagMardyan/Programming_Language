@@ -134,7 +134,7 @@ This file defines the behavior of the editor (comments and brackets).
             "name": "keyword.control.vhg"
         },
         "boolean": {
-            "match": "\\b(true|false)\\b",
+            "match": "\\b(true|false|none)\\b",
             "name": "keyword.control_boolean.vhg"
         },
         "logical_operators": {
@@ -365,6 +365,36 @@ This file defines the behavior of the editor (comments and brackets).
         "prefix": "return",
         "body": "return ${1:value};",
         "description": "Return statement"
+    },
+    "or keyword": {
+        "prefix" : "or",
+        "body" : "or",
+        "description" : "Logical or"
+    },
+    "and keyword": {
+        "prefix" : "and",
+        "body" : "and",
+        "description" : "Logical and"
+    },
+    "not keyword": {
+        "prefix" : "not",
+        "body" : "not",
+        "description" : "Logical not"
+    },
+    "true keyword": {
+        "prefix" : "true",
+        "body" : "true",
+        "description" : "Boolean true"
+    },
+    "false keyword": {
+        "prefix" : "false",
+        "body" : "false",
+        "description" : "Boolean false"
+    },
+    "none keyword": {
+        "prefix": "none",
+        "body": "none",
+        "description": "none type"
     }
 }
 ```

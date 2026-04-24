@@ -7,14 +7,16 @@
 #include <stack>
 #include <algorithm>
 
-using Value = std::variant<double, std::string>;
+using Value = std::variant<std::monostate ,double, std::string>;
 
+inline bool isNone(const Value& v) { return std::holds_alternative<std::monostate>(v); }
 inline bool isNumber(const Value& v) { return std::holds_alternative<double>(v); }
 inline bool isString(const Value& v) { return std::holds_alternative<std::string>(v); }
 inline double asNumber(const Value& v) { return std::get<double>(v); }
 inline const std::string& asString(const Value& v) { return std::get<std::string>(v); }
 
 inline bool isFalsy(const Value& v) {
+    if(isNone(v)) return true;
     if (std::holds_alternative<double>(v)) return std::get<double>(v) == 0.0;
     if (std::holds_alternative<std::string>(v)) return std::get<std::string>(v).empty();
     return true;
@@ -22,6 +24,7 @@ inline bool isFalsy(const Value& v) {
 inline bool isTruthy(const Value& v) { return !isFalsy(v); }
 
 inline std::string valueToString(const Value& v) {
+    if(isNone(v)) return "none";
     if (std::holds_alternative<std::string>(v)) {
         return std::get<std::string>(v);
     } else if (std::holds_alternative<double>(v)) {

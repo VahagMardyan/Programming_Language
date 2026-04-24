@@ -66,29 +66,62 @@ double VirtualMachine::run() {
             case OpCode::LOAD_CONST: registers[inst.dst] = current_consants[inst.left]; break;
             case OpCode::LOAD_VAR:   registers[inst.dst] = memory[inst.left]; break;
             case OpCode::LOAD_STR: registers[inst.dst] = current_strings[inst.left]; break;
+            case OpCode::LOAD_NONE: registers[inst.dst] = std::monostate{}; break;
             case OpCode::STORE_VAR:  memory[inst.left] = registers[inst.right]; break;
             case OpCode::MOV: registers[inst.dst] = registers[inst.left]; break;
             
             case OpCode::ADD:  {
+                if(isNone(registers[inst.left]) || isNone(registers[inst.right])) {
+                    throw std::runtime_error("Cannot add with None");
+                }
                 if(isString(registers[inst.left]) || isString(registers[inst.right])) {
                     registers[inst.dst] = valueToString(registers[inst.left]) + valueToString(registers[inst.right]);
-            } else {
+                } else {
                     registers[inst.dst] = asNumber(registers[inst.left]) + asNumber(registers[inst.right]);
+                }
             }
+        break;
+        case OpCode::SUB: {
+            if(isNone(registers[inst.left]) || isNone(registers[inst.right])) {
+                throw std::runtime_error("Cannot sub with None");
+            }
+            registers[inst.dst] = asNumber(registers[inst.left]) - asNumber(registers[inst.right]); 
         }
         break;
-        case OpCode::SUB:    registers[inst.dst] = asNumber(registers[inst.left]) - asNumber(registers[inst.right]); break;
-        case OpCode::MUL:    registers[inst.dst] = asNumber(registers[inst.left]) * asNumber(registers[inst.right]); break;
-        case OpCode::POW:    registers[inst.dst] = std::pow(asNumber(registers[inst.left]), asNumber(registers[inst.right])); break;
-        case OpCode::DIV:
+        case OpCode::MUL: {
+            if(isNone(registers[inst.left]) || isNone(registers[inst.right])) {
+                throw std::runtime_error("Cannot mul with None");
+            }
+            registers[inst.dst] = asNumber(registers[inst.left]) * asNumber(registers[inst.right]);
+        }   
+        break;
+        case OpCode::POW: {
+            if(isNone(registers[inst.left]) || isNone(registers[inst.right])) {
+                throw std::runtime_error("Cannot pow with None");
+            }
+            registers[inst.dst] = std::pow(asNumber(registers[inst.left]), asNumber(registers[inst.right]));
+        }  
+        break;
+        case OpCode::DIV: {
+            if(isNone(registers[inst.left]) || isNone(registers[inst.right])) {
+                throw std::runtime_error("Cannot div with None");
+            }
             if(asNumber(registers[inst.right]) == 0) throw std::runtime_error("Division by zero");
             registers[inst.dst] = asNumber(registers[inst.left]) / asNumber(registers[inst.right]); 
+        }
         break;
-        case OpCode::FLOOR_DIV:
+        case OpCode::FLOOR_DIV: {
+            if(isNone(registers[inst.left]) || isNone(registers[inst.right])) {
+                throw std::runtime_error("Cannot floor_div with None");
+            }
             if(asNumber(registers[inst.right]) == 0) throw std::runtime_error("Division by zero");
             registers[inst.dst] = std::floor(asNumber(registers[inst.left]) / asNumber(registers[inst.right]));
+        }
         break;
         case OpCode::FRAC_DIV: {
+            if(isNone(registers[inst.left]) || isNone(registers[inst.right])) {
+                throw std::runtime_error("Cannot frac_div with None");
+            }
             double l = asNumber(registers[inst.left]);
             double r = asNumber(registers[inst.right]);
             if(r == 0) throw std::runtime_error("Division by zero");
@@ -103,20 +136,93 @@ double VirtualMachine::run() {
             registers[inst.dst] = 2.718281828459045;
         }
         break;
-        case OpCode::UNARY:  registers[inst.dst] = -asNumber(registers[inst.left]); break;
-        case OpCode::MODULO: registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) % toInt32(registers[inst.right])); break;
-        case OpCode::AND:    registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) & toInt32(registers[inst.right])); break;
-        case OpCode::OR:     registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) | toInt32(registers[inst.right])); break;
-        case OpCode::XOR:    registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) ^ toInt32(registers[inst.right])); break;
-        case OpCode::SLL:    registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) << (toInt32(registers[inst.right]) & 0x1F)); break;
-        case OpCode::SRL:    registers[inst.dst] = fromInt32((uint32_t)toInt32(registers[inst.left]) >> (toInt32(registers[inst.right]) & 0x1F)); break;
-        case OpCode::SRA:    registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) >> (toInt32(registers[inst.right]) & 0x1F)); break;
-        case OpCode::SLT:    registers[inst.dst] = toInt32(registers[inst.left]) < toInt32(registers[inst.right]) ? 1.0 : 0.0; break;
-        case OpCode::SLTU:   registers[inst.dst] = (uint32_t)toInt32(registers[inst.left]) < (uint32_t)toInt32(registers[inst.right]) ? 1.0 : 0.0; break;
-        case OpCode::CMP_LT: registers[inst.dst] = asNumber(registers[inst.left]) < asNumber(registers[inst.right]) ? 1.0 : 0.0; break;
-        case OpCode::CMP_GT:  registers[inst.dst] = asNumber(registers[inst.left]) >  asNumber(registers[inst.right]) ? 1.0 : 0.0; break;
-        case OpCode::CMP_GET: registers[inst.dst] = asNumber(registers[inst.left]) >= asNumber(registers[inst.right]) ? 1.0 : 0.0; break;
-        case OpCode::CMP_LET: registers[inst.dst] = asNumber(registers[inst.left]) <= asNumber(registers[inst.right]) ? 1.0 : 0.0; break;
+        case OpCode::UNARY:  
+            if (isNone(registers[inst.left]))
+                throw std::runtime_error("Cannot apply unary minus to 'none'");
+            registers[inst.dst] = -asNumber(registers[inst.left]); 
+        break;
+
+        case OpCode::MODULO: 
+            if (isNone(registers[inst.left]) || isNone(registers[inst.right]))
+                throw std::runtime_error("Cannot use modulo with 'none'");
+            registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) % toInt32(registers[inst.right])); 
+        break;
+
+        case OpCode::AND:    
+            if (isNone(registers[inst.left]) || isNone(registers[inst.right]))
+                throw std::runtime_error("Cannot use bitwise AND with 'none'");
+            registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) & toInt32(registers[inst.right])); 
+        break;
+
+        case OpCode::OR:     
+            if (isNone(registers[inst.left]) || isNone(registers[inst.right]))
+                throw std::runtime_error("Cannot use bitwise OR with 'none'");
+            registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) | toInt32(registers[inst.right])); 
+        break;
+
+        case OpCode::XOR:    
+            if (isNone(registers[inst.left]) || isNone(registers[inst.right]))
+                throw std::runtime_error("Cannot use bitwise XOR with 'none'");
+            registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) ^ toInt32(registers[inst.right])); 
+        break;
+
+        case OpCode::SLL:    
+            if (isNone(registers[inst.left]) || isNone(registers[inst.right]))
+                throw std::runtime_error("Cannot use left shift with 'none'");
+            registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) << (toInt32(registers[inst.right]) & 0x1F)); 
+        break;
+
+        case OpCode::SRL:    
+            if (isNone(registers[inst.left]) || isNone(registers[inst.right]))
+                throw std::runtime_error("Cannot use right shift (logical) with 'none'");
+            registers[inst.dst] = fromInt32((uint32_t)toInt32(registers[inst.left]) >> (toInt32(registers[inst.right]) & 0x1F)); 
+        break;
+
+        case OpCode::SRA:    
+            if (isNone(registers[inst.left]) || isNone(registers[inst.right]))
+                throw std::runtime_error("Cannot use right shift (arithmetic) with 'none'");
+            registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) >> (toInt32(registers[inst.right]) & 0x1F)); 
+        break;
+
+        case OpCode::SLT:    
+            if (isNone(registers[inst.left]) || isNone(registers[inst.right]))
+                throw std::runtime_error("Cannot compare 'none' with <");
+            registers[inst.dst] = toInt32(registers[inst.left]) < toInt32(registers[inst.right]) ? 1.0 : 0.0; 
+        break;
+
+        case OpCode::SLTU:   
+            if (isNone(registers[inst.left]) || isNone(registers[inst.right]))
+                throw std::runtime_error("Cannot compare 'none' with unsigned <");
+            registers[inst.dst] = (uint32_t)toInt32(registers[inst.left]) < (uint32_t)toInt32(registers[inst.right]) ? 1.0 : 0.0; 
+        break;
+
+        case OpCode::CMP_LT: {
+            if(isNone(registers[inst.left]) || isNone(registers[inst.right])) {
+                throw std::runtime_error("Cannot compare None with <");
+            }
+            registers[inst.dst] = asNumber(registers[inst.left]) < asNumber(registers[inst.right]) ? 1.0 : 0.0;
+        }
+        break;
+        case OpCode::CMP_GT: {
+            if(isNone(registers[inst.left]) || isNone(registers[inst.right])) {
+                throw std::runtime_error("Cannot compare None with >");
+            }
+            registers[inst.dst] = asNumber(registers[inst.left]) >  asNumber(registers[inst.right]) ? 1.0 : 0.0; 
+        }
+        break;
+        case OpCode::CMP_GET: {
+            if(isNone(registers[inst.left]) || isNone(registers[inst.right])) {
+                throw std::runtime_error("Cannot compare None with >=");
+            }
+            registers[inst.dst] = asNumber(registers[inst.left]) >= asNumber(registers[inst.right]) ? 1.0 : 0.0;
+        }
+        break;
+        case OpCode::CMP_LET: {
+            if(isNone(registers[inst.left]) || isNone(registers[inst.right])) {
+                throw std::runtime_error("Cannot compare None with <=");
+            }
+            registers[inst.dst] = asNumber(registers[inst.left]) <= asNumber(registers[inst.right]) ? 1.0 : 0.0; break;
+        }
         case OpCode::CMP_EQ:  registers[inst.dst] = registers[inst.left] == registers[inst.right] ? 1.0 : 0.0; break;
         case OpCode::CMP_NEQ: registers[inst.dst] = registers[inst.left] != registers[inst.right] ? 1.0 : 0.0; break;
         case OpCode::JZ: {
@@ -358,7 +464,10 @@ void VirtualMachine::visualize(const std::vector<Instruction>& program) const {
                 std::cout << "LOAD_STR" << std::setw(6) << inst.left << std::setw(6) << "-"
                           << std::setw(6) << inst.dst << "\"" << current_strings[inst.left] << "\"";
                 break;
-
+            
+            case OpCode::LOAD_NONE:
+                std::cout << "LOAD_NONE" << std::setw(6) << inst.dst;
+                break;
             case OpCode::STORE_VAR:
                 std::cout << "STORE_VAR" << std::setw(6) << inst.left << std::setw(6) << inst.right
                           << std::setw(6) << "-" << " mem[" << inst.left << "] = r" << inst.right;
