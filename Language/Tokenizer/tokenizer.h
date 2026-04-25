@@ -28,6 +28,9 @@ enum class TokenType {
     None, // none
     Break, // break;
     Continue, // continue;
+    Switch,
+    Case,
+    Default,
 };
 
 struct Token {

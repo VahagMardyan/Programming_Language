@@ -223,11 +223,22 @@
     "break keyword": {
         "prefix":"break",
         "body": "break;",
-        "description": "Exit loop earlier"
+        "description": "Exit loop earlier/switch-case"
     },
     "continue keyword": {
         "prefix": "continue",
         "body": "continue;",
         "description": "Skip next iteration"
+    },
+    "switch-case": {
+        "prefix":"switch",
+        "body": [
+            "switch(${1:value}) {",
+            "\tcase c1, c2: ",
+            "break;",
+            "default:",
+            "}"
+        ],
+        "description": "switch-case"
     }
 }

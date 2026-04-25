@@ -148,14 +148,15 @@ std::shared_ptr<StatementNode> Parser::parseStatement() {
         case TokenType::Void:      return parseFunction();
         case TokenType::Return:    return parseReturn();
         case TokenType::Name:      return parseAssignment();
+        case TokenType::Switch:    return parseSwitch();
 
         case TokenType::Local: return parseAssignment();
         case TokenType::Global: return parseAssignment();
 
         case TokenType::Break: {
-            if(!insideLoop) {
+            if(!insideLoop && !insideSwitch) {
                 state = ParserState::Error;
-                throw std::runtime_error("break statement outside the loop");
+                throw std::runtime_error("break statement outside of loop or switch");
             }
             nextToken(); // skip 'break'
             if(currentToken.type == TokenType::Semicolon) {
@@ -181,6 +182,89 @@ std::shared_ptr<StatementNode> Parser::parseStatement() {
             if(currentToken.type == TokenType::Semicolon) nextToken();
             return nullptr;
     }
+}
+
+std::shared_ptr<StatementNode> Parser::parseSwitch() {
+    nextToken(); // skip 'switch'
+    if(currentToken.value != "(") { state = ParserState::Error; throw std::runtime_error("Expected '(' after switch"); }
+    nextToken(); // skip '('
+    auto expr = parseExpression();
+    if(!expr) { state = ParserState::Error; return nullptr; }
+    if(currentToken.value != ")") { state = ParserState::Error; throw std::runtime_error("Expected ')' after switch expression"); }
+    nextToken(); // skip ')'
+    if(currentToken.type != TokenType::OpenBrace) { state = ParserState::Error; throw std::runtime_error("Expected '{' for switch body"); }
+
+    bool oldInsideSwitch = insideSwitch;
+    insideSwitch = true;
+    symTable.enterBlockScope();
+
+    nextToken(); // skip '{'
+    std::vector<CaseItem> cases;
+    std::shared_ptr<StatementNode> defaultBody = nullptr;
+
+    while(currentToken.type == TokenType::Case || currentToken.type == TokenType::Default) {
+        if(currentToken.type == TokenType::Case) {
+            nextToken(); // skip 'case'
+            std::vector<std::shared_ptr<ASTNode>> values;
+            do {
+                auto val = parseExpression();
+                if(!val) { state = ParserState::Error; return nullptr; }
+                values.push_back(val);
+                if(currentToken.type == TokenType::Comma)
+                    nextToken();
+                else
+                    break;
+            } while(true);
+
+            if(currentToken.type != TokenType::Colon) {
+                state = ParserState::Error;
+                throw std::runtime_error("Expected ':' after case values");
+            }
+            nextToken(); // skip ':'
+
+            
+            auto caseBody = std::make_shared<BlockCode>();
+            while(currentToken.type != TokenType::Case &&
+                  currentToken.type != TokenType::Default &&
+                  currentToken.type != TokenType::CloseBrace) {
+                auto stmt = parseStatement();
+                if(stmt) caseBody->addStatement(stmt);
+                else if(state == ParserState::Error) break;
+            }
+            cases.push_back({std::move(values), caseBody});
+        }
+        else if(currentToken.type == TokenType::Default) {
+            if(defaultBody) {
+                state = ParserState::Error;
+                throw std::runtime_error("Multiple default blocks in switch");
+            }
+            nextToken(); // skip 'default'
+            if(currentToken.type != TokenType::Colon) {
+                state = ParserState::Error;
+                throw std::runtime_error("Expected ':' after default");
+            }
+            nextToken(); // skip ':'
+            auto defBlock = std::make_shared<BlockCode>();
+            while(currentToken.type != TokenType::Case &&
+                  currentToken.type != TokenType::Default &&
+                  currentToken.type != TokenType::CloseBrace) {
+                auto stmt = parseStatement();
+                if(stmt) defBlock->addStatement(stmt);
+                else if(state == ParserState::Error) break;
+            }
+            defaultBody = defBlock;
+        }
+    }
+
+    if(currentToken.type != TokenType::CloseBrace) {
+        state = ParserState::Error;
+        throw std::runtime_error("Expected '}' at end of switch");
+    }
+    nextToken(); // skip '}'
+
+    symTable.exitBlockScope();
+    insideSwitch = oldInsideSwitch;
+    return std::make_shared<SwitchNode>(expr, std::move(cases), defaultBody);
 }
 
 std::shared_ptr<StatementNode> Parser::parseIf() {

@@ -354,3 +354,45 @@ public:
     }
     std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
+
+struct CaseItem {
+    std::vector<std::shared_ptr<ASTNode>> values; // case 1,...
+    std::shared_ptr<StatementNode> body;
+};
+
+class SwitchNode : public StatementNode {
+private:
+    std::shared_ptr<ASTNode> expression;
+    std::vector<CaseItem> cases;
+    std::shared_ptr<StatementNode> defaultBody;   // nullptr if not
+public:
+    SwitchNode(std::shared_ptr<ASTNode> expr,
+               std::vector<CaseItem> cs,
+               std::shared_ptr<StatementNode> def)
+        : expression(std::move(expr)), cases(std::move(cs)), defaultBody(std::move(def)) {}
+
+    std::shared_ptr<ASTNode> getExpression() const { return expression; }
+    const std::vector<CaseItem>& getCases() const { return cases; }
+    std::shared_ptr<StatementNode> getDefaultBody() const { return defaultBody; }
+
+    void print(std::string prefix, bool isLast) const override {
+        std::cout << prefix << (isLast ? "└── " : "├── ") << "Switch" << std::endl;
+        std::string p = prefix + (isLast ? "    " : "│   ");
+        expression->print(p, false);
+        for(size_t i = 0; i < cases.size(); ++i) {
+            std::cout << p << "├── Case: ";
+            for(size_t j = 0; j < cases[i].values.size(); ++j) {
+                if(j) std::cout << ", ";
+                cases[i].values[j]->print("", false);
+            }
+            std::cout << std::endl;
+            cases[i].body->print(p + "│   ", (i == cases.size()-1 && !defaultBody));
+        }
+        if(defaultBody) {
+            std::cout << p << "└── Default" << std::endl;
+            defaultBody->print(p + "    ", true);
+        }
+    }
+
+    std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
+};

@@ -130,7 +130,7 @@ This file defines the behavior of the editor (comments and brackets).
             ]
         },
         "keywords": {
-            "match": "\\b(if|else|while|for|print|function|return|import|break|continue)\\b",
+            "match": "\\b(if|else|while|for|print|function|return|import|break|continue|switch|case|default)\\b",
             "name": "keyword.control.vhg"
         },
         "boolean": {
@@ -410,6 +410,17 @@ This file defines the behavior of the editor (comments and brackets).
         "prefix": "continue",
         "body": "continue;",
         "description": "Skip next iteration"
+    },
+    "switch-case": {
+        "prefix":"switch",
+        "body": [
+            "switch(${1:value}) {",
+            "\tcase c1, c2: ",
+            "break;",
+            "default:",
+            "}"
+        ],
+        "description": "switch-case"
     }
 }
 ```

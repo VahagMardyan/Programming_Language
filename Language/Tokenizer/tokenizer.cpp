@@ -137,6 +137,9 @@ Token Tokenizer::getNextToken() {
         if(lowered == "none") return { TokenType::None, lowered };
         if(lowered == "break") return { TokenType::Break, lowered };
         if(lowered == "continue") return { TokenType::Continue, lowered };
+        if(lowered == "switch")  return {TokenType::Switch, lowered};
+        if(lowered == "case") return { TokenType::Case, lowered };
+        if(lowered == "default") return { TokenType::Default, lowered };
         return {TokenType::Name, name};
     }
 

@@ -651,7 +651,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         }
     } else if(auto breakStmt = std::dynamic_pointer_cast<BreakNode>(stmt)) {
         if(breakStack.empty()) {
-            throw std::runtime_error("break outside of loop");
+            throw std::runtime_error("break outside of loop or switch");
         }
         size_t jmpIdx = code.size();
         code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
@@ -663,7 +663,100 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         size_t jmpIdx = code.size();
         code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
         continueStack.top().push_back(jmpIdx);
-    }
+    } else if(auto switchNode = std::dynamic_pointer_cast<SwitchNode>(stmt)) {
+        breakStack.push({});  // for breaks
+        
+        // 1. Switch expression
+        globalCtx.consts.clear(); globalCtx.vars.clear();
+        auto exprCode = generateByteCode(postOrderTraverse(switchNode->getExpression()));
+        rebaseJumpTargets(exprCode, static_cast<uint16_t>(code.size()));
+        code.insert(code.end(), exprCode.begin(), exprCode.end());
+        int switchValReg = exprCode.empty() ? 0 : exprCode.back().dst;
+        
+        const auto& cases = switchNode->getCases();
+        size_t numCases = cases.size();
+        bool hasDefault = (switchNode->getDefaultBody() != nullptr);
+        
+        std::vector<size_t> caseCheckStart(numCases);
+        
+        std::vector<std::vector<size_t>> caseJumpTargets(numCases);
+        
+        std::vector<size_t> nextCheckJumps;
+        
+        // 2. Checking all cases' values
+        for(size_t i = 0; i < numCases; ++i) {
+            caseCheckStart[i] = code.size();
+        
+            const auto& caseItem = cases[i];
+            for(const auto& valueExpr : caseItem.values) {
+                auto valCode = generateByteCode(postOrderTraverse(valueExpr));
+                rebaseJumpTargets(valCode, static_cast<uint16_t>(code.size()));
+                code.insert(code.end(), valCode.begin(), valCode.end());
+                int valReg = valCode.empty() ? 0 : valCode.back().dst;
+            
+                // compare switchValReg == valReg
+                int cmpReg = allocateTempRegister();
+                code.push_back({(uint32_t)OpCode::CMP_EQ, (uint32_t)cmpReg, (uint32_t)switchValReg, (uint32_t)valReg});
+            
+                // (JZ false -> jump if zero)
+                size_t jzIdx = code.size();
+                code.push_back({(uint32_t)OpCode::JZ, (uint32_t)cmpReg, 0, 0});
+                // if true jump to case-body
+                size_t jmpToBodyIdx = code.size();
+                code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
+            
+                setAddress(code[jzIdx], (uint16_t)code.size());
+            
+                caseJumpTargets[i].push_back(jmpToBodyIdx);
+            
+                freeTempRegister(valReg);
+                freeTempRegister(cmpReg);
+            }
+        
+            size_t jmpNextIdx = code.size();
+            code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
+            nextCheckJumps.push_back(jmpNextIdx);
+        }
+    
+        // 3. Cases' bodies
+        std::vector<size_t> bodyAddrs(numCases);
+        for(size_t i = 0; i < numCases; ++i) {
+            bodyAddrs[i] = code.size();
+            
+            for(size_t jmpIdx : caseJumpTargets[i]) {
+                setAddress(code[jmpIdx], (uint16_t)bodyAddrs[i]);
+            }
+            compileStatement(cases[i].body, code);
+        }
+    
+        // 4. default body (if there's)
+        size_t defaultAddr = code.size();
+        if(hasDefault) {
+            compileStatement(switchNode->getDefaultBody(), code);
+        }
+        size_t endAddr = code.size();
+    
+        // 5. Patch nextCheckJumps
+        for(size_t i = 0; i < numCases; ++i) {
+            size_t target;
+            if(i + 1 < numCases) {
+                target = caseCheckStart[i+1];
+            } else {
+                target = hasDefault ? defaultAddr : endAddr;
+            }
+            setAddress(code[nextCheckJumps[i]], (uint16_t)target);
+        }
+    
+        // 6. Patch breaks at the end of switch
+        while(!breakStack.top().empty()) {
+            size_t brkIdx = breakStack.top().back();
+            breakStack.top().pop_back();
+            setAddress(code[brkIdx], (uint16_t)endAddr);
+        }
+        breakStack.pop();
+    
+        freeTempRegister(switchValReg);
+    } 
 }
 
 void Compiler::printByteCode(const std::vector<Instruction>& code) const {

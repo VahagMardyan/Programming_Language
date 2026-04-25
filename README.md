@@ -252,6 +252,23 @@ print(result);
 
 <!-- > **Note:** VHG doesn't support recursive functions yet. Please use loop-iterative versions instead of recursion. -->
 
+### Switch/case
+```
+x = 2;
+switch(x) {
+    case 1:
+        print("One\n");
+        break;
+    case 2, 3, 4:
+        print("Two, Three or Four\n");
+        break;
+    case 5:
+        print("Five\n");
+        break;
+    default:
+        print("Other\n");
+}
+```
 ### Built‑in I/O
 - `input(prompt)` - User Input.
 - `print(expr1, expr2, ...)` – prints each argument; automatically appends a newline **if only one argument is given** (otherwise you must include `"\n"` explicitly).
