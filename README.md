@@ -175,7 +175,7 @@ for (i = 0; i < 10; i += 1) {
 | Logical           | `and` `or` `not`                                        |
 | Comparison        | `==` `!=` `<` `>` `<=` `>=`                             |
 | Assignment        | `=` `+=` `-=` `*=` `/=` `%=` `^=`                       |
-| String            | `+` `+=` (concatenation), `length(s)` -> s.size()       |
+| String            | `+` `+=` (concatenation), `length(s)` -> s.size(), `*` -> string multiplication       |
 | Ternary           | `condition ? trueBranch : falseBranch` (e.g `x = 5 > 6 ? 7 : 8;`)         |
 | Loop operators    | `break;` -> exit loop earlier, `continue;` -> skip next iteration |
 

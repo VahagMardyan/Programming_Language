@@ -41,7 +41,7 @@ std::string expandImports(
     std::istringstream sourceLines(source);
     std::ostringstream merged;
     std::string line;
-    const std::regex importPattern(R"re(^\s*import\s+"([^"]+)"\s*;?\s*$)re");
+    const std::regex importPattern(R"re(^\s*import\s+['"]([^'"]+)['"]\s*;?\s*$)re");
 
     while(std::getline(sourceLines, line)) {
         std::smatch match;

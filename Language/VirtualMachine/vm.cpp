@@ -99,7 +99,33 @@ double VirtualMachine::run() {
             if(isNone(registers[inst.left]) || isNone(registers[inst.right])) {
                 throw std::runtime_error("Cannot mul with None");
             }
-            registers[inst.dst] = asNumber(registers[inst.left]) * asNumber(registers[inst.right]);
+            if(isString(registers[inst.left]) && isNumber(registers[inst.right])) {
+                const std::string& str = asString(registers[inst.left]);
+                double count = asNumber(registers[inst.right]);
+                int intCount = static_cast<int>(count);
+                if(intCount < 0) {
+                    throw std::runtime_error("Cannot multiply string by negative number");
+                }
+                std::string result;
+                for(int i=0; i<intCount; ++i) {
+                    result += str;
+                }
+                registers[inst.dst] = result;
+            } else if(isNumber(registers[inst.left]) && isString(registers[inst.right])) {
+                const std::string& str = asString(registers[inst.right]);
+                double count = asNumber(registers[inst.left]);
+                int intCount = static_cast<int>(count);
+                if(intCount < 0) {
+                    throw std::runtime_error("Cannot multiply string by negative number");
+                }
+                std::string result;
+                for(int i = 0; i < intCount; ++i) {
+                    result += str;
+                }
+                registers[inst.dst] = result;
+            } else {
+                registers[inst.dst] = asNumber(registers[inst.left]) * asNumber(registers[inst.right]);
+            }
         }   
         break;
         case OpCode::POW: {
