@@ -180,6 +180,26 @@ std::shared_ptr<ASTNode> Compiler::optimize(std::shared_ptr<ASTNode> node) {
         }
         return std::make_shared<BinaryOpNode>(bin->getOp(), left, right);
     }
+    if(auto un = std::dynamic_pointer_cast<UnaryOpNode>(node)) {
+        auto child = optimize(un -> getChild());
+        auto num = std::dynamic_pointer_cast<NumberNode>(child);
+        if(num) {
+            if(un -> getOp() == "-" || un -> getOp() == "_") {
+                return std::make_shared<NumberNode>(-num -> getValue());
+            }
+            if(un -> getOp() == "+" || un -> getOp() == "#") {
+                return num;
+            }
+            if(un -> getOp() == "not") {
+                return std::make_shared<NumberNode>(num -> getValue() == 0 ? 1.0 : 0.0);
+            }
+            if(un -> getOp() == "~") {
+                long long val = static_cast<long long>(num -> getValue());
+                return std::make_shared<NumberNode>(static_cast<double>(~val));
+            }
+        }
+        return std::make_shared<UnaryOpNode>(un -> getOp(), child);
+    }
     if(auto block = std::dynamic_pointer_cast<BlockCode>(node)) {
         auto optimizedBlock = std::make_shared<BlockCode>();
         for(auto& s : block->getStatements()) {
@@ -322,7 +342,14 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
         else if(auto un = std::dynamic_pointer_cast<UnaryOpNode>(node)) {
             int childIdx = storage.top(); storage.pop();
             int target = allocateTempRegister();
-            OpCode opcode = (un->getOp() == "not") ? OpCode::LOGICAL_NOT : OpCode::UNARY;
+            OpCode opcode;
+            if(un -> getOp() == "not") {
+                opcode = OpCode::LOGICAL_NOT;
+            } else if(un -> getOp() == "~") {
+                opcode = OpCode::NOT;
+            } else {
+                opcode = OpCode::UNARY;
+            }
             code.push_back({(uint32_t)opcode, (uint32_t)target, (uint32_t)childIdx, 0});
             freeTempRegister(childIdx);
             storage.push(target);

@@ -74,6 +74,10 @@ std::shared_ptr<ASTNode> Parser::createUnaryNode(const std::string& op,
     if(num) {
         if(op == "-" || op == "_") return std::make_shared<NumberNode>(-num->getValue());
         if(op == "+" || op == "#") return num;
+        if(op == "~") {
+            long long val = static_cast<long long>(num -> getValue());
+            return std::make_shared<NumberNode>(static_cast<double>(~val));
+        }
     }
     if(op == "not") {
         if(num) return std::make_shared<NumberNode>(num -> getValue() == 0 ? 1.0 : 0.0);
@@ -91,7 +95,7 @@ int Parser::precedence(const std::string& op) const {
     if(op == "<<" || op == ">>") return 5;
     if(op == "+" || op == "-") return 6;
     if(op == "*" || op == "/" || op == "%" || op == "//" || op == "%/") return 7;
-    if(op == "not" || op == "_" || op == "#") return 8;
+    if(op == "not" || op == "_" || op == "#" || op == "~") return 8;
     if(op == "**") return 9;
     return -1;
 }
@@ -99,7 +103,7 @@ int Parser::precedence(const std::string& op) const {
 void Parser::createNodeFromOp() {
     if(ops.empty()) return;
     std::string op = ops.top(); ops.pop();
-    if(op == "_" || op == "#" || op == "not") {
+    if(op == "_" || op == "#" || op == "not" || op == "~") {
         if(nodes.empty()) { state = ParserState::Error; return; }
         auto operand = nodes.top(); nodes.pop();
         nodes.push(createUnaryNode(op, operand));
@@ -565,8 +569,9 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                     ops.push("("); 
                     nextToken();
                 } else if(token.type == TokenType::Operator &&
-                          (token.value == "-" || token.value == "+")) {
-                    ops.push(token.value == "-" ? "_" : "#"); nextToken();
+                          (token.value == "-" || token.value == "+" || token.value == "~")) {
+                    ops.push(token.value == "-" ? "_" : (token.value == "+" ? "#" : "~"));
+                    nextToken();
                 } else if(token.type == TokenType::Not) {
                     ops.push("not"); nextToken();
                 } else if(token.type == TokenType::None) {

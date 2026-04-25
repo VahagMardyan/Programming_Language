@@ -181,6 +181,15 @@ double VirtualMachine::run() {
             registers[inst.dst] = fromInt32(toInt32(registers[inst.left]) % toInt32(registers[inst.right])); 
         break;
 
+        case OpCode::NOT: {
+            if(isNone(registers[inst.left])) {
+                throw std::runtime_error("Cannot apply bitwise NOT to 'none'");
+            }
+            int32_t val = toInt32(registers[inst.left]);
+            registers[inst.dst] = fromInt32(~val);
+        }
+        break;
+
         case OpCode::AND:    
             if (isNone(registers[inst.left]) || isNone(registers[inst.right]))
                 throw std::runtime_error("Cannot use bitwise AND with 'none'");
@@ -517,6 +526,7 @@ void VirtualMachine::visualize(const std::vector<Instruction>& program) const {
             case OpCode::MODULO:  std::cout << "MODULO";  break;
             case OpCode::UNARY:   std::cout << "NEG";     break;
 
+            case OpCode::NOT:     std::cout << "NOT";     break;
             case OpCode::AND:     std::cout << "AND";     break;
             case OpCode::OR:      std::cout << "OR";      break;
             case OpCode::XOR:     std::cout << "XOR";     break;

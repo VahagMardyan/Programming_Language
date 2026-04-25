@@ -9,7 +9,7 @@
 
 enum class OpCode : uint8_t {
     // RV32I arithmetic and logic
-    ADD, MOV, SUB, AND, OR, XOR,
+    ADD, MOV, SUB, AND, OR, XOR, NOT, // bitwise not
     SLL, SRL, SRA,
     SLT, SLTU,
     ADDI, ANDI, ORI, XORI,
@@ -118,6 +118,7 @@ public:
     UnaryOpNode(const std::string& o, std::shared_ptr<ASTNode> c) : op(o), child(std::move(c)) {}
     void print(std::string prefix, bool isLast) const override;
     std::string getOp() const { return op; }
+    std::shared_ptr<ASTNode> getChild() const { return child; }
     std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {child}; }
 };
 

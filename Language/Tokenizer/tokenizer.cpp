@@ -10,7 +10,7 @@ const std::unordered_map<std::string, TokenType> operations = {
     {"^", TokenType::Operator}, {"%", TokenType::Operator},
     {">>", TokenType::Operator}, {"<<", TokenType::Operator},
     {"**", TokenType::Operator}, {"//", TokenType::Operator},
-    {"%/", TokenType::Operator},
+    {"%/", TokenType::Operator}, {"~", TokenType::Operator},
 };
 
 namespace {

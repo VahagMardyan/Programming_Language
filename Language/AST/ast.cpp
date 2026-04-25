@@ -15,6 +15,7 @@ OpCode BinaryOpNode::getOpCode() const {
     if(op == "&")  return OpCode::AND;
     if(op == "|")  return OpCode::OR;
     if(op == "^")  return OpCode::XOR;
+    if(op == "~")  return OpCode::NOT;
     if(op == "%")  return OpCode::MODULO;
     if(op == "<<") return OpCode::SLL;
     if(op == ">>") return OpCode::SRL;
