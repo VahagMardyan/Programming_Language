@@ -135,6 +135,8 @@ Token Tokenizer::getNextToken() {
         if(lowered == "m_pi" || lowered == "m_e") return {TokenType::Math_const_vars, lowered};
         if(BuiltIns.find(lowered) != BuiltIns.end()) return {TokenType::Name, lowered};
         if(lowered == "none") return { TokenType::None, lowered };
+        if(lowered == "break") return { TokenType::Break, lowered };
+        if(lowered == "continue") return { TokenType::Continue, lowered };
         return {TokenType::Name, name};
     }
 

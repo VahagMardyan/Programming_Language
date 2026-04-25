@@ -151,6 +151,31 @@ std::shared_ptr<StatementNode> Parser::parseStatement() {
 
         case TokenType::Local: return parseAssignment();
         case TokenType::Global: return parseAssignment();
+
+        case TokenType::Break: {
+            if(!insideLoop) {
+                state = ParserState::Error;
+                throw std::runtime_error("break statement outside the loop");
+            }
+            nextToken(); // skip 'break'
+            if(currentToken.type == TokenType::Semicolon) {
+                nextToken(); // skip ';'
+            }
+            return std::make_shared<BreakNode>();
+        }
+
+        case TokenType::Continue: {
+            if(!insideLoop) {
+                state = ParserState::Error;
+                throw std::runtime_error("continue statement outside the loop");
+            }
+            nextToken(); // skip 'continue'
+            if(currentToken.type == TokenType::Semicolon) {
+                nextToken(); // skip ';'
+            }
+            return std::make_shared<ContinueNode>();
+        }
+
         default:
             parseExpression();
             if(currentToken.type == TokenType::Semicolon) nextToken();
@@ -192,7 +217,14 @@ std::shared_ptr<StatementNode> Parser::parseWhile() {
     
     // Enter new scope for while body
     symTable.enterBlockScope();
+    
+    bool wasInloop = insideLoop;
+    insideLoop = true;
+
     auto body = parseStatement();
+    
+    insideLoop = wasInloop;
+    
     symTable.exitBlockScope();
     
     return std::make_shared<WhileStatementNode>(cond, body);
@@ -597,9 +629,13 @@ std::shared_ptr<StatementNode> Parser::parseFor() {
     }
     nextToken();
 
+    bool wasInLoop = insideLoop;
+    insideLoop = true;
+
     // {...}
     auto body = parseStatement();
 
+    insideLoop = wasInLoop;
     // Exit the for loop scope
     symTable.exitBlockScope();
     

@@ -26,6 +26,8 @@ enum class TokenType {
     QuestionMark, // ?
     Colon, // :
     None, // none
+    Break, // break;
+    Continue, // continue;
 };
 
 struct Token {

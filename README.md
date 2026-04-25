@@ -177,6 +177,7 @@ for (i = 0; i < 10; i += 1) {
 | Assignment        | `=` `+=` `-=` `*=` `/=` `%=` `^=`                       |
 | String            | `+` `+=` (concatenation), `length(s)` -> s.size()       |
 | Ternary           | `condition ? trueBranch : falseBranch` (e.g `x = 5 > 6 ? 7 : 8;`)         |
+| Loop operators    | `break;` -> exit loop earlier, `continue;` -> skip next iteration |
 
 ### Mathematical Functions
 

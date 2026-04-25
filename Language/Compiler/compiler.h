@@ -65,6 +65,8 @@ class Compiler {
             std::vector<Instruction>& code,
             int& resultReg
         );
+        std::stack<std::vector<size_t>> breakStack;
+        std::stack<std::vector<size_t>> continueStack;
 public:
     Compiler(SymbolTable& st) : symTable(st) {}
     ByteCode compile(

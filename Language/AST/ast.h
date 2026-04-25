@@ -336,3 +336,21 @@ public:
     }
     std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
+
+// break Statement
+class BreakNode : public StatementNode {
+    public:
+        void print(std::string prefix, bool isLast) const override {
+            std::cout << prefix << (isLast ? "└── " : "├── ") << "Break" << std::endl;
+        }
+        std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
+};
+
+// continue Statement
+class ContinueNode : public StatementNode {
+public:
+    void print(std::string prefix, bool isLast) const override {
+        std::cout << prefix << (isLast ? "└── " : "├── ") << "Continue" << std::endl;
+    }
+    std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
+};

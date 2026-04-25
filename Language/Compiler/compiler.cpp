@@ -468,6 +468,10 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         setAddress(code[jmpIdx], (uint16_t)code.size());
     }
     else if(auto whileStmt = std::dynamic_pointer_cast<WhileStatementNode>(stmt)) {
+        // Push new break/continue lists for this loop
+        breakStack.push({});
+        continueStack.push({});
+        
         size_t startAddr = code.size();
         globalCtx.consts.clear(); globalCtx.vars.clear();
         auto condCode = generateByteCode(postOrderTraverse(whileStmt->getCondition()));
@@ -479,10 +483,33 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         freeTempRegister(condReg);
         
         compileStatement(whileStmt->getBody(), code);
+        
+        // Jump back to condition
         Instruction jmpBack = {(uint32_t)OpCode::JMP, 0, 0, 0};
         setAddress(jmpBack, (uint16_t)startAddr);
         code.push_back(jmpBack);
-        setAddress(code[jzIdx], (uint16_t)code.size());
+        
+        size_t afterLoopAddr = code.size();
+        
+        // JZ-ն պետք է ցատկի ցիկլից հետո
+        setAddress(code[jzIdx], (uint16_t)afterLoopAddr);
+        
+        // Patch all break jumps to point after the loop
+        while (!breakStack.top().empty()) {
+            size_t breakIdx = breakStack.top().back();
+            breakStack.top().pop_back();
+            setAddress(code[breakIdx], (uint16_t)afterLoopAddr);
+        }
+        
+        // Patch all continue jumps to point to condition check (startAddr)
+        while (!continueStack.top().empty()) {
+            size_t continueIdx = continueStack.top().back();
+            continueStack.top().pop_back();
+            setAddress(code[continueIdx], (uint16_t)startAddr);
+        }
+        
+        breakStack.pop();
+        continueStack.pop();
     }
     else if(auto block = std::dynamic_pointer_cast<BlockCode>(stmt)) {
         for(auto& s : block->getStatements()) compileStatement(s, code);
@@ -506,6 +533,10 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         }
     }
     else if(auto forStmt = std::dynamic_pointer_cast<ForStatementNode>(stmt)) {
+        // Push new break/continue lists for this loop
+        breakStack.push({});
+        continueStack.push({});
+        
         compileStatement(forStmt->getInit(), code);
         size_t startAddr = code.size();
         globalCtx.consts.clear(); globalCtx.vars.clear();
@@ -519,13 +550,37 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         freeTempRegister(condReg);
 
         compileStatement(forStmt->getBody(), code);
+        
+        size_t updateAddr = code.size();
+        
+        // Patch all continue jumps to point to update statement
+        while (!continueStack.top().empty()) {
+            size_t continueIdx = continueStack.top().back();
+            continueStack.top().pop_back();
+            setAddress(code[continueIdx], (uint16_t)updateAddr);
+        }
+
         compileStatement(forStmt->getUpdate(), code);
 
+        // Jump back to condition
         Instruction jmpFor = {(uint32_t)OpCode::JMP, 0, 0, 0};
         setAddress(jmpFor, (uint16_t)startAddr);
         code.push_back(jmpFor);
-        setAddress(code[jzIdx], (uint16_t)code.size());
-    }
+        
+        size_t afterLoopAddr = code.size();
+        
+        setAddress(code[jzIdx], (uint16_t)afterLoopAddr);
+        
+        // Patch all break jumps to point after the loop
+        while (!breakStack.top().empty()) {
+            size_t breakIdx = breakStack.top().back();
+            breakStack.top().pop_back();
+            setAddress(code[breakIdx], (uint16_t)afterLoopAddr);
+        }
+        
+        breakStack.pop();
+        continueStack.pop();
+    }   
     else if (auto funcDef = std::dynamic_pointer_cast<FunctionDefNode>(stmt)) {
         size_t jmpIdx = code.size();
         code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
@@ -594,6 +649,20 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         } else {
             code.push_back({(uint32_t)OpCode::RETURN, 0, 0, 0});
         }
+    } else if(auto breakStmt = std::dynamic_pointer_cast<BreakNode>(stmt)) {
+        if(breakStack.empty()) {
+            throw std::runtime_error("break outside of loop");
+        }
+        size_t jmpIdx = code.size();
+        code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
+        breakStack.top().push_back(jmpIdx);
+    } else if(auto continueStmt = std::dynamic_pointer_cast<ContinueNode>(stmt)) {
+        if(continueStack.empty()) {
+            throw std::runtime_error("continue outside of loop");
+        }
+        size_t jmpIdx = code.size();
+        code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
+        continueStack.top().push_back(jmpIdx);
     }
 }
 

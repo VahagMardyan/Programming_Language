@@ -1,0 +1,49 @@
+print("=== Break Test ===\n");
+i = 0;
+while (i < 10) {
+    if (i == 5) {
+        print("Breaking at i = ", i, "\n");
+        break;
+    }
+    print("i = ", i, "\n");
+    i = i + 1;
+}
+
+print("\n=== Continue Test ===\n");
+i = 0;
+while (i < 10) {
+    i = i + 1;
+    if (i % 2 == 0) {
+        continue;
+    }
+    print("Odd number: ", i, "\n");
+}
+
+print("\n=== Nested Loop Break ===\n");
+i = 0;
+j = 0;
+while (i < 5) {
+    j = 0;
+    while (j < 5) {
+        if (i == 2 and j == 3) {
+            print("Breaking inner loop at i=", i, ", j=", j, "\n");
+            break;
+        }
+        j = j + 1;
+    }
+    print("After inner loop, i=", i, "\n");
+    i = i + 1;
+}
+
+print("\n=== For loop with break/continue ===\n");
+for (local x = 0; x < 10; x = x + 1) {
+    if (x == 3) {
+        print("Breaking for loop at x = ", x, "\n");
+        break;
+    }
+    if (x == 1) {
+        print("Skipping x = ", x, "\n");
+        continue;
+    }
+    print("x = ", x, "\n");
+}

@@ -130,7 +130,7 @@ This file defines the behavior of the editor (comments and brackets).
             ]
         },
         "keywords": {
-            "match": "\\b(if|else|while|for|print|function|return|import)\\b",
+            "match": "\\b(if|else|while|for|print|function|return|import|break|continue)\\b",
             "name": "keyword.control.vhg"
         },
         "boolean": {
@@ -400,6 +400,16 @@ This file defines the behavior of the editor (comments and brackets).
         "prefix": "import",
         "body": "import ''",
         "description": "Import variables or functions from other files."
+    },
+    "break keyword": {
+        "prefix":"break",
+        "body": "break;",
+        "description": "Exit loop earlier"
+    },
+    "continue keyword": {
+        "prefix": "continue",
+        "body": "continue;",
+        "description": "Skip next iteration"
     }
 }
 ```

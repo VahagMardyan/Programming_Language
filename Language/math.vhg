@@ -1,0 +1,35 @@
+function factorial(n) {
+    if(n == 0) return 1;
+    return n * factorial(n-1);
+}
+
+function fib(n) {
+    if(n <= 1) return n;
+    return fib(n-1) + fib(n-2);
+}
+
+function isFib(n) {
+    n1 = 5*n**2 + 4;
+    n2 = 5*n**2 - 4;
+    answer = (fmod(sqrt(n1),1) == 0 or fmod(sqrt(n2),1) == 0);
+    return answer ? "true" : "false";
+}
+
+function isPrime(n) {
+    for(i=2;i<=floor(sqrt(n)); i+=1) {
+        if(n % i == 0) return false;
+    }
+    return true;
+}
+
+# # Greatest Common Division
+function gcd(a, b) {
+    if(b == 0) return a;
+    return gcd(b, a % b);
+}
+
+# # Least Common Multiple
+function lcm(a,b) {
+    return abs(a*b) / gcd(a,b);
+}
+

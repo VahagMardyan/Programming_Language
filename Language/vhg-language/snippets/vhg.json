@@ -219,5 +219,15 @@
         "prefix": "import",
         "body": "import ''",
         "description": "Import variables or functions from other files."
+    },
+    "break keyword": {
+        "prefix":"break",
+        "body": "break;",
+        "description": "Exit loop earlier"
+    },
+    "continue keyword": {
+        "prefix": "continue",
+        "body": "continue;",
+        "description": "Skip next iteration"
     }
 }

@@ -11,6 +11,7 @@ enum class ParserState { ExpectOperand, ExpectOperator, Done, Error };
 class Parser {
 private:
     bool insideFunction = false;
+    bool insideLoop = false;
     Tokenizer& tokenizer;
     SymbolTable& symTable;
     Token currentToken;
