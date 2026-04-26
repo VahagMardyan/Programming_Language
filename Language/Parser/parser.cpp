@@ -366,6 +366,20 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
     name = currentToken.value;
     nextToken();
 
+    if(currentToken.type == TokenType::Semicolon) {
+        bool isLocal = shouldDefaultToLocal(explicitGlobal);
+        std::shared_ptr<ASTNode> zeroNode = std::make_shared<NoneNode>();
+        if(isLocal) {
+            int32_t off = symTable.getLocalOffset(name); // local, default 0
+            nextToken(); // skip ';'
+            return std::make_shared<AssignmentNode>(off,zeroNode);
+        } else {
+            size_t addr = symTable.getGlobalAddress(name); // global, default 0
+            nextToken(); // skip ';'
+            return std::make_shared<AssignmentNode>(addr, zeroNode);
+        }
+    }
+
     if (currentToken.type == TokenType::OpenParen) {
         auto callNode = parseFunctionCall(name);
         if (currentToken.type == TokenType::Semicolon) nextToken();

@@ -296,6 +296,11 @@ switch(x) {
 - Global variables are stored in a flat address space.
 - Local variables receive negative offsets relative to the **frame pointer** (`FP` / `x8`).
 - Function definitions push a fresh scope stack, preserving outer scopes for later restoration.
+- Declared but unassigned variables store `none` by default.
+```vhg
+x;
+print(x); # # The output will be: none
+```
 
 ### Compiler
 - Traverses the AST in post‑order, generating a linear sequence of `Instruction`s.
