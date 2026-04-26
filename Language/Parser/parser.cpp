@@ -796,6 +796,7 @@ std::shared_ptr<StatementNode> Parser::parseFunction() {
         throw std::runtime_error("Expected '{' before function body");
     }
 
+    bool wasInsideFunction = insideFunction;
     insideFunction = true;
     symTable.enterFunctionScope();
 
@@ -833,7 +834,7 @@ std::shared_ptr<StatementNode> Parser::parseFunction() {
     int slotCount = symTable.getLocalSlotCountForFrame();
 
     symTable.exitFunctionScope();
-    insideFunction = false;
+    insideFunction = wasInsideFunction;
 
     return std::make_shared<FunctionDefNode>(name, params, body, slotCount, isVoid);
 }
