@@ -364,6 +364,5 @@ The debugger will
     * `c` - continue (run to end)
     * `q` - quit debugger
     * `r<n>` - print value of register (e.g., `r0`)
----
     * `m<addr>` - print value of memory address (e.g., `m10000`)
 ---
