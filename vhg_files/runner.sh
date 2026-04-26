@@ -18,7 +18,7 @@ if [ $? -eq 0 ]; then
     echo "Usage:"
     echo "  ./vhg program.vhg"
     echo "  ./vhg compile input.vhg [output.vhb]"
-    echo "  ./vhg run program.vhb"
+    echo "  ./vhg run program.vhb [--debug]"
 else
     echo ""
     echo "[ERROR] Build failed!"

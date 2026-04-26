@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
         std::cerr << "Usage:\n"
                   << "  " << argv[0] << " <filename.vhg>\n"
                   << "  " << argv[0] << " compile <input.vhg> [output.vhb]\n"
-                  << "  " << argv[0] << " run <input.vhb>\n";
+                  << "  " << argv[0] << " run <input.vhb> [--debug]\n";
         return 1;
     }
 
@@ -110,8 +110,17 @@ int main(int argc, char* argv[]) {
             if(argc < 3) {
                 throw std::runtime_error("run mode requires input .vhb file");
             }
-            std::string inputByteCode = argv[2];
-            VirtualMachine vm(false);
+            bool debugFlag = false;
+            std::string inputByteCode;
+            for(int i=2; i<argc; ++i) {
+                std::string arg = argv[i];
+                if(arg == "--debug") {
+                    debugFlag = true;
+                } else {
+                    inputByteCode = arg;
+                }
+            }
+            VirtualMachine vm(debugFlag);
             vm.loadFromFile(inputByteCode);
             vm.run();
             return 0;

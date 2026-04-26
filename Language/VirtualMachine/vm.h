@@ -32,6 +32,13 @@ class VirtualMachine {
         void loadByteCode(const ByteCode& bc);
         std::stack<CallFrame> callStack;
         std::vector<Value> argBuffer;
+
+        // // Debugger
+        bool debug_step_mode = false;
+        bool debug_continue = false;
+
+        void debugPrompt(size_t pc, const Instruction& inst);
+        void printInstructionCompact(size_t pc, const Instruction& inst) const;
     public:
         VirtualMachine(bool dm = false) : debug_mode(dm) {
             registers.resize(256, 0.0);

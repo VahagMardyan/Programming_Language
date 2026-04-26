@@ -17,7 +17,7 @@ if %errorlevel% equ 0 (
     echo Usage:
     echo   ./vhg.exe program.vhg
     echo   ./vhg.exe compile input.vhg [output.vhb]
-    echo   ./vhg.exe run program.vhb
+    echo   ./vhg.exe run program.vhb [--debug]
 ) else (
     echo.
     echo [ERROR] Build failed!
