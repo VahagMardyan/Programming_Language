@@ -309,15 +309,12 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
     
     for(const auto& node : nodes) {
         if(auto num = std::dynamic_pointer_cast<NumberNode>(node)) {
-            double val = num->getValue();
-            if(globalCtx.consts.find(val) == globalCtx.consts.end()) {
-                int reg = allocateTempRegister();
-                int idx = (int)constantPool.size();
-                constantPool.push_back(val);
-                code.push_back({(uint32_t)OpCode::LOAD_CONST, (uint32_t)reg, (uint32_t)idx, 0});
-                globalCtx.consts[val] = reg;
-            }
-            storage.push(globalCtx.consts[val]);        
+            double val = num -> getValue();
+            int reg = allocateTempRegister();
+            int idx = (int)constantPool.size();
+            constantPool.push_back(val);
+            code.push_back({(uint32_t)OpCode::LOAD_CONST, (uint32_t)reg, (uint32_t)idx, 0});
+            storage.push(reg);
         }
         else if(auto var = std::dynamic_pointer_cast<VariableNode>(node)) {
             int rd = allocateTempRegister();
