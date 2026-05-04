@@ -287,7 +287,7 @@ switch(x) {
 |   `0o`, `0O`    |   `0o45`    | OCT                    |
 |   `0x`, `0X`     |   `0xff`    | Hex                   |
 
->**Note:** Negative numbers are written with a leading `-`, e.g. `"-0b1100"` is `-12`.
+>**Note:** Negative numbers are written with a leading `-`, e.g. `"-0b1100"` is `-12`. \n
 >**Note:** `bin(num)`, `oct(num)` and `hex(num)` where `num < 0` return the two's complement of `num` (32-bit).
 
 ### Import preprocessing

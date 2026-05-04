@@ -1,0 +1,108 @@
+print("=== Built-in Functions Test ===\n");
+
+# type()
+
+print("--- type() ---\n");
+local x = 42;
+print("type(42) = ", type(x), "\n");
+
+local y = "hello";
+print("type('hello') = ", type(y), "\n");
+
+local z;
+print("type(unassigned) = ", type(z), "\n");
+print("type(none) = ", type(none), "\n");
+
+
+# chr()
+
+print("\n--- chr() ---\n");
+print("chr(65) = ", chr(65), "\n");
+print("chr(97) = ", chr(97), "\n");
+print("chr(48) = ", chr(48), "\n");
+print("chr(35) = ", chr(35), "\n");
+print("chr(126) = ", chr(126), "\n");
+
+
+# ord()
+
+print("\n--- ord() ---\n");
+print("ord('A') = ", ord("A"), "\n");
+print("ord('z') = ", ord("z"), "\n");
+print("ord('0') = ", ord("0"), "\n");
+print("ord(' ') = ", ord(" "), "\n");
+print("ord('~') = ", ord("~"), "\n");
+
+# chr + ord roundtrip
+print("chr(ord('X')) = ", chr(ord("X")), "\n");
+
+
+# bin()
+
+print("\n--- bin() ---\n");
+print("bin(0) = ", bin(0), "\n");
+print("bin(1) = ", bin(1), "\n");
+print("bin(42) = ", bin(42), "\n");
+print("bin(255) = ", bin(255), "\n");
+print("bin(-1) = ", bin(-1), "\n");
+print("bin(-42) = ", bin(-42), "\n");
+
+
+# oct()
+
+print("\n--- oct() ---\n");
+print("oct(0) = ", oct(0), "\n");
+print("oct(8) = ", oct(8), "\n");
+print("oct(64) = ", oct(64), "\n");
+print("oct(511) = ", oct(511), "\n");
+print("oct(-8) = ", oct(-8), "\n");
+
+
+# hex()
+
+print("\n--- hex() ---\n");
+print("hex(0) = ", hex(0), "\n");
+print("hex(15) = ", hex(15), "\n");
+print("hex(255) = ", hex(255), "\n");
+print("hex(4095) = ", hex(4095), "\n");
+print("hex(-1) = ", hex(-1), "\n");
+
+
+# dec()
+
+print("\n--- dec() ---\n");
+print("dec('42') = ", dec("42"), "\n");
+print("dec('-42') = ", dec("-42"), "\n");
+print("dec('0b101010') = ", dec("0b101010"), "\n");
+print("dec('-0b1010') = ", dec("-0b1010"), "\n");
+print("dec('0o77') = ", dec("0o77"), "\n");
+print("dec('-0o77') = ", dec("-0o77"), "\n");
+print("dec('0xff') = ", dec("0xff"), "\n");
+print("dec('-0xff') = ", dec("-0xff"), "\n");
+
+# roundtrip: bin -> dec
+print("dec(bin(42)) = ", dec(bin(42)), "\n");
+print("dec(oct(64)) = ", dec(oct(64)), "\n");
+print("dec(hex(255)) = ", dec(hex(255)), "\n");
+
+
+# length()
+
+print("\n--- length() ---\n");
+print("length('hello') = ", length("hello"), "\n");
+print("length('') = ", length(""), "\n");
+print("length('VHG') = ", length("VHG"), "\n");
+
+
+# print() with newline behavior
+
+print("\n--- print() behavior ---\n");
+print("Single arg (auto newline)");
+print("Two args", " (no auto newline)");
+print("\n");
+
+
+# input() - uncomment to test interactively
+
+# local name = input("Enter your name: ");
+# print("Hello, ", name, "!\n");
