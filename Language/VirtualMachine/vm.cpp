@@ -156,6 +156,14 @@ void VirtualMachine::printInstructionCompact(size_t pc, const Instruction& inst)
         case OpCode::LW:          std::cout << "LW r" << inst.dst << " = mem[" << inst.left << "]"; break;
         case OpCode::SW:          std::cout << "SW mem[" << inst.left << "] = r" << inst.dst; break;
         
+        case OpCode::TYPE:        std::cout << "TYPE r" << inst.dst << " = type(r" << inst.left << ")"; break;
+        case OpCode::ORD:         std::cout << "ORD r" << inst.dst << " = ord(r" << inst.left << ")"; break;
+        case OpCode::CHR:         std::cout << "CHR r" << inst.dst << " = chr(r" << inst.left << ")"; break;
+        case OpCode::BIN:         std::cout << "BIN r" << inst.dst << " = bin(r" << inst.left << ")"; break;
+        case OpCode::HEX:         std::cout << "HEX r" << inst.dst << " = hex(r" << inst.left << ")"; break;
+        case OpCode::OCT:         std::cout << "OCT r" << inst.dst << " = oct(r" << inst.left << ")"; break;
+        case OpCode::DEC:         std::cout << "DEC r" << inst.dst << " = dec(r" << inst.left << ")"; break;
+
         default:                  std::cout << "OP(" << (int)op << ")"; break;
     }
     std::cout << std::endl;
@@ -472,6 +480,122 @@ double VirtualMachine::run() {
                 registers[inst.dst] = static_cast<double>(asString(val).size());
             } else {
                 throw std::runtime_error("length() excepts a string argument");
+            }
+        }
+        break;
+
+        case OpCode::TYPE: {
+            const Value& val = registers[inst.left];
+            if(isString(val)) {
+                registers[inst.dst] = std::string("string");
+            } else if(isNumber(val)) {
+                registers[inst.dst] = std::string("number");
+            } else if(isNone(val)) {
+                registers[inst.dst] = std::string("none");
+            } else {
+                registers[inst.dst] = std::string("unknown");
+            }
+        }
+        break;
+
+        case OpCode::ORD: {
+            const Value& val = registers[inst.left];
+            if(isString(val)) {
+                const std::string& str = asString(val);
+                registers[inst.dst] = str.empty() ? 0.0 : static_cast<double>(static_cast<unsigned char>(str[0]));
+            } else {
+                throw std::runtime_error("ord() expects a string argument");
+            }
+        }
+        break;
+
+        case OpCode::CHR: {
+            if(isNone(registers[inst.dst])) throw std::runtime_error("chr() expects a number argument, got none");
+            int code = static_cast<int>(asNumber(registers[inst.left]));
+
+            if(code < 0 || code > 255) {
+                throw std::runtime_error("chr() argument out of range (0-255)");
+            }
+            std::string result(1, static_cast<char>(code));
+            registers[inst.dst] = result;
+        }
+        break;
+
+        case OpCode::BIN: {
+            if(isNone(registers[inst.left])) throw std::runtime_error("bin() expects a number");
+            int value = toInt32(registers[inst.left]);
+            std::string result;
+            if(value == 0) result = "0";
+            else {
+                unsigned int u = static_cast<unsigned int>(value);
+                while(u > 0) {
+                    result = (char)('0' + (u % 2)) + result;
+                    u /= 2;
+                }
+            }
+            registers[inst.dst] = "0b" + result;
+        }
+        break;
+
+        case OpCode::HEX: {
+            if(isNone(registers[inst.left])) throw std::runtime_error("hex() expects a number");
+            int val = toInt32(registers[inst.left]);
+            if(val == 0) {
+                registers[inst.dst] = "0x0";
+            } else {
+                std::stringstream ss;
+                ss << "0x" << std::hex << val;
+                registers[inst.dst] = ss.str();
+            }
+        }
+        break;
+
+        case OpCode::OCT: {
+            if(isNone(registers[inst.left])) throw std::runtime_error("oct() expects a number");
+            int val = toInt32(registers[inst.left]);
+            if(val == 0) {
+                registers[inst.dst] = "0o0";
+            } else {
+                std::stringstream ss;
+                ss << "0o" << std::oct << val;
+                registers[inst.dst] = ss.str();
+            }
+        }
+        break;
+
+        case OpCode::DEC: {
+            Value& val = registers[inst.left];
+            if(isString(val)) {
+                const std::string& str = asString(val);
+                try {
+                    long long result = 0;
+                    bool negative = false;
+                    std::string numStr = str;
+
+                    if(numStr[0] == '-') {
+                        negative = true;
+                        numStr = numStr.substr(1);
+                    }
+                    // auto-detect base
+                    if(numStr.size() > 2 && numStr[0] == '0' && (numStr[1] == 'b' || numStr[1] == 'B')) {
+                        result = std::stoll(numStr.substr(2), nullptr, 2);
+                    } else if(numStr.size() > 2 && numStr[0] == '0' && (numStr[1] == 'o' || numStr[1] == 'O')) {
+                        result = std::stoll(numStr.substr(2), nullptr, 8);
+                    } else if(numStr.size() > 2 && numStr[0] == '0' && (numStr[1] == 'x' || numStr[1] == 'X')) {
+                        result = std::stoll(numStr.substr(2), nullptr, 16);
+                    } else {
+                        result = std::stoll(numStr);
+                    }
+
+                    if(negative) result = -result;
+                    registers[inst.dst] = static_cast<double>(result);
+                } catch(...) {
+                    registers[inst.dst] = 0.0;
+                }
+            } else if(isNumber(val)) {
+                registers[inst.dst] = asNumber(val);
+            } else {
+                registers[inst.dst] = 0.0;
             }
         }
         break;
@@ -822,6 +946,14 @@ void VirtualMachine::visualize(const std::vector<Instruction>& program) const {
                 std::cout << "SW" << std::setw(6) << inst.left << std::setw(6) << "-"
                           << std::setw(6) << inst.dst;
                 break;
+
+            case OpCode::TYPE: std::cout<<"TYPE";   break;
+            case OpCode::ORD:  std::cout << "ORD r" << inst.dst << " = ord(r" << inst.left << ")"; break;
+            case OpCode::CHR:  std::cout << "CHR r" << inst.dst << " = chr(r" << inst.left << ")"; break;
+            case OpCode::BIN:  std::cout << "BIN";     break;
+            case OpCode::HEX:  std::cout << "HEX";     break;
+            case OpCode::OCT:  std::cout << "OCT";     break;
+            case OpCode::DEC:  std::cout << "DEC";     break;
 
             default:
                 std::cout << "UNKNOWN (op=" << (int)op << ")";

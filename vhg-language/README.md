@@ -146,7 +146,7 @@ This file defines the behavior of the editor (comments and brackets).
             "name": "constant.numeric.vhg"
         },
         "builtIn": {
-            "match": "\\b(input|length|void|m_e|m_pi)\\b",
+            "match": "\\b(input|length|void|m_e|m_pi|ord|chr|bin|oct|dec|hex|type)\\b",
             "name": "support.function.vhg"
         },
         "math_functions": {
@@ -404,7 +404,7 @@ This file defines the behavior of the editor (comments and brackets).
     "break keyword": {
         "prefix":"break",
         "body": "break;",
-        "description": "Exit loop earlier"
+        "description": "Exit loop earlier/switch-case"
     },
     "continue keyword": {
         "prefix": "continue",
@@ -421,6 +421,55 @@ This file defines the behavior of the editor (comments and brackets).
             "}"
         ],
         "description": "switch-case"
+    },
+    "ord": {
+        "prefix": "ord",
+        "body": [
+            "ord(${1:string_argument})"
+        ],
+        "description": "Return the ASCII code point for a one-character string."
+    },
+    "chr": {
+        "prefix": "chr",
+        "body": [
+            "chr(${1:number_argument})"
+        ],
+        "description": "Return a ASCII string of one character with ordinal i; 0 <= i <= 255."
+    },
+    "bin": {
+        "prefix": "bin",
+        "body": [
+            "bin(integer)"
+        ],
+        "description": "Return the binary representation of an integer."
+    },
+    "oct": {
+        "prefix": "oct",
+        "body": [
+            "oct(integer)"
+        ],
+        "description": "Return the octal representation of an integer."
+    },
+    "hex": {
+        "prefix": "hex",
+        "body": [
+            "hex(integer)"
+        ],
+        "description": "Return the hexadecimal representation of an integer."
+    },
+    "dec": {
+        "prefix": "dec",
+        "body": [
+            "dec(string)"
+        ],
+        "description": "Returns the decimal representation of given argment (if possible)"
+    },
+    "type": {
+        "prefix": "type",
+        "body": [
+            "type(argument)"
+        ],
+        "description": "Returns the type of given argument"
     }
 }
 ```

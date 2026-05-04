@@ -44,6 +44,14 @@ enum class OpCode : uint8_t {
     FMOD, CBRT, MATH_POW, LOG2, LOG_AB, // log(b)/log(a)
     // math constants
     CONST_PI, CONST_E, // pi, e
+    // Conversions
+    ORD, // char -> int
+    CHR, // int -> char
+    BIN, // int -> binary string
+    OCT, // int -> octal string
+    DEC, // int -> decimal string
+    HEX, // int -> hexadecimal string
+    TYPE, // type(argument) -> "string" / "number" / "none"
 };
 
 class ASTNode {

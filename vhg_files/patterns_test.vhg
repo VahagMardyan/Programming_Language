@@ -1,0 +1,183 @@
+void function square_pattern(n) {
+    i = 0;
+    while (i < n) {
+        for(j = 0; j < n; j += 1) {
+            if(i == 0 or i == n - 1 or j == 0 or j == n - 1) {
+                print("*", " ");
+            } else {
+                print(" "," ");
+            }
+        }
+        print();
+        i+=1;
+    }
+}
+
+void function right_triangle_up(n) {
+    for(i = 1; i <= n; i += 1) {
+        for(j = 1; j <= i; j += 1) {
+            if(i == n or j == 1 or j == i) {
+                print("*", " ");
+            } else {
+                print(" ", " ");
+            }
+        }
+        print();
+    }
+}
+
+void function right_triangle_down(n) {
+    for(i = n; i > 0; i -= 1) {
+        for(j = 1; j <= i; j += 1) {
+            if(i == n or j == 1 or j == i) {
+                print("*", " ");
+            } else {
+                print(" ", " ");
+            }
+        }
+        print();
+    }
+}
+
+void function diamond(n) {
+    for(i = 1; i <= n; i += 1) {
+        for(j = 0; j < n - i; j += 1) {
+            print(" ", "");
+        }
+        for(j = 1; j < 2*i; j += 1) {
+            if(j == 1 or j == 2*i - 1) {
+                print("*", "");
+            } else {
+                print(" ", "");
+            }
+        }
+        print();
+    }
+
+    for(i = n - 1; i > 0; i -= 1) {
+        for(j = 0; j < n - i; j += 1) {
+            print(" ", "");
+        }
+        for(j = 1; j < 2*i; j += 1) {
+            if(j == 1 or j == 2i-1) { # 2i is the same as 2*i
+                print("*","");
+            } else {
+                print(" ", "");
+            }
+        }
+        print();
+    }
+}
+
+void function number_square(n) {
+    for(i = 1; i <= n; i += 1) {
+        for(j = 1; j <= n; j+= 1) {
+            if(i == 1 or i == n or j == 1 or j == n) {
+                print(j, " ");
+            } else {
+                print(" ", " ");
+            }
+        }
+        print();
+    }
+}
+
+void function butterfly(n) {
+    # Upper Half
+    for(i = 0; i <= n; i += 1) {
+        # Left Wing
+        for(j = 1; j <= i; j += 1) {
+            if(j == 1 or j == i) {
+                print("*","");
+            } else {
+                print(" ", "");
+            }
+        }
+        # Middle Spaces
+        spaces = 2 * (n - i);
+        print(" " * spaces, "");
+
+        # Right Wing
+        for(j = 1; j<=i;j+=1) {
+            if(j == 1 or j == i) {
+                print("*","");
+            } else {
+                print(" ","");
+            }
+        }
+        print();
+    }
+
+    # Lower Half
+    for(i = n;i > 0;i-=1) {
+        # Left Wing
+        for(j = 1; j <= i; j+=1) {
+            if(j == 1 or j == i) {
+                print("*","");
+            } else {
+                print(" ","");
+            }
+        }
+        # Middle Spaces
+        local spaces = 2 * (n - i);
+        print(" " * spaces, "");
+
+        # Right Wing
+        for(j = 1; j <= i; j+=1) {
+            if(j == 1 or j == i) {
+                print("*", "");
+            } else {
+                print(" ","");
+            }
+        }
+        print();
+    }
+
+}
+
+void function alphabet(n) {
+    start = ord("A");
+
+    for(i = 0; i<n; i+=1) {
+        for(j = 0;j < n; j += 1) {
+            if(i == 0 or i == n-1 or j == 0 or j == n - 1) {
+                print(chr(start+j), " ");
+            } else {
+                print(" ", " ");
+            }
+        }
+        print();
+    }
+}
+
+void function hourglass(n) {
+    for(i=n; i>0;i-=1) {
+        for(j=0; j < n-i; j+=1) {
+            print(" "," ");
+        }
+        for(j = 1; j < 2*i; j += 1) {
+            if(i == 1 or i == n or j == 1 or j == 2*i-1) {
+                print("*"," ");
+            } else {
+                print(" "," ");
+            }
+        }
+        print();
+    }
+
+    for(i=2;i<=n; i+=1) {
+        for(j = 0; j < n - i; j+=1) {
+            print(" ", " ");
+        }
+
+        for(j = 1;j <2*i; j = j + 1) {
+            if(i == n or j == 1 or j == 2*i-1) {
+                print("*", " ");
+            } else {
+                print(" ", " ");
+            }
+        }
+        print();
+    }
+}
+

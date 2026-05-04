@@ -107,6 +107,61 @@ bool Compiler::tryEmitMathBuiltinCall(
         return true;
     }
 
+    if(name == "type") {
+        if(args.size() != 1) return false;
+
+        int argReg = emitArg(args[0]);
+        resultReg = allocateTempRegister();
+        code.push_back({(uint32_t)OpCode::TYPE, (uint32_t)resultReg, (uint32_t)argReg, 0});
+        return true;
+    }
+
+    if(name == "ord") {
+        if(args.size() != 1) return false;
+        int argReg = emitArg(args[0]);
+        resultReg = allocateTempRegister();
+        code.push_back({(uint32_t)OpCode::ORD, (uint32_t)resultReg, (uint32_t)argReg, 0});
+        return true;
+    }
+
+    if(name == "chr") {
+        if(args.size() != 1) return false;
+        int argReg = emitArg(args[0]);
+        resultReg = allocateTempRegister();
+        code.push_back({(uint32_t)OpCode::CHR, (uint32_t)resultReg, (uint32_t)argReg, 0});
+        return true;
+    }
+
+    if(name == "bin") {
+        if(args.size() != 1) return false;
+        int argReg = emitArg(args[0]);
+        resultReg = allocateTempRegister();
+        code.push_back({(uint32_t)OpCode::BIN, (uint32_t)resultReg, (uint32_t)argReg, 0});
+        return true;
+    }
+
+    if(name == "hex") {
+        if(args.size() != 1) return false;
+        int argReg = emitArg(args[0]);
+        resultReg = allocateTempRegister();
+        code.push_back({(uint32_t)OpCode::HEX, (uint32_t)resultReg, (uint32_t)argReg, 0});
+        return true;
+    }
+    if(name == "oct") {
+        if(args.size() != 1) return false;
+        int argReg = emitArg(args[0]);
+        resultReg = allocateTempRegister();
+        code.push_back({(uint32_t)OpCode::OCT, (uint32_t)resultReg, (uint32_t)argReg, 0});
+        return true;
+    }
+    if(name == "dec") {
+        if(args.size() != 1) return false;
+        int argReg = emitArg(args[0]);
+        resultReg = allocateTempRegister();
+        code.push_back({(uint32_t)OpCode::DEC, (uint32_t)resultReg, (uint32_t)argReg, 0});
+        return true;
+    }
+
     return false;
 }
 

@@ -273,7 +273,22 @@ switch(x) {
 - `input(prompt)` - User Input.
 - `print(expr1, expr2, ...)` – prints each argument; automatically appends a newline **if only one argument is given** (otherwise you must include `"\n"` explicitly).
 - `length(string)` - returns the size of given string.
+- `type(argument)` - Returns the type of given argument (`string`, `number` or `none`).
+- `chr(number)` - Return an ASCII string of one character with ordinal i; 0 <= i <= 255.
+- `ord(string)` - Return an ASCII code point for a one-character string.
+- `bin(integer)` - Return the binary representation of an integer.
+- `oct(integer)` - Return the octal representation of an integer.
+- `hex(integer)` - Return the hexadecimal representation of an integer.
+- `dec(string)` - Returns the decimal representation of given argment (if possible).
 ---
+
+|   Syntax  |   Example   | Will understand as           |
+|   `0b`, `0B`    |   `0b1100`   | BIN                   |
+|   `0o`, `0O`    |   `0o45`    | OCT                    |
+|   `0x`, `0X`     |   `0xff`    | Hex                   |
+
+>**Note:** Negative numbers are written with a leading `-`, e.g. `"-0b1100"` is `-12`.
+>**Note:** `bin(num)`, `oct(num)` and `hex(num)` where `num < 0` return the two's complement of `num` (32-bit).
 
 ### Import preprocessing
 `import "path_to_file"`
