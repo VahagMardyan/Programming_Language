@@ -83,7 +83,7 @@ chmod +x runner.sh
 cl /EHsc /O2 /std:c++20 *.cpp /Fe:vhg.exe
 ```
 
-```batch (runner.bat)
+```bat (runner.bat)
 @echo off
 setlocal enabledelayedexpansion
 
@@ -113,7 +113,7 @@ if %errorlevel% equ 0 (
 endlocal
 ```
 
-```cmd
+```powershell
 ./runner.bat
 ```
 
@@ -204,6 +204,7 @@ for (i = 0; i < 10; i += 1) {
 | `round(x)` | Round to nearest integer | 1 |
 | `abs(x)` | Absolute value | 1 |
 | `fmod(x, y)` | Floating-point remainder | 2 |
+---
 
 ### Mathematical Constants
 
@@ -211,6 +212,10 @@ for (i = 0; i < 10; i += 1) {
 |----------|-------|-------------|
 | `m_pi` | 3.141592653589793 | π (Pi) |
 | `m_e`  | 2.718281828459045 | e (Euler's number) |
+
+> **Note:** Trigonometric functions use radians by default.
+    For degrees use this formula: `argument*m_pi/180`. E.g. `sin(60*m_pi/180)`.
+---
 
 ### Control Flow
 ```vhg
@@ -349,7 +354,6 @@ print(x); # # The output will be: none
 
 ## 📊 Example Program
 ```vhg
-
 # Loop and local scoping
 sum = 0;
 for (i = 1; i <= 10; i += 1) {
@@ -364,8 +368,8 @@ Run it:
 ./vhg compile fact.vhg
 ./vhg run fact.vhb
 ```
----
 
+---
 ### Debug Mode
 To run your program step by step with the built-in debugger:
 ```bash
