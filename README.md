@@ -282,13 +282,15 @@ switch(x) {
 - `dec(string)` - Returns the decimal representation of given argment (if possible).
 ---
 
+### The syntaxis of number types.
+
 |   Syntax  |   Example   | Will understand as           |
+| ----------| ------------|------------------------------|
 |   `0b`, `0B`    |   `0b1100`   | BIN                   |
 |   `0o`, `0O`    |   `0o45`    | OCT                    |
 |   `0x`, `0X`     |   `0xff`    | Hex                   |
 
 >**Note:** Negative numbers are written with a leading `-`, e.g. `"-0b1100"` is `-12`.
-
 
 >**Note:** `bin(num)`, `oct(num)` and `hex(num)` where `num < 0` return the two's complement of `num` (32-bit).
 
