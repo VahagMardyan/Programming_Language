@@ -293,7 +293,7 @@ switch(x) {
 | ----------| ------------|------------------------------|
 |   `0b`, `0B`    |   `0b1100`   | BIN                   |
 |   `0o`, `0O`    |   `0o45`    | OCT                    |
-|   `0x`, `0X`     |   `0xff`    | Hex                   |
+|   `0x`, `0X`     |   `0xff`    | HEX                   |
 
 >**Note:** Negative numbers are written with a leading `-`, e.g. `"-0b1100"` is `-12`.
 
