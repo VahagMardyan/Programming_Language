@@ -19,7 +19,9 @@ void Compiler::emitMainPrologue(std::vector<Instruction>& code) {
     if (slots < 1) slots = 1;
     int frameSize = (slots + 4) * 4;
     code.push_back({(uint32_t)OpCode::ADDI, SP, SP, (uint32_t)(int32_t)(-frameSize)});
+    lineNumbers.push_back(0);
     code.push_back({(uint32_t)OpCode::ADDI, FP, SP, (uint32_t)frameSize});
+    lineNumbers.push_back(0);
 }
 
 int Compiler::allocateTempRegister() {
@@ -257,6 +259,7 @@ std::shared_ptr<ASTNode> Compiler::optimize(std::shared_ptr<ASTNode> node) {
     }
     if(auto block = std::dynamic_pointer_cast<BlockCode>(node)) {
         auto optimizedBlock = std::make_shared<BlockCode>();
+        optimizedBlock->lineNumber = block->lineNumber;
         for(auto& s : block->getStatements()) {
             auto optStmt = std::dynamic_pointer_cast<StatementNode>(optimize(s));
             if(optStmt) optimizedBlock->addStatement(optStmt);
@@ -264,11 +267,14 @@ std::shared_ptr<ASTNode> Compiler::optimize(std::shared_ptr<ASTNode> node) {
         return optimizedBlock;
     }
     if(auto assign = std::dynamic_pointer_cast<AssignmentNode>(node)) {
+        std::shared_ptr<AssignmentNode> n;
         if (assign->isLocal()) {
-            return std::make_shared<AssignmentNode>(assign->getOffset(), optimize(assign->getValue()));
+            n = std::make_shared<AssignmentNode>(assign->getOffset(), optimize(assign->getValue()));
         } else {
-            return std::make_shared<AssignmentNode>(assign->getAddress(), optimize(assign->getValue()));
+            n = std::make_shared<AssignmentNode>(assign->getAddress(), optimize(assign->getValue()));
         }
+        n->lineNumber = assign->lineNumber;
+        return n;
     }
     if(auto ifStmt = std::dynamic_pointer_cast<IfStatementNode>(node)) {
         auto cond   = optimize(ifStmt->getCondition());
@@ -276,26 +282,34 @@ std::shared_ptr<ASTNode> Compiler::optimize(std::shared_ptr<ASTNode> node) {
         auto elseBr = std::dynamic_pointer_cast<StatementNode>(optimize(ifStmt->getElseBr()));
         if(auto condNum = std::dynamic_pointer_cast<NumberNode>(cond))
             return condNum->getValue() != 0 ? thenBr : (elseBr ? elseBr : nullptr);
-        return std::make_shared<IfStatementNode>(cond, thenBr, elseBr);
+        auto n = std::make_shared<IfStatementNode>(cond, thenBr, elseBr);
+        n->lineNumber = ifStmt->lineNumber;
+        return n;
     }
     if(auto whileStmt = std::dynamic_pointer_cast<WhileStatementNode>(node)) {
         auto cond = optimize(whileStmt->getCondition());
         auto body = std::dynamic_pointer_cast<StatementNode>(optimize(whileStmt->getBody()));
         if(auto condNum = std::dynamic_pointer_cast<NumberNode>(cond))
             if(condNum->getValue() == 0) return nullptr;
-        return std::make_shared<WhileStatementNode>(cond, body);
+        auto n = std::make_shared<WhileStatementNode>(cond, body);
+        n->lineNumber = whileStmt->lineNumber;
+        return n;
     }
     if(auto printStmt = std::dynamic_pointer_cast<PrintNode>(node)) {
         std::vector<std::shared_ptr<ASTNode>> exprs;
         for(const auto& e : printStmt->getExpressions()) exprs.push_back(optimize(e));
-        return std::make_shared<PrintNode>(std::move(exprs));
+        auto n = std::make_shared<PrintNode>(std::move(exprs));
+        n->lineNumber = printStmt->lineNumber;
+        return n;
     }
     if(auto forStmt = std::dynamic_pointer_cast<ForStatementNode>(node)) {
         auto init = std::dynamic_pointer_cast<StatementNode>(optimize(forStmt -> getInit()));
         auto cond = optimize(forStmt -> getCondition());
         auto update = std::dynamic_pointer_cast<StatementNode>(optimize(forStmt -> getUpdate()));
         auto body = std::dynamic_pointer_cast<StatementNode>(optimize(forStmt -> getBody()));
-        return std::make_shared<ForStatementNode>(init, cond, update, body);
+        auto n = std::make_shared<ForStatementNode>(init, cond, update, body);
+        n->lineNumber = forStmt->lineNumber;
+        return n;
     }
     if(auto strNode = std::dynamic_pointer_cast<StringNode>(node)) {
         return strNode;
@@ -309,6 +323,7 @@ ByteCode Compiler::compile(
     bool emitMainFramePrologue
 ) {
     constantPool.clear();
+    lineNumbers.clear();
     stringPool.clear();
     nextTempIndex = 0;
     functionTable.clear();
@@ -348,9 +363,19 @@ ByteCode Compiler::compile(
     }
 
     ByteCode bc;
+    while(lineNumbers.size() < insts.size()) {
+        int fallBack = lineNumbers.empty() ? 0 : lineNumbers.back();
+        lineNumbers.push_back(fallBack);
+    }
+
+    if(lineNumbers.size() > insts.size()) {
+        lineNumbers.reserve(insts.size());
+    }
+
     bc.instructions = std::move(insts);
     bc.constants = constantPool;
     bc.strings = stringPool;
+    bc.lineNumbers = std::move(lineNumbers);
     for(const auto& [name, info] : functionTable) {
         bc.functionSymbols[name] = info.address;
     }
@@ -509,7 +534,8 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         auto exprCode = generateByteCode(postOrderTraverse(assign->getValue()));
         rebaseJumpTargets(exprCode, static_cast<uint16_t>(code.size()));
         code.insert(code.end(), exprCode.begin(), exprCode.end());
-        
+        addLineNumbers(stmt->lineNumber, exprCode.size());
+
         int srcReg = exprCode.empty() ? 0 : exprCode.back().dst;
         
         if (assign->isLocal()) {
@@ -518,6 +544,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
                             (uint32_t)srcReg,
                             (uint32_t)FP,
                             (uint32_t)offset});
+            lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
         } 
         else {
             size_t addr = assign->getAddress();
@@ -525,6 +552,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
                             0,
                             (uint32_t)addr,
                             (uint32_t)srcReg});
+            lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
         }
         freeTempRegister(srcReg);
     }
@@ -534,14 +562,17 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         auto condCode = generateByteCode(postOrderTraverse(ifStmt->getCondition()));
         rebaseJumpTargets(condCode, static_cast<uint16_t>(code.size()));
         code.insert(code.end(), condCode.begin(), condCode.end());
+        addLineNumbers(stmt->lineNumber, condCode.size());
         int condReg = condCode.empty() ? 0 : condCode.back().dst;
         size_t jzIdx = code.size();
         code.push_back({(uint32_t)OpCode::JZ, (uint32_t)condReg, 0, 0});
+        lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
         freeTempRegister(condReg);
         
         compileStatement(ifStmt->getThenBr(), code);
         size_t jmpIdx = code.size();
         code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
+        lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
         setAddress(code[jzIdx], (uint16_t)code.size());
         if(ifStmt->getElseBr()) compileStatement(ifStmt->getElseBr(), code);
         setAddress(code[jmpIdx], (uint16_t)code.size());
@@ -556,9 +587,11 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         auto condCode = generateByteCode(postOrderTraverse(whileStmt->getCondition()));
         rebaseJumpTargets(condCode, static_cast<uint16_t>(code.size()));
         code.insert(code.end(), condCode.begin(), condCode.end());
+        addLineNumbers(stmt -> lineNumber, condCode.size());
         int condReg = condCode.empty() ? 0 : condCode.back().dst;
         size_t jzIdx = code.size();
         code.push_back({(uint32_t)OpCode::JZ, (uint32_t)condReg, 0, 0});
+        lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
         freeTempRegister(condReg);
         
         compileStatement(whileStmt->getBody(), code);
@@ -567,7 +600,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         Instruction jmpBack = {(uint32_t)OpCode::JMP, 0, 0, 0};
         setAddress(jmpBack, (uint16_t)startAddr);
         code.push_back(jmpBack);
-        
+        lineNumbers.push_back(stmt -> lineNumber);
         size_t afterLoopAddr = code.size();
         
         // JZ-ն պետք է ցատկի ցիկլից հետո
@@ -599,13 +632,18 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
                 int strIdx = (int)stringPool.size();
                 stringPool.push_back(strNode->getValue());
                 code.push_back({(uint32_t)OpCode::PRINT_STR, (uint32_t)strIdx, 0, 0});
+                lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
             } else {
                 globalCtx.consts.clear(); globalCtx.vars.clear();
                 auto exprCode = generateByteCode(postOrderTraverse(expr));
                 rebaseJumpTargets(exprCode, static_cast<uint16_t>(code.size()));
                 code.insert(code.end(), exprCode.begin(), exprCode.end());
+                for(size_t i = 0; i < exprCode.size(); ++i) {
+                    lineNumbers.push_back(stmt -> lineNumber);
+                }
                 int lastReg = exprCode.empty() ? 0 : exprCode.back().dst;
                 code.push_back({(uint32_t)OpCode::PRINT, (uint32_t)lastReg, 0, 0});
+                lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
                 // PRINT-ից հետո ազատել
                 freeTempRegister(lastReg);
             }
@@ -623,9 +661,11 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         auto condCode = generateByteCode(postOrderTraverse(forStmt->getCondition()));
         rebaseJumpTargets(condCode, static_cast<uint16_t>(code.size()));
         code.insert(code.end(), condCode.begin(), condCode.end());
+        addLineNumbers(stmt -> lineNumber, condCode.size());
         int condReg = condCode.empty() ? 0 : condCode.back().dst;
         size_t jzIdx = code.size();
         code.push_back({(uint32_t)OpCode::JZ, (uint32_t)condReg, 0, 0});
+        lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
         freeTempRegister(condReg);
 
         compileStatement(forStmt->getBody(), code);
@@ -645,6 +685,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         Instruction jmpFor = {(uint32_t)OpCode::JMP, 0, 0, 0};
         setAddress(jmpFor, (uint16_t)startAddr);
         code.push_back(jmpFor);
+        lineNumbers.push_back(stmt -> lineNumber);
         
         size_t afterLoopAddr = code.size();
         
@@ -663,6 +704,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
     else if (auto funcDef = std::dynamic_pointer_cast<FunctionDefNode>(stmt)) {
         size_t jmpIdx = code.size();
         code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
+        lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
         size_t funcAddr = code.size();
         functionTable[funcDef->getName()] = {funcAddr, (int)funcDef->getParams().size()};
 
@@ -670,26 +712,34 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         if (slots < 1) slots = 1;
         int frameSize = (slots + 4) * 4;
         code.push_back({(uint32_t)OpCode::ADDI, SP, SP, (uint32_t)(int32_t)(-frameSize)});
+        lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
         code.push_back({(uint32_t)OpCode::ADDI, FP, SP, (uint32_t)frameSize});
+        lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
 
         for (int i = 0; i < (int)funcDef->getParams().size(); i++) {
             int32_t off = -4 * (i + 1);
             int reg = allocateTempRegister();
             code.push_back({(uint32_t)OpCode::LOAD_PARAM, (uint32_t)reg, (uint32_t)i, 0});
+            lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
             code.push_back({(uint32_t)OpCode::STORE, (uint32_t)reg, (uint32_t)FP, (uint32_t)off});
+            lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
             freeTempRegister(reg);
         }
 
         compileStatement(funcDef->getBody(), code);
         if (funcDef->getIsVoid()) {
             code.push_back({(uint32_t)OpCode::RETURN, 0, 0, 0});
+            lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
         }
         setAddress(code[jmpIdx], (uint16_t)code.size());
     } 
     else if(auto callStmt = std::dynamic_pointer_cast<FunctionCallStatementNode>(stmt)) {
         auto call = callStmt->getCall();
         int builtinResultReg = 0;
+        size_t instCountBefore = code.size();
         if(tryEmitMathBuiltinCall(call->getName(), call->getArgs(), code, builtinResultReg)) {
+            addLineNumbers(callStmt->lineNumber, code.size() - instCountBefore);
+            freeTempRegister(builtinResultReg);
             return;
         }
         for(const auto& arg : call->getArgs()) {
@@ -698,8 +748,10 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
             auto exprCode = generateByteCode(postOrderTraverse(arg));
             rebaseJumpTargets(exprCode, static_cast<uint16_t>(code.size()));
             code.insert(code.end(), exprCode.begin(), exprCode.end());
+            addLineNumbers(stmt->lineNumber, exprCode.size());
             int argReg = exprCode.empty() ? 0 : exprCode.back().dst;
             code.push_back({(uint32_t)OpCode::PUSH_ARG, (uint32_t)argReg, 0, 0});
+            lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
             freeTempRegister(argReg);
         }
         int resultReg = allocateTempRegister();
@@ -713,6 +765,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
             forwardCalls.push_back({code.size(), call->getName()});
         }
         code.push_back(callInst);
+        lineNumbers.push_back(stmt -> lineNumber);
         
         freeTempRegister(resultReg);
     }
@@ -723,10 +776,13 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
             auto exprCode = generateByteCode(postOrderTraverse(retStmt->getExpression()));
             rebaseJumpTargets(exprCode, static_cast<uint16_t>(code.size()));
             code.insert(code.end(), exprCode.begin(), exprCode.end());
+            addLineNumbers(stmt -> lineNumber, exprCode.size());
             int lastReg = exprCode.empty() ? 0 : exprCode.back().dst;
             code.push_back({(uint32_t)OpCode::RETURN, (uint32_t)lastReg, 0, 0});
+            lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
         } else {
             code.push_back({(uint32_t)OpCode::RETURN, 0, 0, 0});
+            lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
         }
     } else if(auto breakStmt = std::dynamic_pointer_cast<BreakNode>(stmt)) {
         if(breakStack.empty()) {
@@ -734,6 +790,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         }
         size_t jmpIdx = code.size();
         code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
+        lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
         breakStack.top().push_back(jmpIdx);
     } else if(auto continueStmt = std::dynamic_pointer_cast<ContinueNode>(stmt)) {
         if(continueStack.empty()) {
@@ -741,6 +798,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         }
         size_t jmpIdx = code.size();
         code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
+        lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
         continueStack.top().push_back(jmpIdx);
     } else if(auto switchNode = std::dynamic_pointer_cast<SwitchNode>(stmt)) {
         breakStack.push({});  // for breaks
@@ -750,6 +808,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         auto exprCode = generateByteCode(postOrderTraverse(switchNode->getExpression()));
         rebaseJumpTargets(exprCode, static_cast<uint16_t>(code.size()));
         code.insert(code.end(), exprCode.begin(), exprCode.end());
+        addLineNumbers(stmt -> lineNumber, exprCode.size());
         int switchValReg = exprCode.empty() ? 0 : exprCode.back().dst;
         
         const auto& cases = switchNode->getCases();
@@ -771,18 +830,22 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
                 auto valCode = generateByteCode(postOrderTraverse(valueExpr));
                 rebaseJumpTargets(valCode, static_cast<uint16_t>(code.size()));
                 code.insert(code.end(), valCode.begin(), valCode.end());
+                addLineNumbers(stmt -> lineNumber, valCode.size());
                 int valReg = valCode.empty() ? 0 : valCode.back().dst;
             
                 // compare switchValReg == valReg
                 int cmpReg = allocateTempRegister();
                 code.push_back({(uint32_t)OpCode::CMP_EQ, (uint32_t)cmpReg, (uint32_t)switchValReg, (uint32_t)valReg});
+                lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
             
                 // (JZ false -> jump if zero)
                 size_t jzIdx = code.size();
                 code.push_back({(uint32_t)OpCode::JZ, (uint32_t)cmpReg, 0, 0});
+                lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
                 // if true jump to case-body
                 size_t jmpToBodyIdx = code.size();
                 code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
+                lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
             
                 setAddress(code[jzIdx], (uint16_t)code.size());
             
@@ -794,6 +857,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         
             size_t jmpNextIdx = code.size();
             code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
+            lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
             nextCheckJumps.push_back(jmpNextIdx);
         }
     
@@ -861,6 +925,13 @@ void writeByteCodeToFile(const ByteCode& bc, const std::string& path) {
     out.write(reinterpret_cast<const char*>(&constantCount), sizeof(constantCount));
     out.write(reinterpret_cast<const char*>(&stringCount), sizeof(stringCount));
 
+    uint32_t lineCount = static_cast<uint32_t>(bc.lineNumbers.size());
+    out.write(reinterpret_cast<const char*>(&lineCount), sizeof(lineCount));
+    for(int line : bc.lineNumbers) {
+        uint32_t l = static_cast<uint32_t>(line);
+        out.write(reinterpret_cast<const char*>(&l), sizeof(l));
+    }
+
     for(const auto& inst : bc.instructions) {
         uint8_t op = static_cast<uint8_t>(inst.op);
         uint8_t dst = static_cast<uint8_t>(inst.dst);
@@ -911,6 +982,15 @@ ByteCode readByteCodeFromFile(const std::string& path) {
     bc.instructions.reserve(instructionCount);
     bc.constants.resize(constantCount);
     bc.strings.reserve(stringCount);
+
+    uint32_t lineCount = 0;
+    in.read(reinterpret_cast<char*>(&lineCount), sizeof(lineCount));
+    bc.lineNumbers.resize(lineCount);
+    for(uint32_t i = 0; i < lineCount; ++i) {
+        uint32_t l = 0;
+        in.read(reinterpret_cast<char*>(&l), sizeof(l));
+        bc.lineNumbers[i] = static_cast<int>(l);
+    }
 
     for(uint32_t i = 0; i < instructionCount; ++i) {
         uint8_t op = 0, dst = 0, left = 0, right = 0;

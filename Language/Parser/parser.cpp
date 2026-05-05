@@ -60,8 +60,7 @@ std::shared_ptr<ASTNode> Parser::resolveVariableNode(const std::string& name) {
         return std::make_shared<VariableNode>(globalAddr);
     }
 
-    state = ParserState::Error;
-    throw std::runtime_error("Undefined variable: " + name);
+    error("Undefined variable: " + name);
 }
 
 bool Parser::shouldDefaultToLocal(bool explicitGlobal) const {
@@ -142,43 +141,85 @@ std::shared_ptr<StatementNode> Parser::parseProgram() {
 }
 
 std::shared_ptr<StatementNode> Parser::parseStatement() {
+    int stmtLine = currentToken.lineNumber;
     switch(currentToken.type) {
-        case TokenType::If:        return parseIf();
-        case TokenType::While:     return parseWhile();
-        case TokenType::OpenBrace: return parseBlock();
-        case TokenType::Print:     return parsePrint();
-        case TokenType::For:       return parseFor();
-        case TokenType::Function:  return parseFunction();
-        case TokenType::Void:      return parseFunction();
-        case TokenType::Return:    return parseReturn();
-        case TokenType::Name:      return parseAssignment();
-        case TokenType::Switch:    return parseSwitch();
+        case TokenType::If: { 
+            auto s = parseIf();
+            if(s) s -> lineNumber = stmtLine;
+            return s;
+        }
+        case TokenType::While: {
+            auto s = parseWhile();
+            if(s) s -> lineNumber = stmtLine;
+            return s;
+        }     
+        case TokenType::OpenBrace: {
+            int blockLine = currentToken.lineNumber;
+            auto s = parseBlock();
+            if(s) s -> lineNumber = blockLine;
+            return s;
+        }
+        case TokenType::Print: {
+            auto s = parsePrint();
+            if(s) s -> lineNumber = stmtLine;
+            return s;
+        }
+        case TokenType::For: {
+            auto s = parseFor();
+            if(s) s -> lineNumber = stmtLine;
+            return s;
+        }
+        case TokenType::Function:
+        case TokenType::Void: {
+            auto s = parseFunction();
+            if(s) s -> lineNumber = stmtLine;
+            return s;
+        }
+        case TokenType::Return: {
+            auto s = parseReturn();
+            if(s) s -> lineNumber = stmtLine;
+            return s;
+        }
+        case TokenType::Name: {
+            auto s = parseAssignment();
+            if(s) s -> lineNumber = stmtLine;
+            return s;
+        }
+        case TokenType::Switch: {
+            auto s = parseSwitch();
+            if(s) s -> lineNumber = stmtLine;
+            return s;
+        }
 
-        case TokenType::Local: return parseAssignment();
-        case TokenType::Global: return parseAssignment();
-
+        case TokenType::Local: case TokenType::Global: {
+            auto s = parseAssignment();
+            if(s) s -> lineNumber = stmtLine;
+            return s;
+        }
         case TokenType::Break: {
             if(!insideLoop && !insideSwitch) {
-                state = ParserState::Error;
-                throw std::runtime_error("break statement outside of loop or switch");
+                error("break statement outside of loop or switch");
             }
+            auto s = std::make_shared<BreakNode>();
             nextToken(); // skip 'break'
             if(currentToken.type == TokenType::Semicolon) {
                 nextToken(); // skip ';'
             }
-            return std::make_shared<BreakNode>();
+            s -> lineNumber = stmtLine;
+            return s;
         }
 
         case TokenType::Continue: {
             if(!insideLoop) {
-                state = ParserState::Error;
-                throw std::runtime_error("continue statement outside the loop");
+                error("continue statement outside the loop");
             }
+            auto s = std::make_shared<ContinueNode>();
             nextToken(); // skip 'continue'
             if(currentToken.type == TokenType::Semicolon) {
                 nextToken(); // skip ';'
             }
-            return std::make_shared<ContinueNode>();
+            s -> lineNumber = stmtLine;
+            return s;
         }
 
         default:
@@ -190,13 +231,22 @@ std::shared_ptr<StatementNode> Parser::parseStatement() {
 
 std::shared_ptr<StatementNode> Parser::parseSwitch() {
     nextToken(); // skip 'switch'
-    if(currentToken.value != "(") { state = ParserState::Error; throw std::runtime_error("Expected '(' after switch"); }
+    if(currentToken.value != "(") {
+        error("Expected '(' after switch");
+    }
     nextToken(); // skip '('
     auto expr = parseExpression();
-    if(!expr) { state = ParserState::Error; return nullptr; }
-    if(currentToken.value != ")") { state = ParserState::Error; throw std::runtime_error("Expected ')' after switch expression"); }
+    if(!expr) { 
+        state = ParserState::Error; 
+        return nullptr;
+    }
+    if(currentToken.value != ")") { 
+        error("Expected ')' after switch expression");
+    }
     nextToken(); // skip ')'
-    if(currentToken.type != TokenType::OpenBrace) { state = ParserState::Error; throw std::runtime_error("Expected '{' for switch body"); }
+    if(currentToken.type != TokenType::OpenBrace) {
+        error("Expected '{' for switch body");
+    }
 
     bool oldInsideSwitch = insideSwitch;
     insideSwitch = true;
@@ -221,8 +271,7 @@ std::shared_ptr<StatementNode> Parser::parseSwitch() {
             } while(true);
 
             if(currentToken.type != TokenType::Colon) {
-                state = ParserState::Error;
-                throw std::runtime_error("Expected ':' after case values");
+                error("Expected ':' after case values");
             }
             nextToken(); // skip ':'
 
@@ -239,13 +288,11 @@ std::shared_ptr<StatementNode> Parser::parseSwitch() {
         }
         else if(currentToken.type == TokenType::Default) {
             if(defaultBody) {
-                state = ParserState::Error;
-                throw std::runtime_error("Multiple default blocks in switch");
+                error("Multiple default blocks in switch");
             }
             nextToken(); // skip 'default'
             if(currentToken.type != TokenType::Colon) {
-                state = ParserState::Error;
-                throw std::runtime_error("Expected ':' after default");
+                error("Expected ':' after default");
             }
             nextToken(); // skip ':'
             auto defBlock = std::make_shared<BlockCode>();
@@ -261,8 +308,7 @@ std::shared_ptr<StatementNode> Parser::parseSwitch() {
     }
 
     if(currentToken.type != TokenType::CloseBrace) {
-        state = ParserState::Error;
-        throw std::runtime_error("Expected '}' at end of switch");
+        error("Expected '}' at end of switch");
     }
     nextToken(); // skip '}'
 
@@ -419,14 +465,12 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
 
         if (explicitLocal) {
             if (!symTable.tryGetLocalOffset(name, localOffset)) {
-                state = ParserState::Error;
-                throw std::runtime_error("Undefined local variable in compound assignment: " + name);
+                error("Undefined local variable in compound assignment: " + name);
             }
             isLocalVar = true;
         } else if (explicitGlobal) {
             if (!symTable.tryGetGlobalAddress(name, globalAddr)) {
-                state = ParserState::Error;
-                throw std::runtime_error("Undefined global variable in compound assignment: " + name);
+                error("Undefined global variable in compound assignment: " + name);
             }
             isLocalVar = false;
         } else if (symTable.tryGetLocalOffset(name, localOffset)) {
@@ -434,8 +478,7 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
         } else if (symTable.tryGetGlobalAddress(name, globalAddr)) {
             isLocalVar = false;
         } else {
-            state = ParserState::Error;
-            throw std::runtime_error("Undefined variable in compound assignment: " + name);
+            error("Undefined variable in compound assignment: " + name);
         }
 
         std::string mathOp;
@@ -754,29 +797,25 @@ std::shared_ptr<StatementNode> Parser::parseFunction() {
     }
 
     if (currentToken.type != TokenType::Function) {
-        state = ParserState::Error;
-        throw std::runtime_error("Expected 'function' keyword");
+        error("Expected 'function' keyword");
     }
     nextToken(); // skip 'function'
 
     if (currentToken.type != TokenType::Name) {
-        state = ParserState::Error;
-        throw std::runtime_error("Expected function name");
+        error("Expected function name");
     }
     std::string name = currentToken.value;
     nextToken();
 
     if (currentToken.value != "(") {
-        state = ParserState::Error;
-        throw std::runtime_error("Expected '(' after function name");
+        error("Expected '(' after function name");
     }
     nextToken(); // skip '('
 
     std::vector<std::string> params;
     while (currentToken.value != ")" && currentToken.type != TokenType::EndOfExpr) {
         if (currentToken.type != TokenType::Name) {
-            state = ParserState::Error;
-            throw std::runtime_error("Expected parameter name");
+            error("Expected parameter name");
         }
         params.push_back(currentToken.value);
         nextToken();
@@ -786,14 +825,12 @@ std::shared_ptr<StatementNode> Parser::parseFunction() {
     }
 
     if (currentToken.value != ")") {
-        state = ParserState::Error;
-        throw std::runtime_error("Expected ')' after parameters");
+        error("Expected ')' after parameters");
     }
     nextToken(); // skip ')'
 
     if (currentToken.type != TokenType::OpenBrace) {
-        state = ParserState::Error;
-        throw std::runtime_error("Expected '{' before function body");
+        error("Expected '{' before function body");
     }
 
     bool wasInsideFunction = insideFunction;
@@ -812,8 +849,7 @@ std::shared_ptr<StatementNode> Parser::parseFunction() {
         if (!block) {
             symTable.exitFunctionScope();
             insideFunction = false;
-            state = ParserState::Error;
-            throw std::runtime_error("Function body is not a block");
+            error("Function body is not a block");
         }
 
         const auto& statements = block->getStatements();
@@ -826,8 +862,7 @@ std::shared_ptr<StatementNode> Parser::parseFunction() {
         if (!hasReturn) {
             symTable.exitFunctionScope();
             insideFunction = false;
-            state = ParserState::Error;
-            throw std::runtime_error("Non-void function '" + name + "' must end with a return statement");
+            error("Non-void function '" + name + "' must end with a return statement");
         }
     }
 
@@ -869,8 +904,7 @@ std::shared_ptr<ASTNode> Parser::parseFunctionCall(const std::string& name) {
 
 std::shared_ptr<StatementNode> Parser::parseReturn() {
     if (!insideFunction) {
-        state = ParserState::Error;
-        throw std::runtime_error("return is only allowed inside functions");
+        error("return is only allowed inside functions");
     }
 
     nextToken(); // skip 'return'

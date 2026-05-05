@@ -4,6 +4,9 @@ Lexer::Lexer(std::istream& s) : stream(s) {
     advance();
 }
 void Lexer::advance() {
+    if(currentChar == '\n') {
+        lineNumber++;
+    }
     currentChar = stream.get();
 }
 

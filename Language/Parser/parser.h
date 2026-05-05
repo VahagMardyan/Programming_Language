@@ -49,4 +49,10 @@ public:
         : tokenizer(tok), symTable(st), state(ParserState::ExpectOperand) { nextToken(); }
 
     std::shared_ptr<StatementNode> parseProgram();
+    void error(const std::string& message) {
+        state = ParserState::Error;
+        throw std::runtime_error(
+            "Line " + std::to_string(currentToken.lineNumber) + ": " + message
+        );
+    }
 };

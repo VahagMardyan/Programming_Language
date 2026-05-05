@@ -32,6 +32,7 @@ class VirtualMachine {
         void loadByteCode(const ByteCode& bc);
         std::stack<CallFrame> callStack;
         std::vector<Value> argBuffer;
+        std::vector<int> current_lineNumbers;
 
         // // Debugger
         bool debug_step_mode = false;

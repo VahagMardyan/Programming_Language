@@ -62,7 +62,9 @@ Token Tokenizer::getNextToken() {
         break;
     }
 
-    if(lexer.isEOF()) return {TokenType::EndOfExpr, ""};
+    lexer.markTokenStart();
+
+    if(lexer.isEOF()) return {TokenType::EndOfExpr, "", lexer.getLineNumber()};
 
     char current = static_cast<char>(lexer.peek());
 
@@ -87,18 +89,18 @@ Token Tokenizer::getNextToken() {
             lexer.advance();
         }
         if(!lexer.isEOF()) lexer.advance();
-        return {TokenType::StringLiteral, str};
+        return {TokenType::StringLiteral, str, lexer.getLineNumber()};
     }
 
     // 3. Punctuation
-    if(current == '(') { lexer.advance(); return {TokenType::OpenParen,  "("}; }
-    if(current == ')') { lexer.advance(); return {TokenType::CloseParen,  ")"}; }
-    if(current == '{') { lexer.advance(); return {TokenType::OpenBrace,   "{"}; }
-    if(current == '}') { lexer.advance(); return {TokenType::CloseBrace,  "}"}; }
-    if(current == ';') { lexer.advance(); return {TokenType::Semicolon,   ";"}; }
-    if(current == ',') { lexer.advance(); return {TokenType::Comma,       ","}; }
-    if(current == '?') { lexer.advance(); return {TokenType::QuestionMark, "?"}; }
-    if(current == ':') { lexer.advance(); return {TokenType::Colon, ":"}; }
+    if(current == '(') { lexer.advance(); return {TokenType::OpenParen,  "(", lexer.getLineNumber()}; }
+    if(current == ')') { lexer.advance(); return {TokenType::CloseParen,  ")", lexer.getLineNumber()}; }
+    if(current == '{') { lexer.advance(); return {TokenType::OpenBrace,   "{", lexer.getLineNumber()}; }
+    if(current == '}') { lexer.advance(); return {TokenType::CloseBrace,  "}", lexer.getLineNumber()}; }
+    if(current == ';') { lexer.advance(); return {TokenType::Semicolon,   ";", lexer.getLineNumber()}; }
+    if(current == ',') { lexer.advance(); return {TokenType::Comma,       ",", lexer.getLineNumber()}; }
+    if(current == '?') { lexer.advance(); return {TokenType::QuestionMark, "?", lexer.getLineNumber()}; }
+    if(current == ':') { lexer.advance(); return {TokenType::Colon, ":", lexer.getLineNumber()}; }
 
     // 4. Numbers
     if(isdigit(current) || current == '.') {
@@ -109,7 +111,7 @@ Token Tokenizer::getNextToken() {
             val += (char)lexer.peek();
             lexer.advance();
         }
-        return {TokenType::Number, val};
+        return {TokenType::Number, val, lexer.getLineNumber()};
     }
 
     // 5. Keywords and identifiers
@@ -120,29 +122,29 @@ Token Tokenizer::getNextToken() {
             lexer.advance();
         }
         const std::string lowered = toLower(name);
-        if(lowered == "if")    return {TokenType::If,    lowered};
-        if(lowered == "else")  return {TokenType::Else,  lowered};
-        if(lowered == "while") return {TokenType::While, lowered};
-        if(lowered == "for")   return {TokenType::For,   lowered};
-        if(lowered == "print") return {TokenType::Print, lowered};
-        if(lowered == "and")   return {TokenType::And,   lowered};
-        if(lowered == "or")    return {TokenType::Or,    lowered};
-        if(lowered == "not")   return {TokenType::Not,   lowered};
-        if(lowered == "true" || lowered == "false") return {TokenType::Boolean, lowered};
-        if(lowered == "function") return {TokenType::Function, lowered};
-        if(lowered == "return") return {TokenType::Return, lowered};
-        if(lowered == "local") return {TokenType::Local, lowered};
-        if(lowered == "global") return {TokenType::Global, lowered};
-        if(lowered == "void") return {TokenType::Void, lowered};
-        if(lowered == "m_pi" || lowered == "m_e") return {TokenType::Math_const_vars, lowered};
-        if(BuiltIns.find(lowered) != BuiltIns.end()) return {TokenType::Name, lowered};
-        if(lowered == "none") return { TokenType::None, lowered };
-        if(lowered == "break") return { TokenType::Break, lowered };
-        if(lowered == "continue") return { TokenType::Continue, lowered };
-        if(lowered == "switch")  return {TokenType::Switch, lowered};
-        if(lowered == "case") return { TokenType::Case, lowered };
-        if(lowered == "default") return { TokenType::Default, lowered };
-        return {TokenType::Name, name};
+        if(lowered == "if")    return {TokenType::If,    lowered, lexer.getLineNumber()};
+        if(lowered == "else")  return {TokenType::Else,  lowered, lexer.getLineNumber()};
+        if(lowered == "while") return {TokenType::While, lowered, lexer.getLineNumber()};
+        if(lowered == "for")   return {TokenType::For,   lowered, lexer.getLineNumber()};
+        if(lowered == "print") return {TokenType::Print, lowered, lexer.getLineNumber()};
+        if(lowered == "and")   return {TokenType::And,   lowered, lexer.getLineNumber()};
+        if(lowered == "or")    return {TokenType::Or,    lowered, lexer.getLineNumber()};
+        if(lowered == "not")   return {TokenType::Not,   lowered, lexer.getLineNumber()};
+        if(lowered == "true" || lowered == "false") return {TokenType::Boolean, lowered, lexer.getLineNumber()};
+        if(lowered == "function") return {TokenType::Function, lowered, lexer.getLineNumber()};
+        if(lowered == "return") return {TokenType::Return, lowered, lexer.getLineNumber()};
+        if(lowered == "local") return {TokenType::Local, lowered, lexer.getLineNumber()};
+        if(lowered == "global") return {TokenType::Global, lowered, lexer.getLineNumber()};
+        if(lowered == "void") return {TokenType::Void, lowered, lexer.getLineNumber()};
+        if(lowered == "m_pi" || lowered == "m_e") return {TokenType::Math_const_vars, lowered, lexer.getLineNumber()};
+        if(BuiltIns.find(lowered) != BuiltIns.end()) return {TokenType::Name, lowered, lexer.getLineNumber()};
+        if(lowered == "none") return { TokenType::None, lowered ,lexer.getLineNumber()};
+        if(lowered == "break") return { TokenType::Break, lowered , lexer.getLineNumber()};
+        if(lowered == "continue") return { TokenType::Continue, lowered , lexer.getLineNumber()};
+        if(lowered == "switch")  return {TokenType::Switch, lowered, lexer.getLineNumber()};
+        if(lowered == "case") return { TokenType::Case, lowered, lexer.getLineNumber()};
+        if(lowered == "default") return { TokenType::Default, lowered, lexer.getLineNumber()};
+        return {TokenType::Name, name, lexer.getLineNumber()};
     }
 
     // 6. Operators
@@ -170,15 +172,15 @@ Token Tokenizer::getNextToken() {
             lexer.advance();
         }
     }
-    if(op == "=")  return {TokenType::Assign, op};
+    if(op == "=")  return {TokenType::Assign, op, lexer.getLineNumber()};
     if(op == "==" || op == "!=" || op == ">" || op == "<" || op == ">=" || op == "<=") {
-        return {TokenType::CompareOp, op};
+        return {TokenType::CompareOp, op, lexer.getLineNumber()};
     }
     
     if(op == "+=" || op == "-=" || op == "/=" || op == "*=" || op == "%=" || op == "^=") {
-        return {TokenType::CompoundAssign, op};
+        return {TokenType::CompoundAssign, op, lexer.getLineNumber()};
     }
-    if(isOperator(op)) return {TokenType::Operator, op};
+    if(isOperator(op)) return {TokenType::Operator, op, lexer.getLineNumber()};
 
-    return {TokenType::Error, op};
+    return {TokenType::Error, op, lexer.getLineNumber()};
 }

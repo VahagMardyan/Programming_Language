@@ -166,6 +166,7 @@ class NoneNode : public ASTNode {
 
 class StatementNode : public ASTNode {
     public:
+        int lineNumber = 0;
         virtual ~StatementNode() = default;
         virtual void print(std::string prefix, bool isLast) const = 0;
         std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }

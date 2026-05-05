@@ -31,11 +31,13 @@ enum class TokenType {
     Switch,
     Case,
     Default,
+    Line, // for line numbers
 };
 
 struct Token {
     TokenType type;
     std::string value;
+    int lineNumber = 0;
 };
 
 class Tokenizer {

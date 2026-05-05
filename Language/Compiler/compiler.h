@@ -36,6 +36,7 @@ struct ByteCode {
     std::vector<Instruction> instructions;
     std::vector<double> constants;
     std::vector<std::string> strings;
+    std::vector<int> lineNumbers;
     std::unordered_map<std::string, size_t> functionSymbols;
     std::vector<std::pair<size_t, std::string>> unresolvedCalls;
 };
@@ -67,6 +68,11 @@ class Compiler {
         );
         std::stack<std::vector<size_t>> breakStack;
         std::stack<std::vector<size_t>> continueStack;
+
+        std::vector<int> lineNumbers;
+        void addLineNumbers(int line, size_t count) {
+            lineNumbers.insert(lineNumbers.end(), count, line);
+        }
 public:
     Compiler(SymbolTable& st) : symTable(st) {}
     ByteCode compile(
