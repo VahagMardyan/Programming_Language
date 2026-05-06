@@ -2,292 +2,328 @@
     "sin function": {
         "prefix": "sin",
         "body": "sin(${1:angle})",
-        "description": "Sine function (sinus)"
+        "description": "sin(arg) -> number - Sine function"
     },
     "cos function": {
         "prefix": "cos",
         "body": "cos(${1:angle})",
-        "description": "Cosine function"
+        "description": "cos(arg) -> number - Cosine function"
     },
     "tan function": {
         "prefix": "tan",
         "body": "tan(${1:angle})",
-        "description": "Tangent function"
+        "description": "tan(arg) -> number - Tangent function"
     },
     "asin function": {
         "prefix": "asin",
         "body": "asin(${1:value})",
-        "description": "Arc sine (inverse sine)"
+        "description": "asin(arg) -> number - Arc sine (inverse sine)"
     },
     "acos function": {
         "prefix": "acos",
         "body": "acos(${1:value})",
-        "description": "Arc cosine"
+        "description": "acos(arg) -> number - Arc cosine"
     },
     "atan function": {
         "prefix": "atan",
         "body": "atan(${1:value})",
-        "description": "Arc tangent"
+        "description": "atan(arg) -> number - Arc tangent"
     },
     "atan2 function": {
         "prefix": "atan2",
         "body": "atan2(${1:y}, ${2:x})",
-        "description": "2-argument arctangent (y, x)"
+        "description": "atan2(y, x) -> number - 2-argument arctangent"
     },
     "sqrt function": {
         "prefix": "sqrt",
         "body": "sqrt(${1:number})",
-        "description": "Square root"
+        "description": "sqrt(arg) -> number - Square root"
     },
     "cbrt function": {
         "prefix": "cbrt",
         "body": "cbrt(${1:number})",
-        "description": "Cube root"
+        "description": "cbrt(arg) -> number - Cube root"
     },
     "pow function": {
         "prefix": "pow",
         "body": "pow(${1:base}, ${2:exponent})",
-        "description": "Power function (base^exponent)"
+        "description": "pow(base, exponent) -> number - Power function (base^exponent)"
     },
     "exp function": {
         "prefix": "exp",
         "body": "exp(${1:number})",
-        "description": "Exponential function (e^x)"
+        "description": "exp(arg) -> number - Exponential function (e^x)"
     },
     "log function": {
         "prefix": "log",
         "body": "log(${1:number})",
-        "description": "Natural logarithm (base e)"
+        "description": "log(arg) -> number - Natural logarithm (base e)"
     },
     "log2 function": {
         "prefix": "log2",
         "body": "log2(${1:number})",
-        "description": "Base-2 logarithm"
+        "description": "log2(arg) -> number - Base-2 logarithm"
     },
     "log10 function": {
         "prefix": "log10",
         "body": "log10(${1:number})",
-        "description": "Base-10 logarithm"
+        "description": "log10(arg) -> number - Base-10 logarithm"
     },
     "ln function": {
         "prefix": "ln",
         "body": "ln(${1:number})",
-        "description": "Natural logarithm (same as log)"
+        "description": "ln(arg) -> number - Natural logarithm (same as log)"
+    },
+    "log_ab function": {
+        "prefix": "log_ab",
+        "body": "log_ab(${1:a}, ${2:b})",
+        "description": "log_ab(a, b) -> number - Logarithm of b with base a"
     },
     "ceil function": {
         "prefix": "ceil",
         "body": "ceil(${1:number})",
-        "description": "Round up to nearest integer"
+        "description": "ceil(arg) -> number - Round up to nearest integer"
     },
     "floor function": {
         "prefix": "floor",
         "body": "floor(${1:number})",
-        "description": "Round down to nearest integer"
+        "description": "floor(arg) -> number - Round down to nearest integer"
     },
     "round function": {
         "prefix": "round",
         "body": "round(${1:number})",
-        "description": "Round to nearest integer"
+        "description": "round(arg) -> number - Round to nearest integer"
     },
     "abs function": {
         "prefix": "abs",
         "body": "abs(${1:number})",
-        "description": "Absolute value"
+        "description": "abs(arg) -> number - Absolute value"
     },
     "fmod function": {
         "prefix": "fmod",
         "body": "fmod(${1:x}, ${2:y})",
-        "description": "Floating-point remainder (x mod y)"
+        "description": "fmod(x, y) -> number - Floating-point remainder"
     },
     "length function": {
         "prefix": "length",
         "body": "length(${1:string})",
-        "description": "String length"
+        "description": "length(arg) -> number - String length"
+    },
+    "type function": {
+        "prefix": "type",
+        "body": "type(${1:argument})",
+        "description": "type(arg) -> string - Returns the type of argument (string, number or none)"
+    },
+    "ord function": {
+        "prefix": "ord",
+        "body": "ord(${1:string})",
+        "description": "ord(arg) -> number - ASCII code point for one-character string"
+    },
+    "chr function": {
+        "prefix": "chr",
+        "body": "chr(${1:number})",
+        "description": "chr(arg) -> string - ASCII character for ordinal i (0 <= i <= 255)"
+    },
+    "bin function": {
+        "prefix": "bin",
+        "body": "bin(${1:integer})",
+        "description": "bin(arg) -> string - Binary representation of an integer"
+    },
+    "oct function": {
+        "prefix": "oct",
+        "body": "oct(${1:integer})",
+        "description": "oct(arg) -> string - Octal representation of an integer"
+    },
+    "hex function": {
+        "prefix": "hex",
+        "body": "hex(${1:integer})",
+        "description": "hex(arg) -> string - Hexadecimal representation of an integer"
+    },
+    "dec function": {
+        "prefix": "dec",
+        "body": "dec(${1:string})",
+        "description": "dec(arg) -> number - Decimal representation of given argument"
+    },
+    "input function": {
+        "prefix": "input",
+        "body": "input(${1:prompt})",
+        "description": "input(prompt) -> string/number - User input"
     },
     "m_pi constant": {
         "prefix": "m_pi",
         "body": "m_pi",
-        "description": "Mathematical constant π (3.14159...)"
+        "description": "m_pi -> number - Mathematical constant π (3.14159...)"
     },
     "m_e constant": {
         "prefix": "m_e",
         "body": "m_e",
-        "description": "Mathematical constant e (2.71828...)"
+        "description": "m_e -> number - Mathematical constant e (2.71828...)"
     },
     "if statement": {
         "prefix": "if",
         "body": [
             "if (${1:condition}) {",
-            "\t${2:// code}",
+            "\t${2:# code}",
             "}"
         ],
-        "description": "If statement"
+        "description": "if statement - Conditional execution"
     },
     "if-else statement": {
         "prefix": "ife",
         "body": [
             "if (${1:condition}) {",
-            "\t${2:// code}",
+            "\t${2:# code}",
             "} else {",
-            "\t${3:// code}",
+            "\t${3:# code}",
             "}"
         ],
-        "description": "If-else statement"
+        "description": "if-else statement - Conditional execution with else branch"
+    },
+    "if-else if-else statement": {
+        "prefix": "ifei",
+        "body": [
+            "if (${1:condition}) {",
+            "\t${2:# code}",
+            "} else if (${3:condition}) {",
+            "\t${4:# code}",
+            "} else {",
+            "\t${5:# code}",
+            "}"
+        ],
+        "description": "if-else if-else statement - Multiple conditions"
     },
     "while loop": {
         "prefix": "while",
         "body": [
             "while (${1:condition}) {",
-            "\t${2:// code}",
+            "\t${2:# code}",
             "}"
         ],
-        "description": "While loop"
+        "description": "while loop - Execute while condition is true"
     },
     "for loop": {
         "prefix": "for",
         "body": [
             "for (${1:i = 0}; ${2:i < 10}; ${3:i = i + 1}) {",
-            "\t${4:// code}",
+            "\t${4:# code}",
             "}"
         ],
-        "description": "For loop"
+        "description": "for loop - Execute with initialization, condition, and update"
     },
     "function definition": {
         "prefix": "func",
         "body": [
             "function ${1:name}(${2:params}) {",
-            "\t${3:// body}",
+            "\t${3:# body}",
+            "\treturn ${4:value};",
             "}"
         ],
-        "description": "Function definition"
+        "description": "function - Define a function with return value"
     },
     "void function": {
-        "prefix": "void",
+        "prefix": "vfunc|void",
         "body": [
             "void function ${1:name}(${2:params}) {",
-            "\t${3:// body}",
+            "\t${3:# body}",
             "}"
         ],
-        "description": "Void function definition"
-    },
-    "input statement": {
-        "prefix": "input",
-        "body" : "input(${1:prompt})",
-        "description": "User-input"
+        "description": "void function - Define a function without return value"
     },
     "print statement": {
         "prefix": "print",
         "body": "print(${1:expression});",
-        "description": "Print statement"
+        "description": "print - Output to console"
+    },
+    "print with newline": {
+        "prefix": "printn",
+        "body": "print(\"${1:message}\\n\");",
+        "description": "print with newline - Output with explicit newline"
     },
     "return statement": {
-        "prefix": "return",
+        "prefix": "ret",
         "body": "return ${1:value};",
-        "description": "Return statement"
+        "description": "return - Return value from function"
+    },
+    "local variable": {
+        "prefix": "local",
+        "body": "local ${1:name} = ${2:value};",
+        "description": "local - Declare a local variable"
+    },
+    "global variable": {
+        "prefix": "global",
+        "body": "global ${1:name} = ${2:value};",
+        "description": "global - Declare a global variable"
     },
     "or keyword": {
-        "prefix" : "or",
-        "body" : "or",
-        "description" : "Logical or"
+        "prefix": "or",
+        "body": "or",
+        "description": "or - Logical or operator"
     },
     "and keyword": {
-        "prefix" : "and",
-        "body" : "and",
-        "description" : "Logical and"
+        "prefix": "and",
+        "body": "and",
+        "description": "and - Logical and operator"
     },
     "not keyword": {
-        "prefix" : "not",
-        "body" : "not",
-        "description" : "Logical not"
+        "prefix": "not",
+        "body": "not ${1:expression}",
+        "description": "not - Logical not operator"
     },
     "true keyword": {
-        "prefix" : "true",
-        "body" : "true",
-        "description" : "Boolean true"
+        "prefix": "true",
+        "body": "true",
+        "description": "true - Boolean true value"
     },
     "false keyword": {
-        "prefix" : "false",
-        "body" : "false",
-        "description" : "Boolean false"
+        "prefix": "false",
+        "body": "false",
+        "description": "false - Boolean false value"
     },
     "none keyword": {
         "prefix": "none",
         "body": "none",
-        "description": "none type"
+        "description": "none - None/null type"
     },
-    "import keyword": {
+    "import statement": {
         "prefix": "import",
-        "body": "import ''",
-        "description": "Import variables or functions from other files."
+        "body": "import \"${1:filename}\";",
+        "description": "import - Import variables or functions from other files"
     },
     "break keyword": {
-        "prefix":"break",
+        "prefix": "break",
         "body": "break;",
-        "description": "Exit loop earlier/switch-case"
+        "description": "break - Exit loop or switch early"
     },
     "continue keyword": {
         "prefix": "continue",
         "body": "continue;",
-        "description": "Skip next iteration"
+        "description": "continue - Skip to next iteration"
     },
-    "switch-case": {
-        "prefix":"switch",
+    "switch statement": {
+        "prefix": "switch",
         "body": [
             "switch(${1:value}) {",
-            "\tcase c1, c2: ",
-            "break;",
-            "default:",
+            "\tcase ${2:c1}, ${3:c2}:",
+            "\t\t${4:# code}",
+            "\t\tbreak;",
+            "\tdefault:",
+            "\t\t${5:# code}",
             "}"
         ],
-        "description": "switch-case"
+        "description": "switch-case - Multi-way conditional execution"
     },
-    "ord": {
-        "prefix": "ord",
-        "body": [
-            "ord(string_argument)"
-        ],
-        "description": "Returns the ASCII code point for one-character string."
+    "ternary operator": {
+        "prefix": "tern",
+        "body": "${1:condition} ? ${2:true_value} : ${3:false_value}",
+        "description": "ternary - Conditional expression (condition ? true : false)"
     },
-    "chr": {
-        "prefix": "chr",
+    "comment block": {
+        "prefix": "#*",
         "body": [
-            "chr(number_argument)"
+            "#*",
+            " * ${1:comment}",
+            "*#"
         ],
-        "description": "Returns the ASCII string of one character with ordinal i; 0 <= i <= 255."
-    },
-    "bin": {
-        "prefix": "bin",
-        "body": [
-            "bin(integer)"
-        ],
-        "description": "Returns the binary representation of an integer."
-    },
-    "oct": {
-        "prefix": "oct",
-        "body": [
-            "oct(integer)"
-        ],
-        "description": "Returns the octal representation of an integer."
-    },
-    "hex": {
-        "prefix": "hex",
-        "body": [
-            "hex(integer)"
-        ],
-        "description": "Returns the hexadecimal representation of an integer."
-    },
-    "dec": {
-        "prefix": "dec",
-        "body": [
-            "dec(string)"
-        ],
-        "description": "Returns the decimal representation of given argment (if possible)"
-    },
-    "type": {
-        "prefix": "type",
-        "body": [
-            "type(argument)"
-        ],
-        "description": "Returns the type of given argument"
+        "description": "comment - Multi-line comment block"
     }
 }

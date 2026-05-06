@@ -52,15 +52,15 @@
             ]
         },
         "keywords": {
-            "match": "\\b(if|else|while|for|print|function|return|import|break|continue|switch|case|default)\\b",
+            "match": "(?i)\\b(if|else|while|for|print|function|return|import|break|continue|switch|case|default)\\b",
             "name": "keyword.control.vhg"
         },
         "boolean": {
-            "match": "\\b(true|false|none)\\b",
+            "match": "(?i)\\b(true|false|none)\\b",
             "name": "keyword.control_boolean.vhg"
         },
         "logical_operators": {
-            "match": "\\b(and|or|not|local|global)\\b",
+            "match": "(?i)\\b(and|or|not|local|global)\\b",
             "name": "keyword.operator.logical.vhg"
         },
         "numbers": {
@@ -68,15 +68,15 @@
             "name": "constant.numeric.vhg"
         },
         "builtIn": {
-            "match": "\\b(input|length|void|m_e|m_pi|ord|chr|bin|oct|dec|hex|type)\\b",
+            "match": "(?i)\\b(input|length|void|m_e|m_pi|ord|chr|bin|oct|dec|hex|type)\\b",
             "name": "support.function.vhg"
         },
         "math_functions": {
-            "match": "\\b(sin|cos|tan|asin|acos|atan|atan2|sqrt|cbrt|exp|log|log2|log10|log_ab|ceil|floor|round|abs|fmod)\\b",
+            "match": "(?i)\\b(sin|cos|tan|asin|acos|atan|atan2|sqrt|cbrt|exp|log|log2|log10|log_ab|ceil|floor|round|abs|fmod)\\b",
             "name": "support.math.functions.vhg"
         },
         "function_definition": {
-            "match": "\\bfunction\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(",
+            "match": "(?i)\\bfunction\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(",
             "captures": {
                 "1": { "name": "entity.name.function.vhg" }
             }
