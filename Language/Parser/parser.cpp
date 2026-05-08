@@ -61,6 +61,7 @@ std::shared_ptr<ASTNode> Parser::resolveVariableNode(const std::string& name) {
     }
 
     error("Undefined variable: " + name);
+    return nullptr;
 }
 
 bool Parser::shouldDefaultToLocal(bool explicitGlobal) const {

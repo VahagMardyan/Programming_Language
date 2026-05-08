@@ -1,4 +1,4 @@
-# 🧪 VHG Language Compiler & Virtual Machine
+# 🧪 VHG Language Documentation
 
 **VHG** is a small, self‑contained programming language that compiles to a custom **register‑based bytecode** and runs on a **virtual machine**. The entire toolchain is written in modern C++ and demonstrates a complete compiler pipeline: lexical analysis, recursive‑descent parsing with operator precedence, an abstract syntax tree (AST), constant folding optimizations, and a RISC‑inspired instruction set.
 
@@ -37,7 +37,7 @@
 - Standard library with filesystem support.
 - Simply run `runner.{ext}` on your OS.
 
-### Linux / macOS (g++ / clang)
+### Linux / macOS (g++ / clang) / WSL (Windows Subsystem for Linux)
 ```bash
 g++ -std=c++20 -O3 *.cpp -o vhg
 # or with static linking (Linux)
@@ -75,7 +75,7 @@ fi
 
 ```shell
 chmod +x runner.sh
-./runner.sh
+bash ./runner.sh
 ```
 
 ### Windows (MSVC Developer Command Prompt)
@@ -85,9 +85,16 @@ cl /EHsc /O2 /std:c++20 *.cpp /Fe:vhg.exe
 
 ```bat (runner.bat)
 @echo off
+
+@REM Find Visual Studio installation automatically
+for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do (
+    set VS_PATH=%%i
+)
+call "%VS_PATH%\VC\Auxiliary\Build\vcvarsall.bat" x64
+
 setlocal enabledelayedexpansion
 
-set SOURCES=AST\ast.cpp Compiler\compiler.cpp Lexer\lexer.cpp Parser\parser.cpp Runner\main.cpp Tokenizer\tokenizer.cpp VirtualMachine\vm.cpp
+set SOURCES=..\Language\AST\ast.cpp ..\Language\Compiler\compiler.cpp ..\Language\Lexer\lexer.cpp ..\Language\Parser\parser.cpp ..\Language\Runner\main.cpp ..\Language\Tokenizer\tokenizer.cpp ..\Language\VirtualMachine\vm.cpp
 
 set CXX=cl
 set CXXFLAGS=/EHsc /O2 /std:c++20 /W3
@@ -102,7 +109,7 @@ if %errorlevel% equ 0 (
     echo.
     echo Usage:
     echo   ./vhg.exe program.vhg
-    echo   ./vhg.exe compile input.vhg output.vhb
+    echo   ./vhg.exe compile input.vhg [output.vhb]
     echo   ./vhg.exe run program.vhb [--debug]
 ) else (
     echo.

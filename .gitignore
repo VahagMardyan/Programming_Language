@@ -6,8 +6,9 @@
 *.bin
 *.pdb
 
-# VHG binary files
+# VHG binary and executable files
 *.vhb
+vhg
 
 # Python related
 __pycache__
