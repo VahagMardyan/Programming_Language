@@ -427,12 +427,12 @@ This file defines the behavior of the editor (comments and brackets).
     },
     "local variable": {
         "prefix": "local",
-        "body": "local ${1:name} = ${2:value};",
+        "body": "local",
         "description": "local - Declare a local variable"
     },
     "global variable": {
         "prefix": "global",
-        "body": "global ${1:name} = ${2:value};",
+        "body": "global",
         "description": "global - Declare a global variable"
     },
     "or keyword": {

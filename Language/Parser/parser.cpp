@@ -442,7 +442,15 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
         isLocalVar = false;
     } 
     else {
-        isLocalVar = shouldDefaultToLocal(explicitGlobal);
+        int32_t localOffset = 0;
+        size_t globalAddr = 0;
+        if(symTable.tryGetLocalOffset(name, localOffset)) {
+            isLocalVar = true;
+        } else if(symTable.tryGetGlobalAddress(name, globalAddr)) {
+            isLocalVar = false;
+        } else {
+            isLocalVar = shouldDefaultToLocal(false);
+        }
     }
 
     if(currentToken.type != TokenType::Assign && 
