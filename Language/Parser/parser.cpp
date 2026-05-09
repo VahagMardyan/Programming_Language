@@ -65,7 +65,9 @@ std::shared_ptr<ASTNode> Parser::resolveVariableNode(const std::string& name) {
 }
 
 bool Parser::shouldDefaultToLocal(bool explicitGlobal) const {
-    return !explicitGlobal && symTable.hasActiveScope();
+    // return !explicitGlobal && symTable.hasActiveScope();
+    if(explicitGlobal) return false;
+    return symTable.isInsideFunction() || (symTable.getScopeDepth() > 1);
 }
 
 std::shared_ptr<ASTNode> Parser::createUnaryNode(const std::string& op,
@@ -487,7 +489,12 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
         } else if (symTable.tryGetGlobalAddress(name, globalAddr)) {
             isLocalVar = false;
         } else {
-            error("Undefined variable in compound assignment: " + name);
+            if(symTable.hasActiveScope()) {
+                error("Undefined variable in compound assignment: " + name);
+            } else {
+                globalAddr = symTable.getGlobalAddress(name);
+                isLocalVar = false;
+            }
         }
 
         std::string mathOp;
