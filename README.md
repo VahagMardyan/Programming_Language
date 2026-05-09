@@ -286,8 +286,8 @@ switch(x) {
 - `print(expr1, expr2, ...)` – prints each argument; automatically appends a newline **if only one argument is given** (otherwise you must include `"\n"` explicitly).
 - `length(string)` - returns the size of given string.
 - `type(argument)` - Returns the type of given argument (`string`, `number` or `none`).
-- `chr(number)` - Return an ASCII string of one character with ordinal i; 0 <= i <= 255.
-- `ord(string)` - Return an ASCII code point for a one-character string.
+- `chr(number)` - Returns a Unicode string of one character with code point i; `0 <= i <= 0x10FFFF`.
+- `ord(string)` - Returns the Unicode code point for the first character of a string.
 - `bin(integer)` - Return the binary representation of an integer.
 - `oct(integer)` - Return the octal representation of an integer.
 - `hex(integer)` - Return the hexadecimal representation of an integer.

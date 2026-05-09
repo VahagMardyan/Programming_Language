@@ -298,12 +298,12 @@ This file defines the behavior of the editor (comments and brackets).
     "ord function": {
         "prefix": "ord",
         "body": "ord(${1:string})",
-        "description": "ord(arg) -> number - ASCII code point for one-character string"
+        "description": "Returns the Unicode code point for the first character of a string"
     },
     "chr function": {
         "prefix": "chr",
         "body": "chr(${1:number})",
-        "description": "chr(arg) -> string - ASCII character for ordinal i (0 <= i <= 255)"
+        "description": "Returns a Unicode string of one character with code point i; 0 <= i <= 0x10FFFF"
     },
     "bin function": {
         "prefix": "bin",

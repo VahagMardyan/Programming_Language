@@ -501,16 +501,35 @@ double VirtualMachine::run() {
             }
             break;
     
-            case OpCode::ORD: {
-                const Value& val = registers[inst.left];
-                if(isString(val)) {
-                    const std::string& str = asString(val);
-                    registers[inst.dst] = str.empty() ? 0.0 : static_cast<double>(static_cast<unsigned char>(str[0]));
+        case OpCode::ORD: {
+            const Value& val = registers[inst.left];
+            if (isString(val)) {
+                const std::string& str = asString(val);
+                if (str.empty()) {
+                    registers[inst.dst] = 0.0;
                 } else {
-                    throw std::runtime_error("ord() expects a string argument");
+                    // UTF-8 decode first code point
+                    unsigned char c = str[0];
+                    int codePoint = c;
+
+                    if ((c & 0xE0) == 0xC0 && str.size() >= 2) {
+                        // 2-byte sequence
+                        codePoint = ((c & 0x1F) << 6) | (str[1] & 0x3F);
+                    } else if ((c & 0xF0) == 0xE0 && str.size() >= 3) {
+                        // 3-byte sequence
+                        codePoint = ((c & 0x0F) << 12) | ((str[1] & 0x3F) << 6) | (str[2] & 0x3F);
+                    } else if ((c & 0xF8) == 0xF0 && str.size() >= 4) {
+                        // 4-byte sequence
+                        codePoint = ((c & 0x07) << 18) | ((str[1] & 0x3F) << 12) | ((str[2] & 0x3F) << 6) | (str[3] & 0x3F);
+                    }
+
+                    registers[inst.dst] = static_cast<double>(codePoint);
                 }
+            } else {
+                throw std::runtime_error("ord() expects a string argument");
             }
-            break;
+        }
+        break;
     
             case OpCode::CHR: {
                 if(isNone(registers[inst.dst])) throw std::runtime_error("chr() expects a number argument, got none");
@@ -519,7 +538,22 @@ double VirtualMachine::run() {
                 if(code < 0 || code > 255) {
                     throw std::runtime_error("chr() argument out of range (0-255)");
                 }
-                std::string result(1, static_cast<char>(code));
+                std::string result;
+                if(code <= 0x7F) { // 1 byte
+                    result = static_cast<char>(code);
+                } else if(code <= 0x7FF) { // 2 bytes
+                    result += static_cast<char>(0xC0 | (code >> 6));
+                    result += static_cast<char>(0x80 | (code & 0x3F));
+                } else if(code <= 0x7FFF) { // 3 bytes
+                    result += static_cast<char>(0xE0 | (code >> 12));
+                    result += static_cast<char>(0x80 | ((code >> 6) & 0x3F));
+                    result += static_cast<char>(0x80 | (code & 0x3F));
+                } else if(code <= 0x7FFFF) { // 4 bytes
+                    result += static_cast<char>(0xF0 | (code >> 18));
+                    result += static_cast<char>(0x80 | ((code >> 12) & 0x3F));
+                    result += static_cast<char>(0x80 | ((code >> 6) & 0x3F));
+                    result += static_cast<char>(0x80 | (code & 0x3F));
+                }
                 registers[inst.dst] = result;
             }
             break;
