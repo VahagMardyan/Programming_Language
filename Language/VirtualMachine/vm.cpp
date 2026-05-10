@@ -64,8 +64,8 @@ void VirtualMachine::loadByteCode(const ByteCode& bc) {
 
 void VirtualMachine::printInstructionCompact(size_t pc, const Instruction& inst) const {
     OpCode op = static_cast<OpCode>(inst.op);
-    std::cout << "[" << std::setw(3) << pc << "] ";
-    std::cout << std::left << std::setw(14);
+    std::cout << "[" << pc << "] ";
+    std::cout << std::left;
     
     switch (op) {
         case OpCode::ADD:         std::cout << "ADD r" << inst.dst << " = r" << inst.left << " + r" << inst.right; break;
