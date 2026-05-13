@@ -34,6 +34,10 @@ class VirtualMachine {
         std::vector<Value> argBuffer;
         std::vector<int> current_lineNumbers;
 
+        size_t vmGlobalSlotCount = 0;
+        std::vector<std::string> vmGlobalNames;
+        std::vector<bool> globalDefined;
+
         // // Debugger
         bool debug_step_mode = false;
         bool debug_continue = false;

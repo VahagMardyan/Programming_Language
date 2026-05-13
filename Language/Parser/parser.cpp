@@ -70,6 +70,10 @@ bool Parser::shouldDefaultToLocal(bool explicitGlobal) const {
     return symTable.isInsideFunction() || (symTable.getScopeDepth() > 1);
 }
 
+bool Parser::isTopLevelProgramScope() const {
+    return !symTable.isInsideFunction() && symTable.getScopeDepth() <= 1;
+}
+
 std::shared_ptr<ASTNode> Parser::createUnaryNode(const std::string& op,
     std::shared_ptr<ASTNode> child) {
     auto num = std::dynamic_pointer_cast<NumberNode>(child);
@@ -401,6 +405,9 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
     if (currentToken.type == TokenType::Local) {
         explicitLocal = true;
         nextToken();
+        if (isTopLevelProgramScope()) {
+            error("'local' is not allowed in top-level scope");
+        }
     } 
     else if (currentToken.type == TokenType::Global) {
         explicitGlobal = true;
@@ -416,7 +423,18 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
     nextToken();
 
     if(currentToken.type == TokenType::Semicolon) {
-        bool isLocal = shouldDefaultToLocal(explicitGlobal);
+        bool isLocal;
+        if (explicitLocal) isLocal = true;
+        else if (explicitGlobal) isLocal = false;
+        else isLocal = shouldDefaultToLocal(false);
+
+        if (explicitLocal && symTable.hasLocalInInnermostScope(name)) {
+            error("Local variable redefinition is not allowed: " + name);
+        }
+        if (explicitGlobal && symTable.hasGlobal(name)) {
+            error("Global variable redefinition is not allowed: " + name);
+        }
+
         std::shared_ptr<ASTNode> zeroNode = std::make_shared<NoneNode>();
         if(isLocal) {
             int32_t off = symTable.getLocalOffset(name); // local, default 0
@@ -468,6 +486,15 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
 
     if(currentToken.type == TokenType::Semicolon) {
         nextToken();
+    }
+
+    if (assignOp == "=") {
+        if (explicitLocal && symTable.hasLocalInInnermostScope(name)) {
+            error("Local variable redefinition is not allowed: " + name);
+        }
+        if (explicitGlobal && symTable.hasGlobal(name)) {
+            error("Global variable redefinition is not allowed: " + name);
+        }
     }
 
     if(assignOp != "=") {

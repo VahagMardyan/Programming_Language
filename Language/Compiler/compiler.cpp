@@ -335,6 +335,13 @@ ByteCode Compiler::compile(
         empty.instructions = insts;
         empty.constants = constantPool;
         empty.strings = stringPool;
+        empty.globalSlotCount = symTable.getGlobalSlotCount();
+        empty.globalNamesBySlot.assign(empty.globalSlotCount, std::string{});
+        for (const auto& [name, addr] : symTable.getGlobalAddressMap()) {
+            if (addr < empty.globalNamesBySlot.size()) {
+                empty.globalNamesBySlot[addr] = name;
+            }
+        }
         return empty;
     }
     
@@ -380,6 +387,13 @@ ByteCode Compiler::compile(
         bc.functionSymbols[name] = info.address;
     }
     bc.unresolvedCalls = std::move(unresolvedCalls);
+    bc.globalSlotCount = symTable.getGlobalSlotCount();
+    bc.globalNamesBySlot.assign(bc.globalSlotCount, std::string{});
+    for (const auto& [name, addr] : symTable.getGlobalAddressMap()) {
+        if (addr < bc.globalNamesBySlot.size()) {
+            bc.globalNamesBySlot[addr] = name;
+        }
+    }
     return bc;
 }
 
@@ -702,11 +716,15 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         continueStack.pop();
     }   
     else if (auto funcDef = std::dynamic_pointer_cast<FunctionDefNode>(stmt)) {
+        const std::string& funcName = funcDef->getName();
+        if (functionTable.count(funcName)) {
+            throw std::runtime_error("Function redefinition is not allowed: " + funcName);
+        }
         size_t jmpIdx = code.size();
         code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
         lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
         size_t funcAddr = code.size();
-        functionTable[funcDef->getName()] = {funcAddr, (int)funcDef->getParams().size()};
+        functionTable[funcName] = {funcAddr, (int)funcDef->getParams().size()};
 
         int slots = funcDef->getLocalSlotCount();
         if (slots < 1) slots = 1;
@@ -953,6 +971,15 @@ void writeByteCodeToFile(const ByteCode& bc, const std::string& path) {
         out.write(str.data(), len);
     }
 
+    uint32_t gsc = static_cast<uint32_t>(bc.globalSlotCount);
+    out.write(reinterpret_cast<const char*>(&gsc), sizeof(gsc));
+    for (uint32_t i = 0; i < gsc; ++i) {
+        const std::string& nm = (i < bc.globalNamesBySlot.size()) ? bc.globalNamesBySlot[i] : std::string{};
+        uint32_t nlen = static_cast<uint32_t>(nm.size());
+        out.write(reinterpret_cast<const char*>(&nlen), sizeof(nlen));
+        if (nlen) out.write(nm.data(), nlen);
+    }
+
     if(!out.good()) {
         throw std::runtime_error("Failed writing bytecode file: " + path);
     }
@@ -1013,6 +1040,42 @@ ByteCode readByteCodeFromFile(const std::string& path) {
             in.read(&s[0], len);
         }
         bc.strings.push_back(std::move(s));
+    }
+
+    bc.globalSlotCount = 0;
+    bc.globalNamesBySlot.clear();
+    {
+        std::streampos pos = in.tellg();
+        uint32_t gsc = 0;
+        in.read(reinterpret_cast<char*>(&gsc), sizeof(gsc));
+        if (in.gcount() != static_cast<std::streamsize>(sizeof(gsc))) {
+            in.clear();
+            in.seekg(pos);
+        } else {
+            bc.globalSlotCount = gsc;
+            bc.globalNamesBySlot.resize(gsc);
+            bool ok = true;
+            for (uint32_t i = 0; ok && i < gsc; ++i) {
+                uint32_t nlen = 0;
+                in.read(reinterpret_cast<char*>(&nlen), sizeof(nlen));
+                if (in.gcount() != static_cast<std::streamsize>(sizeof(nlen))) {
+                    ok = false;
+                    break;
+                }
+                std::string s(nlen, '\0');
+                if (nlen > 0) {
+                    in.read(&s[0], nlen);
+                    if (!in) ok = false;
+                }
+                if (ok) bc.globalNamesBySlot[i] = std::move(s);
+            }
+            if (!ok) {
+                bc.globalSlotCount = 0;
+                bc.globalNamesBySlot.clear();
+                in.clear();
+                in.seekg(pos);
+            }
+        }
     }
 
     if(!in.good() && !in.eof()) {

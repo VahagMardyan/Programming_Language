@@ -31,6 +31,8 @@ private:
     std::shared_ptr<ASTNode> resolveVariableNode(const std::string& name);
     bool shouldDefaultToLocal(bool explicitGlobal) const;
 
+    bool isTopLevelProgramScope() const;
+
     std::shared_ptr<StatementNode> parseStatement();
     std::shared_ptr<StatementNode> parseIf();
     std::shared_ptr<StatementNode> parseWhile();

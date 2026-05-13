@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 #include "../AST/ast.h"
 
 struct Instruction {
@@ -39,6 +40,9 @@ struct ByteCode {
     std::vector<int> lineNumbers;
     std::unordered_map<std::string, size_t> functionSymbols;
     std::vector<std::pair<size_t, std::string>> unresolvedCalls;
+    /** Globals slots 0 .. globalSlotCount-1; names for runtime errors (LOAD before STORE). */
+    size_t globalSlotCount = 0;
+    std::vector<std::string> globalNamesBySlot;
 };
 
 class Compiler {

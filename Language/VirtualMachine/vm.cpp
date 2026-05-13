@@ -50,6 +50,10 @@ void VirtualMachine::loadByteCode(const ByteCode& bc) {
     current_strings = bc.strings;
     current_lineNumbers = bc.lineNumbers;
 
+    vmGlobalSlotCount = bc.globalSlotCount;
+    vmGlobalNames = bc.globalNamesBySlot;
+    globalDefined.assign(vmGlobalSlotCount, false);
+
     int maxReg = 0;
     for(const auto& inst : current_program)
         maxReg = std::max({maxReg, (int)inst.left, (int)inst.right, (int)inst.dst});
@@ -237,10 +241,26 @@ double VirtualMachine::run() {
             bool jumped = false;
             switch(op) {
                 case OpCode::LOAD_CONST: registers[inst.dst] = current_consants[inst.left]; break;
-                case OpCode::LOAD_VAR:   registers[inst.dst] = memory[inst.left]; break;
+                case OpCode::LOAD_VAR: {
+                    size_t addr = inst.left;
+                    if (addr < globalDefined.size() && !globalDefined[addr]) {
+                        std::string label = (addr < vmGlobalNames.size() && !vmGlobalNames[addr].empty())
+                            ? vmGlobalNames[addr] : ("slot " + std::to_string(addr));
+                        throw std::runtime_error("Uninitialized global variable: " + label);
+                    }
+                    registers[inst.dst] = memory[addr];
+                    break;
+                }
                 case OpCode::LOAD_STR: registers[inst.dst] = current_strings[inst.left]; break;
                 case OpCode::LOAD_NONE: registers[inst.dst] = std::monostate{}; break;
-                case OpCode::STORE_VAR:  memory[inst.left] = registers[inst.right]; break;
+                case OpCode::STORE_VAR: {
+                    size_t addr = inst.left;
+                    memory[addr] = registers[inst.right];
+                    if (addr < globalDefined.size()) {
+                        globalDefined[addr] = true;
+                    }
+                    break;
+                }
                 case OpCode::MOV: registers[inst.dst] = registers[inst.left]; break;
                 
                 case OpCode::ADD:  {

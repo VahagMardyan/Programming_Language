@@ -66,6 +66,12 @@ public:
         return globalAddresses.find(name) != globalAddresses.end();
     }
 
+    size_t getGlobalSlotCount() const { return nextGlobalAddress; }
+
+    const std::unordered_map<std::string, size_t>& getGlobalAddressMap() const {
+        return globalAddresses;
+    }
+
     bool tryGetGlobalAddress(const std::string& name, size_t& addr) const {
         auto it = globalAddresses.find(name);
         if (it == globalAddresses.end()) return false;
@@ -122,6 +128,13 @@ public:
             }
         }
         return false;
+    }
+
+    // True if name is bound in the innermost scope only (for explicit "local" redeclare rules).
+    bool hasLocalInInnermostScope(const std::string& name) const {
+        if (scopeStack.empty()) return false;
+        const auto& inner = scopeStack.back().locals;
+        return inner.find(name) != inner.end();
     }
 
     // Enter a new function scope (saves outer scopes, starts fresh stack for the body)
