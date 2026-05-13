@@ -135,7 +135,7 @@ This file defines the behavior of the editor (comments and brackets).
             "name": "keyword.control.vhg"
         },
         "boolean": {
-            "match": "(?i)\\b(true|false|none)\\b",
+            "match": "(?i)\\b(true|false|none|var|variable)\\b",
             "name": "keyword.control_boolean.vhg"
         },
         "logical_operators": {
@@ -434,6 +434,11 @@ This file defines the behavior of the editor (comments and brackets).
         "prefix": "global",
         "body": "global",
         "description": "global - Declare a global variable"
+    },
+    "variable declaration": {
+        "prefix":"variable | var",
+        "body": "variable",
+        "description": "Declare a variable"
     },
     "or keyword": {
         "prefix": "or",

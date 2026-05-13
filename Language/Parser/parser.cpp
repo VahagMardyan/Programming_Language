@@ -200,7 +200,154 @@ std::shared_ptr<StatementNode> Parser::parseStatement() {
         }
 
         case TokenType::Local: case TokenType::Global: {
-            auto s = parseAssignment();
+            bool isGlobal = (currentToken.type == TokenType::Global);
+            nextToken(); // consume 'global' or 'local'
+            if(currentToken.type == TokenType::Variable) {
+                nextToken(); // skip 'variable'/'var'
+                {
+                    bool explicitGlobal = isGlobal;
+                    bool explicitLocal  = !isGlobal;
+                    if(explicitLocal && isTopLevelProgramScope()) {
+                        error("'local variable' is not allowed in top-level scope");
+                    }
+                    if(currentToken.type != TokenType::Name) {
+                        error("Expected variable name after 'variable'");
+                    }
+                    std::string name = currentToken.value;
+                    nextToken();
+                    // Redeclaration check
+                    if(explicitGlobal) {
+                        if(symTable.hasGlobal(name))
+                            error("Redeclaration of global variable: '" + name + "'");
+                    } else {
+                        if(symTable.hasLocalInInnermostScope(name))
+                            error("Redeclaration of variable '" + name + "' in the same scope");
+                    }
+                    std::shared_ptr<ASTNode> valueExpr;
+                    if(currentToken.type == TokenType::Semicolon || currentToken.type == TokenType::EndOfExpr) {
+                        valueExpr = std::make_shared<NoneNode>();
+                        if(currentToken.type == TokenType::Semicolon) nextToken();
+                    } else if(currentToken.type == TokenType::Assign) {
+                        nextToken();
+                        valueExpr = parseExpression();
+                        if(!valueExpr) return nullptr;
+                        if(currentToken.type == TokenType::Semicolon) nextToken();
+                    } else {
+                        error("Expected '=' or ';' after variable name in declaration");
+                    }
+                    std::shared_ptr<StatementNode> s;
+                    if(explicitLocal) {
+                        int32_t off = symTable.getLocalOffset(name);
+                        s = std::make_shared<AssignmentNode>(off, valueExpr);
+                    } else {
+                        size_t addr = symTable.getGlobalAddress(name);
+                        s = std::make_shared<AssignmentNode>(addr, valueExpr);
+                    }
+                    if(s) s->lineNumber = stmtLine;
+                    return s;
+                }
+            }
+            
+            {
+                if(currentToken.type != TokenType::Name) {
+                    state = ParserState::Error;
+                    return nullptr;
+                }
+                
+                bool explicitGlobal2 = isGlobal;
+                bool explicitLocal2  = !isGlobal;
+                if(explicitLocal2 && isTopLevelProgramScope()) {
+                    error("'local' is not allowed in top-level scope");
+                }
+                std::string name2 = currentToken.value;
+                nextToken();
+
+                if(currentToken.type == TokenType::Semicolon) {
+                    std::shared_ptr<ASTNode> zeroNode = std::make_shared<NoneNode>();
+                    if(explicitLocal2) {
+                        if(symTable.hasLocalInInnermostScope(name2))
+                            error("Local variable redefinition is not allowed: " + name2);
+                        int32_t off = symTable.getLocalOffset(name2);
+                        nextToken();
+                        auto s = std::make_shared<AssignmentNode>(off, zeroNode);
+                        s->lineNumber = stmtLine;
+                        return s;
+                    } else {
+                        if(symTable.hasGlobal(name2) && !symTable.isInsideFunction())
+                            error("Global variable redefinition is not allowed: " + name2);
+                        size_t addr = symTable.getGlobalAddress(name2);
+                        nextToken();
+                        auto s = std::make_shared<AssignmentNode>(addr, zeroNode);
+                        s->lineNumber = stmtLine;
+                        return s;
+                    }
+                }
+                if(currentToken.type == TokenType::OpenParen) {
+                    auto callNode = parseFunctionCall(name2);
+                    if(currentToken.type == TokenType::Semicolon) nextToken();
+                    auto s = std::make_shared<FunctionCallStatementNode>(callNode);
+                    s->lineNumber = stmtLine;
+                    return s;
+                }
+                if(currentToken.type != TokenType::Assign && currentToken.type != TokenType::CompoundAssign) {
+                    state = ParserState::Error;
+                    return nullptr;
+                }
+                std::string assignOp = currentToken.value;
+                nextToken();
+                auto valueExpr = parseExpression();
+                if(currentToken.type == TokenType::Semicolon) nextToken();
+
+                if(assignOp == "=") {
+                    if(explicitLocal2 && symTable.hasLocalInInnermostScope(name2))
+                        error("Local variable redefinition is not allowed: " + name2);
+                    if(explicitGlobal2 && symTable.hasGlobal(name2) && !symTable.isInsideFunction())
+                        error("Global variable redefinition is not allowed: " + name2);
+                }
+
+                std::shared_ptr<StatementNode> s2;
+                if(assignOp != "=") {
+                    int32_t localOffset = 0; size_t globalAddr = 0; int oh = 0;
+                    std::shared_ptr<ASTNode> varNode;
+                    if(explicitLocal2) {
+                        if(!symTable.tryResolveLocal(name2, localOffset, oh) || oh != 0)
+                            error("Undefined local variable in compound assignment: " + name2);
+                        varNode = std::make_shared<VariableNode>(localOffset, oh);
+                    } else if(explicitGlobal2) {
+                        if(!symTable.tryGetGlobalAddress(name2, globalAddr))
+                            error("Undefined global variable in compound assignment: " + name2);
+                        varNode = std::make_shared<VariableNode>(globalAddr);
+                    } else {
+                        state = ParserState::Error; return nullptr;
+                    }
+                    std::string mathOp;
+                    if(assignOp=="+=") mathOp="+"; else if(assignOp=="-=") mathOp="-";
+                    else if(assignOp=="*=") mathOp="*"; else if(assignOp=="/=") mathOp="/";
+                    else if(assignOp=="%=") mathOp="%"; else if(assignOp=="^=") mathOp="^";
+                    valueExpr = std::make_shared<BinaryOpNode>(mathOp, varNode, valueExpr);
+                    if(explicitLocal2) {
+                        s2 = std::make_shared<AssignmentNode>(localOffset, valueExpr, oh);
+                    } else {
+                        size_t addr2 = symTable.getGlobalAddress(name2);
+                        s2 = std::make_shared<AssignmentNode>(addr2, valueExpr);
+                    }
+                } else {
+                    if(explicitLocal2) {
+                        if(!symTable.hasLocalInInnermostScope(name2)) symTable.getLocalOffset(name2);
+                        int32_t off2 = 0; int oh2 = 0;
+                        symTable.tryResolveLocal(name2, off2, oh2);
+                        s2 = std::make_shared<AssignmentNode>(off2, valueExpr, oh2);
+                    } else {
+                        size_t addr2 = symTable.getGlobalAddress(name2);
+                        s2 = std::make_shared<AssignmentNode>(addr2, valueExpr);
+                    }
+                }
+                if(s2) s2->lineNumber = stmtLine;
+                return s2;
+            }
+        }
+        case TokenType::Variable: {
+            auto s = parseVarDecl();
             if(s) s -> lineNumber = stmtLine;
             return s;
         }
@@ -398,7 +545,73 @@ std::shared_ptr<StatementNode> Parser::parseBlock() {
     return block;
 }
 
-std::shared_ptr<StatementNode> Parser::parseAssignment() {
+std::shared_ptr<StatementNode> Parser::parseVarDecl() {
+    nextToken(); // skip 'variable' / 'var'
+
+    // Allow [global | local] after the keyword too: "variable global x"
+    bool explicitGlobal = false;
+    bool explicitLocal  = false;
+
+    if(currentToken.type == TokenType::Global) {
+        explicitGlobal = true;
+        nextToken();
+    } else if(currentToken.type == TokenType::Local) {
+        explicitLocal = true;
+        nextToken();
+        if(isTopLevelProgramScope()) {
+            error("'local variable' is not allowed in top-level scope");
+        }
+    }
+
+    if(currentToken.type != TokenType::Name) {
+        error("Expected variable name after 'variable'");
+    }
+    std::string name = currentToken.value;
+    nextToken();
+
+    // Redeclaration checks 
+    if(explicitGlobal || (!explicitLocal && isTopLevelProgramScope())) {
+        // Global declaration
+        if(symTable.hasGlobal(name)) {
+            error("Redeclaration of global variable: '" + name + "'");
+        }
+    } else {
+        // Local declaration (inside function or nested block)
+        if(symTable.hasLocalInInnermostScope(name)) {
+            error("Redeclaration of variable '" + name + "' in the same scope");
+        }
+    }
+
+    bool isLocalVar = explicitLocal || (!explicitGlobal && !isTopLevelProgramScope());
+
+    // Optional initialiser
+    std::shared_ptr<ASTNode> valueExpr;
+
+    if(currentToken.type == TokenType::Semicolon || currentToken.type == TokenType::EndOfExpr) {
+        // No initialiser -> default to none
+        valueExpr = std::make_shared<NoneNode>();
+        if(currentToken.type == TokenType::Semicolon) nextToken();
+    } else if(currentToken.type == TokenType::Assign) {
+        nextToken(); // skip '='
+        valueExpr = parseExpression();
+        if(!valueExpr) return nullptr;
+        if(currentToken.type == TokenType::Semicolon) nextToken();
+    } else {
+        error("Expected '=' or ';' after variable name in declaration");
+    }
+
+    // Allocate slot and emit AssignmentNode
+    if(isLocalVar) {
+        int32_t off = symTable.getLocalOffset(name);
+        return std::make_shared<AssignmentNode>(off, valueExpr);
+    } else {
+        size_t addr = symTable.getGlobalAddress(name);
+        return std::make_shared<AssignmentNode>(addr, valueExpr);
+    }
+}
+
+std::shared_ptr<StatementNode> Parser::parseAssignment(bool explicitDeclare) {
+    (void)explicitDeclare; // reserved for future use; declaration is handled by parseVarDecl
     bool explicitLocal = false;
     bool explicitGlobal = false;
     std::string name;
@@ -432,7 +645,8 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
         if (explicitLocal && symTable.hasLocalInInnermostScope(name)) {
             error("Local variable redefinition is not allowed: " + name);
         }
-        if (explicitGlobal && symTable.hasGlobal(name)) {
+        // Only check global redefinition at top-level scope, not inside functions
+        if (explicitGlobal && symTable.hasGlobal(name) && !symTable.isInsideFunction()) {
             error("Global variable redefinition is not allowed: " + name);
         }
 
@@ -498,7 +712,8 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
         if (explicitLocal && symTable.hasLocalInInnermostScope(name)) {
             error("Local variable redefinition is not allowed: " + name);
         }
-        if (explicitGlobal && symTable.hasGlobal(name)) {
+        // Only check global redefinition at top-level scope, not inside functions
+        if (explicitGlobal && symTable.hasGlobal(name) && !symTable.isInsideFunction()) {
             error("Global variable redefinition is not allowed: " + name);
         }
     }

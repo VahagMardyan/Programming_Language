@@ -32,6 +32,7 @@ enum class TokenType {
     Case,
     Default,
     Line, // for line numbers
+    Variable, // "variable", "var" keywords
 };
 
 struct Token {

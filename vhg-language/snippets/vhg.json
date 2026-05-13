@@ -254,6 +254,11 @@
         "body": "global",
         "description": "global - Declare a global variable"
     },
+    "variable declaration": {
+        "prefix":"variable | var",
+        "body": "variable",
+        "description": "Declare a variable"
+    },
     "or keyword": {
         "prefix": "or",
         "body": "or",

@@ -53,19 +53,22 @@
     25
 *#
 
-void function foo(name) {
-    void function bar(smth) {
-        local val = "Hello " + name + "!";
-        print(val);
-        void function baz() {
-            global x = 5 + smth;
-        }
-        baz();
-    }
-    bar(43);
-}
-foo("Name"); # # Hello Name!
-print(x); # # 48
+# void function foo(name) {
+#     void function bar(smth) {
+#         local val = "Hello " + name + "!";
+#         print(val);
+#         void function baz() {
+#             global x = 5 + smth;
+#         }
+#         baz();
+#     }
+#     bar(43);
+# }
+# foo("Name"); # # Hello Name!
+# print(x); # # 48
 
-local y = 4; # # local
-print(y);
+# local y = 4; # # local
+# print(y);
+
+var x = 5;
+print(x);

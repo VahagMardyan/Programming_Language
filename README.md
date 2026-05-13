@@ -158,16 +158,52 @@ Loads the `.vhb` binary and executes it on the VM.
 - **Global** variables persist throughout the program.
 - **Local** variables are declared inside blocks (including function bodies) and use stack‑based allocation.
 - Use the `local` or `global` keyword to explicitly control storage; otherwise, the parser defaults to **local** inside any block and **global** at the top level.
+- The `variable` (or `var`) explicitly declares a variable with automatic scope detection.
 
 ```vhg
-global counter = 0;          # explicit global
-local  temp    = 42;         # explicit local
+# # Variable declaration keywords
+variable x = 10; # explicit declaration (auto scope)
+var y = 20; # 'var' is alias for 'variable'
+global counter = 0; # explicit global (Not recommended)
+local temp = 42; # # explicit local
 
+# # Declaration without initializer (defaults to 'none')
+variable z;
+
+# Redeclaration in same scope is NOT allowed
+variable a = 5;
+
+variable a = 10;      # Error: Variable redefinition
+
+# Block scoping
 for (i = 0; i < 10; i += 1) {
     local square = i * i;    # block‑scoped local
-    print(square, "\n");
+    var cube = i * i * i;    # also block‑scoped
+    print(square, cube, "\n");
 }
+# square and cube are out of scope here
+
 ```
+
+### Variable Declaration Rules
+
+| Syntax | Scope | Notes |
+|--------|-------|-------|
+| `variable x = expr;` | Auto (local in blocks, global at top-level) | Explicit declaration |
+| `var x = expr;` | Auto (same as `variable`) | Short form alias |
+| `local variable x = expr;` | Local | Forces local storage |
+| `local var x = expr;` | Local | Short form with local |
+| `global variable x = expr;` | Global | Forces global storage |
+| `global var x = expr;` | Global | Short form with global |
+| `x = expr;` | Auto (implicit declaration if new) | Assignment/declaration |
+| `x;` | Auto (implicit declaration with `none`) | Declaration-only |
+
+***Important Rules:***
+- Variables cannot be redeclared in the same scope
+- Local variables shadow globals with the same name
+- `local` is not allowed in top-level (global) scope
+- Implicit declarations follow the same scope rules as explicit ones
+- All variables default to `none` if not explicitly initialized
 
 ### Data Types
 - **Numbers** – double‑precision floating point (internally `double`).
@@ -185,6 +221,7 @@ for (i = 0; i < 10; i += 1) {
 | String            | `+` `+=` (concatenation), `length(s)` -> s.size(), `*` -> string multiplication       |
 | Ternary           | `condition ? trueBranch : falseBranch` (e.g `x = 5 > 6 ? 7 : 8;`)         |
 | Loop operators    | `break;` -> exit loop earlier, `continue;` -> skip next iteration |
+| **Declarations** | `variable`, `var`, `local`, `global` |
 
 ### Mathematical Functions
 
@@ -326,12 +363,11 @@ switch(x) {
 - Manages nested block scopes via a stack of `ScopeLevel` objects.
 - Global variables are stored in a flat address space.
 - Local variables receive negative offsets relative to the **frame pointer** (`FP` / `x8`).
+- **Explicit declarations** (`variable`, `var` `local`, `global`) allocate fresh slots and prevent redeclaration.
+- **Implicit declarations** (plain assignment) reuse existing slots or create new ones on-the-fly.
 - Function definitions push a fresh scope stack, preserving outer scopes for later restoration.
 - Declared but unassigned variables store `none` by default.
-```vhg
-x;
-print(x); # # The output will be: none
-```
+---
 
 ### Compiler
 - Traverses the AST in post‑order, generating a linear sequence of `Instruction`s.
@@ -374,6 +410,20 @@ Run it:
 ```bash
 ./vhg compile fact.vhg
 ./vhg run fact.vhb
+```
+
+```vhg
+# Variable declaration examples
+var count = 0;           # auto-detect scope (global at top-level)
+variable total = 0;      # explicit declaration with var keyword
+
+for (i = 1; i <= 10; i += 1) {
+    local square = i * i;   # explicit local variable
+    var cube = i * i * i;   # auto-detected as local (inside block)
+    total += square;
+    count += 1;
+}
+print("Count: ", count, ", Total: ", total, "\n");
 ```
 
 ---

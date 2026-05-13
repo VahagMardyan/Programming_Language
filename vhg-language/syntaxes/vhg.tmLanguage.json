@@ -56,7 +56,7 @@
             "name": "keyword.control.vhg"
         },
         "boolean": {
-            "match": "(?i)\\b(true|false|none)\\b",
+            "match": "(?i)\\b(true|false|none|var|variable)\\b",
             "name": "keyword.control_boolean.vhg"
         },
         "logical_operators": {

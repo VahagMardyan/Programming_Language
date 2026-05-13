@@ -144,6 +144,7 @@ Token Tokenizer::getNextToken() {
         if(lowered == "switch")  return {TokenType::Switch, lowered, lexer.getLineNumber()};
         if(lowered == "case") return { TokenType::Case, lowered, lexer.getLineNumber()};
         if(lowered == "default") return { TokenType::Default, lowered, lexer.getLineNumber()};
+        if(lowered == "variable" || lowered == "var") return { TokenType::Variable, lowered, lexer.getLineNumber() };
         return {TokenType::Name, name, lexer.getLineNumber()};
     }
 

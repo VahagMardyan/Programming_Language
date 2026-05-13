@@ -37,7 +37,8 @@ private:
     std::shared_ptr<StatementNode> parseIf();
     std::shared_ptr<StatementNode> parseWhile();
     std::shared_ptr<StatementNode> parseBlock();
-    std::shared_ptr<StatementNode> parseAssignment();
+    std::shared_ptr<StatementNode> parseAssignment(bool explicitDeclare = false);
+    std::shared_ptr<StatementNode> parseVarDecl();
     std::shared_ptr<StatementNode> parsePrint();
     std::shared_ptr<ASTNode> parseExpression();
     std::shared_ptr<StatementNode> parseFor();
