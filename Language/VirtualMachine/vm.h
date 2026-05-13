@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <cstdint>
 #include <iomanip>
 #include <sstream>
 #include <algorithm>
@@ -30,7 +31,7 @@ class VirtualMachine {
         bool debug_mode;
         void visualize(const std::vector<Instruction>& program) const;
         void loadByteCode(const ByteCode& bc);
-        std::stack<CallFrame> callStack;
+        std::vector<CallFrame> callStack;
         std::vector<Value> argBuffer;
         std::vector<int> current_lineNumbers;
 

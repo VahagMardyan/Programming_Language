@@ -137,6 +137,29 @@ public:
         return inner.find(name) != inner.end();
     }
 
+    // Look up name in enclosing function scope snapshots (nested functions). hopsOut: 1 = immediate outer, ...
+    bool tryGetEnclosingLocalOffset(const std::string& name, int32_t& offset, int& hopsOut) const {
+        int hop = 1;
+        for (auto stackIt = outerScopeStackStack.rbegin(); stackIt != outerScopeStackStack.rend(); ++stackIt, ++hop) {
+            const auto& saved = *stackIt;
+            for (auto levelIt = saved.rbegin(); levelIt != saved.rend(); ++levelIt) {
+                auto found = levelIt->locals.find(name);
+                if (found != levelIt->locals.end()) {
+                    offset = found->second;
+                    hopsOut = hop;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    bool tryResolveLocal(const std::string& name, int32_t& offset, int& outerHopsOut) const {
+        outerHopsOut = 0;
+        if (tryGetLocalOffset(name, offset)) return true;
+        return tryGetEnclosingLocalOffset(name, offset, outerHopsOut);
+    }
+
     // Enter a new function scope (saves outer scopes, starts fresh stack for the body)
     void enterFunctionScope() {
         inFunctionScope = true;

@@ -9,6 +9,14 @@ namespace {
     double fromInt32(int32_t v) {
         return static_cast<double>(v);
     }
+
+    Value resolveOuterFrameFp(int hops, const std::vector<CallFrame>& frames) {
+        if (hops < 1 || static_cast<size_t>(hops) > frames.size()) {
+            throw std::runtime_error("Invalid enclosing frame access (call stack depth)");
+        }
+        size_t idx = frames.size() - static_cast<size_t>(hops);
+        return frames[idx].callerFp;
+    }
 }
 
 void VirtualMachine::load(const std::string& expr, SymbolTable& symtable) {
@@ -94,12 +102,14 @@ void VirtualMachine::printInstructionCompact(size_t pc, const Instruction& inst)
         case OpCode::UNARY:       std::cout << "NEG r" << inst.dst << " = -r" << inst.left; break;
         
         case OpCode::LOAD_CONST:  std::cout << "LOAD_CONST r" << inst.dst << " = " << current_consants[inst.left]; break;
-        case OpCode::LOAD_VAR:    std::cout << "LOAD_VAR r" << inst.dst << " = mem[" << inst.left << "]"; break;
-        case OpCode::LOAD_STR:    std::cout << "LOAD_STR r" << inst.dst << " = \"" << current_strings[inst.left] << "\""; break;
+                case OpCode::LOAD_VAR:    std::cout << "LOAD_VAR r" << inst.dst << " = mem[" << inst.left << "]"; break;
+                case OpCode::LOAD_OUTER:  std::cout << "LOAD_OUTER r" << inst.dst << " hops=" << inst.left << " off=" << (int)(int8_t)inst.right; break;
+                case OpCode::LOAD_STR:    std::cout << "LOAD_STR r" << inst.dst << " = \"" << current_strings[inst.left] << "\""; break;
         case OpCode::LOAD_NONE:   std::cout << "LOAD_NONE r" << inst.dst; break;
         case OpCode::LOAD:        std::cout << "LOAD r" << inst.dst << " = [fp" << ((int8_t)inst.right >= 0 ? "+" : "") << (int)(int8_t)inst.right << "]"; break;
         case OpCode::STORE:       std::cout << "STORE r" << inst.dst << " -> fp" << ((int8_t)inst.right >= 0 ? "+" : "") << (int)(int8_t)inst.right; break;
-        case OpCode::STORE_VAR:   std::cout << "STORE_VAR r" << inst.right << " -> mem[" << inst.left << "]"; break;
+                case OpCode::STORE_VAR:   std::cout << "STORE_VAR r" << inst.right << " -> mem[" << inst.left << "]"; break;
+                case OpCode::STORE_OUTER: std::cout << "STORE_OUTER r" << inst.dst << " hops=" << inst.left << " off=" << (int)(int8_t)inst.right; break;
         
         case OpCode::CMP_GT:      std::cout << "CMP_GT r" << inst.dst << " = r" << inst.left << " > r" << inst.right; break;
         case OpCode::CMP_LT:      std::cout << "CMP_LT r" << inst.dst << " = r" << inst.left << " < r" << inst.right; break;
@@ -251,6 +261,17 @@ double VirtualMachine::run() {
                     registers[inst.dst] = memory[addr];
                     break;
                 }
+                case OpCode::LOAD_OUTER: {
+                    int hops = static_cast<int>(inst.left);
+                    int8_t off = static_cast<int8_t>(inst.right);
+                    Value outerFp = resolveOuterFrameFp(hops, callStack);
+                    int32_t addr = (int32_t)asNumber(outerFp) + off;
+                    if (addr < 0 || addr >= (int32_t)memory.size()) {
+                        throw std::runtime_error("LOAD_OUTER out of range");
+                    }
+                    registers[inst.dst] = memory[addr];
+                    break;
+                }
                 case OpCode::LOAD_STR: registers[inst.dst] = current_strings[inst.left]; break;
                 case OpCode::LOAD_NONE: registers[inst.dst] = std::monostate{}; break;
                 case OpCode::STORE_VAR: {
@@ -259,6 +280,17 @@ double VirtualMachine::run() {
                     if (addr < globalDefined.size()) {
                         globalDefined[addr] = true;
                     }
+                    break;
+                }
+                case OpCode::STORE_OUTER: {
+                    int hops = static_cast<int>(inst.left);
+                    int8_t off = static_cast<int8_t>(inst.right);
+                    Value outerFp = resolveOuterFrameFp(hops, callStack);
+                    int32_t addr = (int32_t)asNumber(outerFp) + off;
+                    if (addr < 0 || addr >= (int32_t)memory.size()) {
+                        throw std::runtime_error("STORE_OUTER out of range");
+                    }
+                    memory[addr] = registers[inst.dst];
                     break;
                 }
                 case OpCode::MOV: registers[inst.dst] = registers[inst.left]; break;
@@ -489,7 +521,7 @@ double VirtualMachine::run() {
             case OpCode::CALL: {
                 size_t retAddr = pc + 1;
                 uint16_t funcAddr = getAddress(inst);
-                callStack.push({retAddr, inst.dst, registers[2], registers[8], argBuffer, registers});
+                callStack.push_back({retAddr, inst.dst, registers[2], registers[8], argBuffer, registers});
                 argBuffer.clear();
     
                 pc = funcAddr;
@@ -716,8 +748,8 @@ double VirtualMachine::run() {
             case OpCode::RETURN: {
                     Value retVal = registers[inst.dst];
                     if(callStack.empty()) break;
-                    CallFrame frame = callStack.top();
-                    callStack.pop();
+                    CallFrame frame = callStack.back();
+                    callStack.pop_back();
                     registers = frame.callerRegisters;
                     registers[2] = frame.callerSp;
                     registers[8] = frame.callerFp;
@@ -732,7 +764,7 @@ double VirtualMachine::run() {
             break;
             case OpCode::LOAD_PARAM: {
                 if(!callStack.empty()) {
-                    const auto& args = callStack.top().args;
+                    const auto& args = callStack.back().args;
                     registers[inst.dst] = inst.left < args.size() ? args[inst.left] : Value(0.0);
                 }
             }
@@ -855,6 +887,15 @@ void VirtualMachine::visualize(const std::vector<Instruction>& program) const {
             case OpCode::STORE_VAR:
                 std::cout << "STORE_VAR" << std::setw(6) << inst.left << std::setw(6) << inst.right
                           << std::setw(6) << "-" << " mem[" << inst.left << "] = r" << inst.right;
+                break;
+
+            case OpCode::LOAD_OUTER:
+                std::cout << "LOAD_OUTER" << std::setw(6) << inst.left << std::setw(6) << (int)(int8_t)inst.right
+                          << std::setw(6) << inst.dst;
+                break;
+            case OpCode::STORE_OUTER:
+                std::cout << "STORE_OUTER" << std::setw(6) << inst.left << std::setw(6) << (int)(int8_t)inst.right
+                          << std::setw(6) << inst.dst;
                 break;
 
             case OpCode::ADD:     std::cout << "ADD";     break;

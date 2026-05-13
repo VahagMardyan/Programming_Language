@@ -269,7 +269,7 @@ std::shared_ptr<ASTNode> Compiler::optimize(std::shared_ptr<ASTNode> node) {
     if(auto assign = std::dynamic_pointer_cast<AssignmentNode>(node)) {
         std::shared_ptr<AssignmentNode> n;
         if (assign->isLocal()) {
-            n = std::make_shared<AssignmentNode>(assign->getOffset(), optimize(assign->getValue()));
+            n = std::make_shared<AssignmentNode>(assign->getOffset(), optimize(assign->getValue()), assign->getLocalOuterHops());
         } else {
             n = std::make_shared<AssignmentNode>(assign->getAddress(), optimize(assign->getValue()));
         }
@@ -414,7 +414,13 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
             int rd = allocateTempRegister();
             if (var->getIsLocal()) {
                 int32_t off = var->getLocalOffset();
-                code.push_back({(uint32_t)OpCode::LOAD, (uint32_t)rd, (uint32_t)FP, (uint32_t)off});
+                int oh = var->getOuterHops();
+                if (oh > 0) {
+                    code.push_back({(uint32_t)OpCode::LOAD_OUTER, (uint32_t)rd, (uint32_t)oh,
+                        (uint32_t)(uint8_t)(int8_t)off});
+                } else {
+                    code.push_back({(uint32_t)OpCode::LOAD, (uint32_t)rd, (uint32_t)FP, (uint32_t)off});
+                }
             } else {
                 size_t addr = var->getGlobalAddr();
                 code.push_back({(uint32_t)OpCode::LOAD_VAR, (uint32_t)rd, (uint32_t)addr, 0});
@@ -554,10 +560,18 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         
         if (assign->isLocal()) {
             int32_t offset = assign->getOffset();
-            code.push_back({(uint32_t)OpCode::STORE, 
-                            (uint32_t)srcReg,
-                            (uint32_t)FP,
-                            (uint32_t)offset});
+            int oh = assign->getLocalOuterHops();
+            if (oh > 0) {
+                code.push_back({(uint32_t)OpCode::STORE_OUTER,
+                    (uint32_t)srcReg,
+                    (uint32_t)oh,
+                    (uint32_t)(uint8_t)(int8_t)offset});
+            } else {
+                code.push_back({(uint32_t)OpCode::STORE, 
+                                (uint32_t)srcReg,
+                                (uint32_t)FP,
+                                (uint32_t)offset});
+            }
             lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
         } 
         else {

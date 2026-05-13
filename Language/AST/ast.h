@@ -52,6 +52,8 @@ enum class OpCode : uint8_t {
     DEC, // int -> decimal string
     HEX, // int -> hexadecimal string
     TYPE, // type(argument) -> "string" / "number" / "none"
+    LOAD_OUTER, // dst = mem[enclosingCallerFp(hops) + int8_offset]
+    STORE_OUTER, // mem[enclosingCallerFp(hops) + int8_offset] = dstReg
 };
 
 class ASTNode {
@@ -85,22 +87,28 @@ class MathConstantNode : public ASTNode {
 
 class VariableNode : public ASTNode {
     bool isLocal;
+    int outerHops_ = 0; // 0 = current frame; N>=1 = walk N callerFp steps for lexical outer
     union {
         size_t globalAddr;
         int32_t localOffset;
     };
 public:
-    VariableNode(size_t addr) : isLocal(false), globalAddr(addr) {}
-    VariableNode(int32_t off)  : isLocal(true), localOffset(off) {}
+    VariableNode(size_t addr) : isLocal(false), outerHops_(0), globalAddr(addr) {}
+    VariableNode(int32_t off)  : isLocal(true), outerHops_(0), localOffset(off) {}
+    VariableNode(int32_t off, int outerHops)
+        : isLocal(true), outerHops_(outerHops), localOffset(off) {}
 
     bool getIsLocal() const { return isLocal; }
+    int getOuterHops() const { return outerHops_; }
     size_t getGlobalAddr() const { return globalAddr; }
     int32_t getLocalOffset() const { return localOffset; }
 
     void print(std::string prefix, bool isLast) const override {
         std::cout << prefix << (isLast ? "└── " : "├── ")
                   << "Var (" << (isLocal ? "local off=" : "global addr=")
-                  << (isLocal ? localOffset : (int)globalAddr) << ")" << std::endl;
+                  << (isLocal ? localOffset : (int)globalAddr)
+                  << (isLocal && outerHops_ ? (std::string(" outer=") + std::to_string(outerHops_)) : "")
+                  << ")" << std::endl;
     }
     std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
@@ -197,18 +205,20 @@ class AssignmentNode : public StatementNode {
 private:
     bool isLocalFlag;
     int32_t localOffset;
+    int localOuterHops_ = 0;
     size_t globalAddr;
     std::shared_ptr<ASTNode> value;
 
 public:
-    AssignmentNode(int32_t offset, std::shared_ptr<ASTNode> val)
-        : isLocalFlag(true), localOffset(offset), globalAddr(0), value(val) {}
+    AssignmentNode(int32_t offset, std::shared_ptr<ASTNode> val, int localOuterHops = 0)
+        : isLocalFlag(true), localOffset(offset), localOuterHops_(localOuterHops), globalAddr(0), value(val) {}
 
     AssignmentNode(size_t addr, std::shared_ptr<ASTNode> val)
-        : isLocalFlag(false), localOffset(0), globalAddr(addr), value(val) {}
+        : isLocalFlag(false), localOffset(0), localOuterHops_(0), globalAddr(addr), value(val) {}
 
     bool isLocal() const { return isLocalFlag; }
     int32_t getOffset() const { return localOffset; }
+    int getLocalOuterHops() const { return localOuterHops_; }
     size_t getAddress() const { return globalAddr; }
     std::shared_ptr<ASTNode> getValue() const { return value; }
 

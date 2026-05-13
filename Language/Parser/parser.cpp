@@ -51,8 +51,9 @@ std::shared_ptr<ASTNode> Parser::createBinaryNode(const std::string& op,
 
 std::shared_ptr<ASTNode> Parser::resolveVariableNode(const std::string& name) {
     int32_t localOffset = 0;
-    if (symTable.tryGetLocalOffset(name, localOffset)) {
-        return std::make_shared<VariableNode>(localOffset);
+    int outerHops = 0;
+    if (symTable.tryResolveLocal(name, localOffset, outerHops)) {
+        return std::make_shared<VariableNode>(localOffset, outerHops);
     }
 
     size_t globalAddr = 0;
@@ -454,6 +455,9 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
     }
 
     bool isLocalVar = false;
+    bool haveLocalBinding = false;
+    int32_t resolvedLocalOff = 0;
+    int resolvedOuterHops = 0;
 
     if (explicitLocal) {
         isLocalVar = true;
@@ -464,8 +468,10 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
     else {
         int32_t localOffset = 0;
         size_t globalAddr = 0;
-        if(symTable.tryGetLocalOffset(name, localOffset)) {
+        if(symTable.tryResolveLocal(name, localOffset, resolvedOuterHops)) {
             isLocalVar = true;
+            haveLocalBinding = true;
+            resolvedLocalOff = localOffset;
         } else if(symTable.tryGetGlobalAddress(name, globalAddr)) {
             isLocalVar = false;
         } else {
@@ -502,17 +508,23 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
         size_t globalAddr = 0;
 
         if (explicitLocal) {
-            if (!symTable.tryGetLocalOffset(name, localOffset)) {
+            int oh = 0;
+            if (!symTable.tryResolveLocal(name, localOffset, oh) || oh != 0) {
                 error("Undefined local variable in compound assignment: " + name);
             }
             isLocalVar = true;
+            haveLocalBinding = true;
+            resolvedLocalOff = localOffset;
+            resolvedOuterHops = 0;
         } else if (explicitGlobal) {
             if (!symTable.tryGetGlobalAddress(name, globalAddr)) {
                 error("Undefined global variable in compound assignment: " + name);
             }
             isLocalVar = false;
-        } else if (symTable.tryGetLocalOffset(name, localOffset)) {
+        } else if (symTable.tryResolveLocal(name, localOffset, resolvedOuterHops)) {
             isLocalVar = true;
+            haveLocalBinding = true;
+            resolvedLocalOff = localOffset;
         } else if (symTable.tryGetGlobalAddress(name, globalAddr)) {
             isLocalVar = false;
         } else {
@@ -534,7 +546,7 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
 
         std::shared_ptr<ASTNode> varNode;
         if (isLocalVar) {
-            varNode = std::make_shared<VariableNode>(localOffset);
+            varNode = std::make_shared<VariableNode>(localOffset, resolvedOuterHops);
         } else {
             varNode = std::make_shared<VariableNode>(globalAddr);
         }
@@ -542,15 +554,18 @@ std::shared_ptr<StatementNode> Parser::parseAssignment() {
         valueExpr = std::make_shared<BinaryOpNode>(mathOp, varNode, valueExpr);
     } else {
         if (isLocalVar) {
-            symTable.getLocalOffset(name);
+            if (!haveLocalBinding) {
+                symTable.getLocalOffset(name);
+            }
         } else {
             symTable.getGlobalAddress(name);
         }
     }
 
     if (isLocalVar) {
-        int32_t off = symTable.getLocalOffset(name);
-        return std::make_shared<AssignmentNode>(off, valueExpr);
+        int32_t off = haveLocalBinding ? resolvedLocalOff : symTable.getLocalOffset(name);
+        int oh = haveLocalBinding ? resolvedOuterHops : 0;
+        return std::make_shared<AssignmentNode>(off, valueExpr, oh);
     } else {
         size_t addr = symTable.getGlobalAddress(name);
         return std::make_shared<AssignmentNode>(addr, valueExpr);
