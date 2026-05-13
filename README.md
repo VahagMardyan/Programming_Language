@@ -1,5 +1,43 @@
 # 🧪 VHG Language Documentation
 
+##  📑 Table of Contents
+
+- [🚀 Highlights](#-highlights)
+- [📦 Project Structure](#-project-structure)
+- [🛠️ Building the Compiler](#️-building-the-compiler)
+  - [Requirements](#requirements)
+  - [Linux / macOS / WSL](#linux--macos--wsl)
+  - [Windows](#windows)
+- [🏃 Usage](#-usage)
+  - [1. Run source directly](#1-run-source-directly-backwardcompatible)
+  - [2. Compile to bytecode](#2-compile-to-bytecode)
+  - [3. Run pre‑compiled bytecode](#3-run-precompiled-bytecode)
+- [📝 Language Syntax Overview](#-language-syntax-overview)
+  - [Variables & Scoping](#variables--scoping)
+  - [Variable Declaration Rules](#variable-declaration-rules)
+  - [Data Types](#data-types)
+  - [Operators](#operators)
+  - [Mathematical Functions](#mathematical-functions)
+  - [Mathematical Constants](#mathematical-constants)
+  - [Control Flow](#control-flow)
+  - [Functions](#functions)
+  - [Switch/case](#switchcase)
+  - [Built‑in I/O](#builtin-io)
+  - [Number Syntax](#number-syntax)
+  - [Import Preprocessing](#import-preprocessing)
+- [🧠 Architecture Deep Dive](#-architecture-deep-dive)
+  - [Lexer & Tokenizer](#lexer--tokenizer)
+  - [Parser](#parser)
+  - [Symbol Table](#symbol-table)
+  - [Compiler](#compiler)
+  - [Bytecode Format](#bytecode-format-vhb)
+  - [Virtual Machine](#virtual-machine)
+- [📊 Example Program](#-example-program)
+- [🐛 Debug Mode](#-debug-mode)
+- [📍 Line Numbers in Errors](#-line-numbers-in-errors)
+
+---
+
 **VHG** is a small, self‑contained programming language that compiles to a custom **register‑based bytecode** and runs on a **virtual machine**. The entire toolchain is written in modern C++ and demonstrates a complete compiler pipeline: lexical analysis, recursive‑descent parsing with operator precedence, an abstract syntax tree (AST), constant folding optimizations, and a RISC‑inspired instruction set.
 
 ---
