@@ -15,6 +15,7 @@
 - [📝 Language Syntax Overview](#-language-syntax-overview)
   - [Variables & Scoping](#variables--scoping)
   - [Variable Declaration Rules](#variable-declaration-rules)
+  - [It is desirable to know](#it-is-desirable-to-know)
   - [Data Types](#data-types)
   - [Operators](#operators)
   - [Mathematical Functions](#mathematical-functions)
@@ -243,7 +244,48 @@ for (i = 0; i < 10; i += 1) {
 - Implicit declarations follow the same scope rules as explicit ones
 - All variables default to `none` if not explicitly initialized
 
+### It is desirable to know
+The keywords `var` and `variable` are iterchangeable. You can use either form.
+
+***Basic variable declarations***
+```
+variable x = 10; # explicit declaration (auto scope)
+var y = 20; # 'var' is alias for 'variable'
+local a = 5; # explicit local variable
+global b = "Hello"; # explicit global variable
+```
+
+***The order of keywords is flexible***
+```
+# # These are valid and equivalent:
+variable local x = 10;
+local variable x = 10;
+
+variable global y = 10;
+global variable y = 10;
+
+var local z = 23;
+local var z = 23;
+```
+
+***For loop initializer***
+The `for` loop requires the `var` or `variable` keyword after `local` or `global` (if present):
+
+```
+# # Correct syntax:
+for (variable i = 0; i < 5; i += 1) { #* ... *# }
+for (local variable i = 0; i < 5; i += 1) { #* ... *# }
+for (global variable i = 0; i < 5; i += 1) { #* ... *# }
+for (var i = 0; i < 5; i += 1) { #* ... *# }
+for (local var i = 0; i < 5; i += 1) { #* ... *# }
+
+# # Incorrect syntax (this won't work):
+for (variable local i = 0; i < 5; i += 1) { #* ... *# }  # wrong order
+```
+---
+
 ### Data Types
+
 - **Numbers** – double‑precision floating point (internally `double`).
 - **Strings** – double‑ or single‑quoted literals; supports escape sequences `\n`, `\t`, `\"`, `\\`.
 - **Booleans** – `true` and `false` are stored as `1.0` and `0.0`.

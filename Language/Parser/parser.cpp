@@ -1032,7 +1032,12 @@ std::shared_ptr<StatementNode> Parser::parseFor() {
     symTable.enterBlockScope();
 
     // i = 0;
-    auto init = parseAssignment();
+    std::shared_ptr<StatementNode> init;
+    if(currentToken.type == TokenType::Variable) {
+        init = parseVarDecl();
+    } else {
+        init = parseAssignment();
+    }
 
     // i <= 10;
     auto cond = parseExpression();
