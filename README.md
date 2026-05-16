@@ -6,8 +6,9 @@
 - [📦 Project Structure](#-project-structure)
 - [🛠️ Building the Compiler](#️-building-the-compiler)
   - [Requirements](#requirements)
-  - [Linux / macOS / WSL](#linux--macos--wsl)
-  - [Windows](#windows)
+  - [Runner files](#runner-files)
+    - [Linux, MacOS or WSL](#linux-macos-or-wsl)
+    - [Windows](#windows)
 - [🏃 Usage](#-usage)
   - [1. Run source directly](#1-run-source-directly-backwardcompatible)
   - [2. Compile to bytecode](#2-compile-to-bytecode)
@@ -24,7 +25,7 @@
   - [Functions](#functions)
   - [Switch/case](#switchcase)
   - [Built‑in I/O](#builtin-io)
-  - [Number Syntax](#number-syntax)
+  - [Number Syntax](#the-syntaxis-of-number-types)
   - [Import Preprocessing](#import-preprocessing)
 - [🧠 Architecture Deep Dive](#-architecture-deep-dive)
   - [Lexer & Tokenizer](#lexer--tokenizer)
@@ -34,8 +35,8 @@
   - [Bytecode Format](#bytecode-format-vhb)
   - [Virtual Machine](#virtual-machine)
 - [📊 Example Program](#-example-program)
-- [🐛 Debug Mode](#-debug-mode)
-- [📍 Line Numbers in Errors](#-line-numbers-in-errors)
+- [🐛 Debug Mode](#debug-mode)
+- [📍 Line Numbers in Errors](#line-numbers-in-errors)
 
 ---
 
@@ -76,7 +77,12 @@
 - Standard library with filesystem support.
 - Simply run `runner.{ext}` on your OS.
 
-### Linux / macOS (g++ / clang) / WSL (Windows Subsystem for Linux)
+### Runner files
+
+#### Linux, MacOS or WSL
+>Compilers: `g++` or `clang++`
+---
+
 ```bash
 g++ -std=c++20 -O3 *.cpp -o vhg
 # or with static linking (Linux)
@@ -117,7 +123,13 @@ chmod +x runner.sh
 bash ./runner.sh
 ```
 
-### Windows (MSVC Developer Command Prompt)
+#### Windows
+
+>Compiler: `cl.exe` (MSVC)
+
+>Required environment: `Developer Command Prompt for Visual Studio 2022`
+---
+
 ```cmd
 cl /EHsc /O2 /std:c++20 *.cpp /Fe:vhg.exe
 ```
@@ -420,12 +432,14 @@ switch(x) {
 |   `0x`, `0X`     |   `0xff`    | HEX                   |
 
 >**Note:** Negative numbers are written with a leading `-`, e.g. `"-0b1100"` is `-12`.
+>**Note:** type of `binary`, `octal` or `hexadecimal` numbers is `string`. So don't forget `""` or `''`.
 
->**Note:** `bin(num)`, `oct(num)` and `hex(num)` where `num < 0` return the two's complement of `num` (32-bit).
+>**Note:** For `num < 0` case, `bin(num)`, `oct(num)` and `hex(num)` return the two's complement of `num` (32-bit).
 
 ### Import preprocessing
 `import "path_to_file"`
 - This allows to import functions and variables (global) from other files.
+>**Note:** Language doesn't support linker yet. So `import` works like `#include` in C++.
 
 ## 🧠 Architecture Deep Dive
 
