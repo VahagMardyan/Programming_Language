@@ -278,21 +278,18 @@ global variable y = 10;
 
 var local z = 23;
 local var z = 23;
-```
 
-***For loop initializer***
-The `for` loop requires the `var` or `variable` keyword after `local` or `global` (if present):
+for(var local i = 0;i<4;i+=1) { #* ... *# }
+for(local var i = 0;i<4;i+=1) { #* ... *# }
 
-```
-# # Correct syntax:
-for (variable i = 0; i < 5; i += 1) { #* ... *# }
-for (local variable i = 0; i < 5; i += 1) { #* ... *# }
-for (global variable i = 0; i < 5; i += 1) { #* ... *# }
-for (var i = 0; i < 5; i += 1) { #* ... *# }
-for (local var i = 0; i < 5; i += 1) { #* ... *# }
+for(global var i = 0;i<4;i+=1) { #* ... *# }
+for(var global i = 0;i<4;i+=1) { #* ... *# }
 
-# # Incorrect syntax (this won't work):
-for (variable local i = 0; i < 5; i += 1) { #* ... *# }  # wrong order
+for(variable local i = 0;i<4;i+=1) { #* ... *# }
+for(local variable i = 0;i<4;i+=1) { #* ... *# }
+
+for(global variable i = 0;i<4;i+=1) { #* ... *# }
+for(variable global i = 0;i<4;i+=1) { #* ... *# }
 ```
 ---
 

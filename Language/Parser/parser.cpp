@@ -1031,9 +1031,47 @@ std::shared_ptr<StatementNode> Parser::parseFor() {
     // Enter new scope for the entire for loop.
     symTable.enterBlockScope();
 
-    // i = 0;
+    // Init accepts: i = 0 | variable i = 0 | local variable i = 0 | global variable i = 0
     std::shared_ptr<StatementNode> init;
-    if(currentToken.type == TokenType::Variable) {
+    if(currentToken.type == TokenType::Local || currentToken.type == TokenType::Global) {
+        bool isGlobal = (currentToken.type == TokenType::Global);
+        nextToken(); // skip 'local' / 'global'
+        if(currentToken.type != TokenType::Variable) {
+            error("Expected 'variable' or 'var' after '" +
+                  std::string(isGlobal ? "global" : "local") +
+                  "' in for-loop initializer");
+        }
+        nextToken(); // skip 'variable' / 'var'
+        if(currentToken.type != TokenType::Name) {
+            error("Expected variable name in for-loop initializer");
+        }
+        std::string varName = currentToken.value;
+        nextToken(); // skip name
+        if(isGlobal) {
+            if(symTable.hasGlobal(varName))
+                error("Redeclaration of global variable: '" + varName + "'");
+        } else {
+            if(symTable.hasLocalInInnermostScope(varName))
+                error("Redeclaration of variable '" + varName + "' in the same scope");
+        }
+        std::shared_ptr<ASTNode> initExpr;
+        if(currentToken.type == TokenType::Assign) {
+            nextToken(); // skip '='
+            initExpr = parseExpression();
+        } else if(currentToken.type == TokenType::Semicolon) {
+            initExpr = std::make_shared<NoneNode>();
+        } else {
+            error("Expected '=' or ';' after variable name in for-loop initializer");
+        }
+        if(currentToken.type == TokenType::Semicolon) nextToken();
+        if(isGlobal) {
+            size_t addr = symTable.getGlobalAddress(varName);
+            init = std::make_shared<AssignmentNode>(addr, initExpr);
+        } else {
+            int32_t off = symTable.getLocalOffset(varName);
+            init = std::make_shared<AssignmentNode>(off, initExpr);
+        }
+    } else if(currentToken.type == TokenType::Variable) {
         init = parseVarDecl();
     } else {
         init = parseAssignment();
