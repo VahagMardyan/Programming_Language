@@ -257,7 +257,7 @@ This file defines the behavior of the editor (comments and brackets).
     },
     "log_ab function": {
         "prefix": "log_ab",
-        "body": "log_ab(${1:a}, ${2:b})",
+        "body": "log_ab(${1:base}, ${2:exponent})",
         "description": "log_ab(a, b) -> number - Logarithm of b with base a"
     },
     "ceil function": {
@@ -298,12 +298,12 @@ This file defines the behavior of the editor (comments and brackets).
     "ord function": {
         "prefix": "ord",
         "body": "ord(${1:string})",
-        "description": "Returns the Unicode code point for the first character of a string"
+        "description": "ord(string) -> number Returns the Unicode code point for the first character of a string"
     },
     "chr function": {
         "prefix": "chr",
         "body": "chr(${1:number})",
-        "description": "Returns a Unicode string of one character with code point i; 0 <= i <= 0x10FFFF"
+        "description": "chr(number) -> string Returns a Unicode string of one character with code point i; 0 <= i <= 0x10FFFF"
     },
     "bin function": {
         "prefix": "bin",
