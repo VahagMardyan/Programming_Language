@@ -70,5 +70,8 @@
 # local y = 4; # # local
 # print(y);
 
-var x = 5;
-print(x);
+global var x = 5;
+
+void function main() {
+    print(x);
+}

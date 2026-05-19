@@ -10,6 +10,7 @@ b = 20.5;
 str1 = "Hello";
 str2 = 'World';
 
+void function main() {
 print("=== Global variables and math ===\n");
 print("a = ", a, "\n");
 print("b = ", b, "\n");
@@ -89,3 +90,4 @@ if(not empty_text) {
     print('false');
 }
 print("\n=== All tests completed ===\n");
+}

@@ -1,3 +1,4 @@
+void function main() {
 print("=== Break Test ===\n");
 i = 0;
 while (i < 10) {
@@ -46,4 +47,5 @@ for (local x = 0; x < 10; x = x + 1) {
         continue;
     }
     print("x = ", x, "\n");
+}
 }

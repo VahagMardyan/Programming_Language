@@ -2,6 +2,18 @@
 
 This setup allows VS Code to recognize `.vhg` files as a formal language, enabling **perfect "Ctrl + /" comment toggling**, auto-closing brackets, and custom syntax highlighting without any buggy snippets.
 
+## Table of Contents
+- [Step 1: Create the Extension Folder](#step-1-create-the-extension-folder)
+- [Step 2: Create the Configuration Files](#step-2-create-the-configuration-files)
+    - [1. `package.json`](#1-packagejson)
+    - [2. `language-configuration.json`](#2-language-configurationjson)
+    - [3. `syntaxes/vhg.tmLangguage.json`](#3-syntaxesvhgtmlangguagejson)
+    - [4. `snippets/vhg.json`](#4-snippetsvhgjson)
+- [Step 3: Update VS Code Global Settings](#step-3-update-vs-code-global-settings)
+- [Step 4: Custom Syntax Highlighting (Colors)](#step-4-custom-syntax-highlighting-colors)
+- [Step 5: Finalize](#step-5-finalize)
+- [Key Features of this Setup:](#key-features-of-this-setup)
+
 ### Step 1: Create the Extension Folder
 1. Open your File Explorer.
 2. Navigate to the VS Code extensions folder. You can do this by pasting this path into your address bar:
@@ -385,7 +397,7 @@ This file defines the behavior of the editor (comments and brackets).
     "for loop": {
         "prefix": "for",
         "body": [
-            "for (${1:i = 0}; ${2:i < 10}; ${3:i = i + 1}) {",
+            "for (${1:variable i = 0}; ${2:i < 10}; ${3:i = i + 1}) {",
             "\t${4:# code}",
             "}"
         ],
@@ -511,6 +523,14 @@ This file defines the behavior of the editor (comments and brackets).
             "*#"
         ],
         "description": "comment - Multi-line comment block"
+    },
+    "entry-function": {
+        "prefix":"main",
+        "body" : [
+            "void function main() {",
+            "\t",
+            "}"
+        ]
     }
 }
 ```

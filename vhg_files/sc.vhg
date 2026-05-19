@@ -1,3 +1,4 @@
+void function main() {
 print("=== Switch Test ===\n");
 x = 2;
 
@@ -45,4 +46,5 @@ switch(q) {
     case 1001, 1004:
         print("1001 or 1004");
     break;
+}
 }

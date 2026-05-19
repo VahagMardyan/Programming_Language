@@ -23,6 +23,7 @@
   - [Mathematical Constants](#mathematical-constants)
   - [Control Flow](#control-flow)
   - [Functions](#functions)
+  - [Program entry (`main function`)](#program-entry-main)
   - [Switch/case](#switchcase)
   - [Built‑in I/O](#builtin-io)
   - [Number Syntax](#the-syntaxis-of-number-types)
@@ -352,20 +353,23 @@ for(variable global i = 0;i<4;i+=1) { #* ... *# }
 
 ### Control Flow
 ```vhg
-if (x > 0) {
-    print("positive\n");
-} else if (x < 0) {
-    print("negative\n");
-} else {
-    print("zero\n");
-}
+void function main() {
+    variable x = input("x= ");
+    if (x > 0) {
+        print("positive\n");
+    } else if (x < 0) {
+        print("negative\n");
+    } else {
+        print("zero\n");
+    }
 
-while (n > 0) {
-    n -= 1;
-}
+    while (n > 0) {
+        n -= 1;
+    }
 
-for (i = 0; i < 5; i += 1) {
-    print(i, " ");
+    for (i = 0; i < 5; i += 1) {
+        print(i, " ");
+    }
 }
 ```
 
@@ -380,13 +384,31 @@ void function foo() {
     print("Hello world");
 }
 
-result = add(10, 20);
-foo();
-print(result);
+void function main() {
+    result = add(10, 20);
+    foo();
+    print(result);
+}
 ```
 
 - Parameters are passed by value.
 - Functions can be called before they are defined (forward declaration via bytecode patching).
+
+### Program entry (`main`)
+Every complete program must define exactly one entry function:
+
+```vhg
+void function main() {
+    print("Hello, world\n");
+}
+```
+
+Rules:
+- `main` must be defined at **top level** (not nested inside another function).
+- `main` must take **no parameters**.
+- Only one `main` is allowed per program (after `import` merging).
+- At top level you may declare **globals** and **other functions**; executable statements (`print`, `if`, loops, calls, etc.) belong inside `main` (or another function).
+- Global initializers (for example `counter = 0;`) still run before `main` is called, similar to C++.
 
 <!-- > **Note:** VHG doesn't support recursive functions yet. Please use loop-iterative versions instead of recursion. -->
 
@@ -490,11 +512,14 @@ switch(x) {
 ```vhg
 # Loop and local scoping
 sum = 0;
-for (i = 1; i <= 10; i += 1) {
-    local square = i * i;
-    sum += square;
+
+void function main() {
+    for (i = 1; i <= 10; i += 1) {
+        local square = i * i;
+        sum += square;
+    }
+    print("Sum of squares 1..10 = ", sum, "\n");
 }
-print("Sum of squares 1..10 = ", sum, "\n");
 ```
 
 Run it:
@@ -508,13 +533,15 @@ Run it:
 var count = 0;           # auto-detect scope (global at top-level)
 variable total = 0;      # explicit declaration with var keyword
 
-for (i = 1; i <= 10; i += 1) {
-    local square = i * i;   # explicit local variable
-    var cube = i * i * i;   # auto-detected as local (inside block)
-    total += square;
-    count += 1;
+void function main() {
+    for (i = 1; i <= 10; i += 1) {
+        local square = i * i;   # explicit local variable
+        var cube = i * i * i;   # auto-detected as local (inside block)
+        total += square;
+        count += 1;
+    }
+    print("Count: ", count, ", Total: ", total, "\n");
 }
-print("Count: ", count, ", Total: ", total, "\n");
 ```
 
 ---

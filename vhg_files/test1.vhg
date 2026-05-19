@@ -14,6 +14,7 @@ function scope_test(a) {
     return x + y;
 }
 
+void function main() {
 print("--- Scoping --- \n");
 res = scope_test(5);
 print("Function result: ", res, "\n");
@@ -63,3 +64,4 @@ if ((10 > 5 or 5 > 10) and 1 == 1) {
 }
 
 print("\n=== Test v2.0 Completed ===\n");
+}

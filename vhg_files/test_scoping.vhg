@@ -1,6 +1,7 @@
 # Test program demonstrating block-level scoping
 
 # Test 1: For loop scope
+void function main() {
 print("=== Test 1: For loop creates its own scope ===");
 x = 100;  # global x
 for(i = 0; i < 3; i += 1) {
@@ -80,3 +81,4 @@ print("Function returned:", result);
 
 print("");
 print("=== All tests completed ===");
+}

@@ -75,6 +75,32 @@ bool Parser::isTopLevelProgramScope() const {
     return !symTable.isInsideFunction() && symTable.getScopeDepth() <= 1;
 }
 
+void Parser::rejectTopLevelExecutable(const std::string& construct) const {
+    if(isTopLevelProgramScope()) {
+        throw std::runtime_error(
+            "Line " + std::to_string(currentToken.lineNumber) + ": " + construct
+            + " is only allowed inside function main()"
+        );
+    }
+}
+
+void Parser::validateTopLevelStatement(const std::shared_ptr<StatementNode>& stmt, int line) const {
+    if(!stmt || !isTopLevelProgramScope()) return;
+
+    if(std::dynamic_pointer_cast<FunctionDefNode>(stmt)) return;
+
+    if(auto assign = std::dynamic_pointer_cast<AssignmentNode>(stmt)) {
+        if(!assign->isLocal()) return;
+        throw std::runtime_error(
+            "Line " + std::to_string(line) + ": local declarations are not allowed at top level"
+        );
+    }
+
+    throw std::runtime_error(
+        "Line " + std::to_string(line) + ": executable statements are only allowed inside function main()"
+    );
+}
+
 std::shared_ptr<ASTNode> Parser::createUnaryNode(const std::string& op,
     std::shared_ptr<ASTNode> child) {
     auto num = std::dynamic_pointer_cast<NumberNode>(child);
@@ -136,43 +162,55 @@ void Parser::processOperatorStack(const std::string& currentOp) {
 }
 
 std::shared_ptr<StatementNode> Parser::parseProgram() {
+    programHasMain = false;
     symTable.beginProgramParse();
     auto block = std::make_shared<BlockCode>();
     while(currentToken.type != TokenType::EndOfExpr) {
+        int stmtLine = currentToken.lineNumber;
         auto stmt = parseStatement();
-        if(stmt) block->addStatement(stmt);
-        else if(state == ParserState::Error) break;
+        if(stmt) {
+            validateTopLevelStatement(stmt, stmtLine);
+            block->addStatement(stmt);
+        } else if(state == ParserState::Error) break;
         else nextToken();
     }
     symTable.endProgramParse();
+    if(!programHasMain) {
+        error("Program must define function main() (void function main() { ... })");
+    }
     return block;
 }
 
 std::shared_ptr<StatementNode> Parser::parseStatement() {
     int stmtLine = currentToken.lineNumber;
     switch(currentToken.type) {
-        case TokenType::If: { 
+        case TokenType::If: {
+            rejectTopLevelExecutable("if");
             auto s = parseIf();
             if(s) s -> lineNumber = stmtLine;
             return s;
         }
         case TokenType::While: {
+            rejectTopLevelExecutable("while");
             auto s = parseWhile();
             if(s) s -> lineNumber = stmtLine;
             return s;
         }     
         case TokenType::OpenBrace: {
+            rejectTopLevelExecutable("block");
             int blockLine = currentToken.lineNumber;
             auto s = parseBlock();
             if(s) s -> lineNumber = blockLine;
             return s;
         }
         case TokenType::Print: {
+            rejectTopLevelExecutable("print");
             auto s = parsePrint();
             if(s) s -> lineNumber = stmtLine;
             return s;
         }
         case TokenType::For: {
+            rejectTopLevelExecutable("for");
             auto s = parseFor();
             if(s) s -> lineNumber = stmtLine;
             return s;
@@ -184,6 +222,7 @@ std::shared_ptr<StatementNode> Parser::parseStatement() {
             return s;
         }
         case TokenType::Return: {
+            rejectTopLevelExecutable("return");
             auto s = parseReturn();
             if(s) s -> lineNumber = stmtLine;
             return s;
@@ -194,6 +233,7 @@ std::shared_ptr<StatementNode> Parser::parseStatement() {
             return s;
         }
         case TokenType::Switch: {
+            rejectTopLevelExecutable("switch");
             auto s = parseSwitch();
             if(s) s -> lineNumber = stmtLine;
             return s;
@@ -352,6 +392,7 @@ std::shared_ptr<StatementNode> Parser::parseStatement() {
             return s;
         }
         case TokenType::Break: {
+            rejectTopLevelExecutable("break");
             if(!insideLoop && !insideSwitch) {
                 error("break statement outside of loop or switch");
             }
@@ -365,6 +406,7 @@ std::shared_ptr<StatementNode> Parser::parseStatement() {
         }
 
         case TokenType::Continue: {
+            rejectTopLevelExecutable("continue");
             if(!insideLoop) {
                 error("continue statement outside the loop");
             }
@@ -378,6 +420,9 @@ std::shared_ptr<StatementNode> Parser::parseStatement() {
         }
 
         default:
+            if(isTopLevelProgramScope()) {
+                error("executable statements are only allowed inside function main()");
+            }
             parseExpression();
             if(currentToken.type == TokenType::Semicolon) nextToken();
             return nullptr;
@@ -1123,6 +1168,16 @@ std::shared_ptr<StatementNode> Parser::parseFunction() {
     std::string name = currentToken.value;
     nextToken();
 
+    if (name == "main") {
+        if(!isTopLevelProgramScope()) {
+            error("function main() must be defined at top level");
+        }
+        if(programHasMain) {
+            error("multiple definitions of function main()");
+        }
+        programHasMain = true;
+    }
+
     if (currentToken.value != "(") {
         error("Expected '(' after function name");
     }
@@ -1144,6 +1199,10 @@ std::shared_ptr<StatementNode> Parser::parseFunction() {
         error("Expected ')' after parameters");
     }
     nextToken(); // skip ')'
+
+    if (name == "main" && !params.empty()) {
+        error("function main() must not take parameters");
+    }
 
     if (currentToken.type != TokenType::OpenBrace) {
         error("Expected '{' before function body");

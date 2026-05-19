@@ -358,6 +358,21 @@ ByteCode Compiler::compile(
         compileStatement(stmt, insts);
     }
 
+    if(!allowUnresolvedCalls) {
+        auto mainIt = functionTable.find("main");
+        if(mainIt == functionTable.end()) {
+            throw std::runtime_error("Program must define function main()");
+        }
+        int resultReg = allocateTempRegister();
+        Instruction callMain;
+        callMain.op = (uint32_t)OpCode::CALL;
+        callMain.dst = (uint32_t)resultReg;
+        setAddress(callMain, (uint16_t)mainIt->second.address);
+        insts.push_back(callMain);
+        lineNumbers.push_back(0);
+        freeTempRegister(resultReg);
+    }
+
     std::vector<std::pair<size_t, std::string>> unresolvedCalls;
     for(auto& [idx, name] : forwardCalls) {
         if(functionTable.count(name)) {

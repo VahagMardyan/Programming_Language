@@ -2,6 +2,9 @@ import "file1.vhg"
 import "link_lib.vhg"
 # import "../../smth.vhg";
 x /= 34;
-print(factorial(6));
-print(x);
-print(add(3,4));
+
+void function main() {
+    print(factorial(6));
+    print(x);
+    print(add(3,4));
+}

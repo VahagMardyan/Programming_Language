@@ -1,3 +1,4 @@
+void function main() {
 print("=== Variable Scope Test ===\n");
 
 # ----------------------------------
@@ -132,3 +133,4 @@ foo();
 print("Outside foo, x = ", x, "\n");     # 65
 
 print("\n=== All tests completed ===\n");
+}

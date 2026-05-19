@@ -57,15 +57,18 @@ void function even_odd() {
 }
 
 x = 5 > 0 ? 6 : 7;
-print(x); # 6
-print(factorial(6)); # 720
-print(fib(6)); # 8
-print(isFib(6) ? "true" : "false"); # false
-print(gcd(4,18)); # 2
-print(lcm(4,18)); # 36
-print(x_n(3,4)); # 81
-foo(); # 35
-even_odd();
+
+void function main() {
+    print(x); # 6
+    print(factorial(6)); # 720
+    print(fib(6)); # 8
+    print(isFib(6) ? "true" : "false"); # false
+    print(gcd(4,18)); # 2
+    print(lcm(4,18)); # 36
+    print(x_n(3,4)); # 81
+    foo(); # 35
+    even_odd();
+}
 #*
     0 Even
     1 Odd 

@@ -138,5 +138,7 @@ void function printSpiralPattern(n) {
     }
 }
 
-n = input("n=");
-printSpiralPattern(n);
+void function main() {
+    n = input("n=");
+    printSpiralPattern(n);
+}

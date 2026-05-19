@@ -243,19 +243,21 @@ function add(a, b) {
    return a+b;
 }
 
-greet();            # Prints Hello!
-result = add(3, 5); # result = 8
-print(result);
+void function main() {
+    greet();            # Prints Hello!
+    result = add(3, 5); # result = 8
+    print(result);
 
-print(m_e); # # e
-print(m_pi); # # pi
-print(sin(45)); # # sin(45 rad)
-print(sin(45 * m_pi / 180)); # # sin(45 deg)
-print(log_ab(5,25)); # log5(25)=2
-print(ln(4)); # # log_e(4)
-print(log(4)); # # log_e(4)
-#* And other math functions (check README.md for more) *#
+    print(m_e); # # e
+    print(m_pi); # # pi
+    print(sin(45)); # # sin(45 rad)
+    print(sin(45 * m_pi / 180)); # # sin(45 deg)
+    print(log_ab(5,25)); # log5(25)=2
+    print(ln(4)); # # log_e(4)
+    print(log(4)); # # log_e(4)
+    #* And other math functions (check README.md for more) *#
 
-# # User-input
-name = input("What's your name? ");
-print("Hello " + name + '!');
+    # # User-input
+    name = input("What's your name? ");
+    print("Hello " + name + '!');
+}

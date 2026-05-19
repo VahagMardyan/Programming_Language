@@ -13,6 +13,7 @@ private:
     bool insideFunction = false;
     bool insideLoop = false;
     bool insideSwitch = false;
+    bool programHasMain = false;
     Tokenizer& tokenizer;
     SymbolTable& symTable;
     Token currentToken;
@@ -32,6 +33,8 @@ private:
     bool shouldDefaultToLocal(bool explicitGlobal) const;
 
     bool isTopLevelProgramScope() const;
+    void rejectTopLevelExecutable(const std::string& construct) const;
+    void validateTopLevelStatement(const std::shared_ptr<StatementNode>& stmt, int line) const;
 
     std::shared_ptr<StatementNode> parseStatement();
     std::shared_ptr<StatementNode> parseIf();
