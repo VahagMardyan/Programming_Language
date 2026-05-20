@@ -136,7 +136,8 @@ Token Tokenizer::getNextToken() {
         if(lowered == "local") return {TokenType::Local, lowered, lexer.getLineNumber()};
         if(lowered == "global") return {TokenType::Global, lowered, lexer.getLineNumber()};
         if(lowered == "void") return {TokenType::Void, lowered, lexer.getLineNumber()};
-        if(lowered == "m_pi" || lowered == "m_e") return {TokenType::Math_const_vars, lowered, lexer.getLineNumber()};
+        if(lowered == "m_pi" || lowered == "m_e" || lowered == "m_inf" || lowered == "m_max")
+            return {TokenType::Math_const_vars, lowered, lexer.getLineNumber()};
         if(BuiltIns.find(lowered) != BuiltIns.end()) return {TokenType::Name, lowered, lexer.getLineNumber()};
         if(lowered == "none") return { TokenType::None, lowered ,lexer.getLineNumber()};
         if(lowered == "break") return { TokenType::Break, lowered , lexer.getLineNumber()};

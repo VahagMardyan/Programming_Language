@@ -1,5 +1,6 @@
 #include "vm.h"
 #include <cmath>
+#include <limits>
 
 namespace {
     int32_t toInt32(const Value& v) {
@@ -160,6 +161,8 @@ void VirtualMachine::printInstructionCompact(size_t pc, const Instruction& inst)
         
         case OpCode::CONST_PI:    std::cout << "CONST_PI r" << inst.dst; break;
         case OpCode::CONST_E:     std::cout << "CONST_E r" << inst.dst; break;
+        case OpCode::CONST_INF:     std::cout << "CONST_INF r" << inst.dst; break;
+        case OpCode::CONST_MAX:     std::cout << "CONST_MAX r" << inst.dst; break;
         
         case OpCode::ADDI:        std::cout << "ADDI r" << inst.dst << " = r" << inst.left << " + " << (int32_t)(int8_t)inst.right; break;
         case OpCode::ANDI:        std::cout << "ANDI r" << inst.dst << " = r" << inst.left << " & " << (int32_t)(int8_t)inst.right; break;
@@ -385,6 +388,14 @@ double VirtualMachine::run() {
             break;
             case OpCode::CONST_E: {
                 registers[inst.dst] = 2.718281828459045;
+            }
+            break;
+            case OpCode::CONST_INF: {
+                registers[inst.dst] = std::numeric_limits<double>::infinity();
+            }
+            break;
+            case OpCode::CONST_MAX: {
+                registers[inst.dst] = std::numeric_limits<double>::max();
             }
             break;
             case OpCode::UNARY:  
@@ -988,6 +999,13 @@ void VirtualMachine::visualize(const std::vector<Instruction>& program) const {
                 std::cout << "LOAD_CONST E" << std::setw(6);
             break;
 
+            case OpCode::CONST_INF:
+                std::cout << "LOAD_CONST INF" << std::setw(6);
+            break;
+
+            case OpCode::CONST_MAX:
+                std::cout << "LOAD_CONST MAX" << std::setw(6);
+            break;
             case OpCode::RETURN:
                 std::cout << "RETURN" << std::setw(6) << inst.dst << std::setw(6) << "-" << std::setw(6) << "-";
                 break;

@@ -346,6 +346,8 @@ for(variable global i = 0;i<4;i+=1) { #* ... *# }
 |----------|-------|-------------|
 | `m_pi` | 3.141592653589793 | π (Pi) |
 | `m_e`  | 2.718281828459045 | e (Euler's number) |
+| `m_max`| 1.79769e+308 | The Maximum Number |
+| `m_inf`| inf | The Infinity |
 
 > **Note:** Trigonometric functions use radians by default.
     For degrees use this formula: `argument*m_pi/180`. E.g. `sin(60*m_pi/180)`.

@@ -936,7 +936,11 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                     state = ParserState::ExpectOperator;
                     nextToken();
                 }  else if(token.type == TokenType::Math_const_vars) {
-                    OpCode constOp = (token.value == "m_pi") ? OpCode::CONST_PI : OpCode::CONST_E;
+                    OpCode constOp = (token.value == "m_pi") ? OpCode::CONST_PI : 
+                                    (
+                                        token.value == "m_e" ? OpCode::CONST_E : 
+                                        (token.value == "m_inf" ? OpCode::CONST_INF : OpCode::CONST_MAX)
+                                    );
                     nodes.push(std::make_shared<MathConstantNode>(constOp));
                     state = ParserState::ExpectOperator;
                     nextToken();

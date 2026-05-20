@@ -150,7 +150,7 @@
         "description": "input(prompt) -> string/number - User input"
     },
     "m_pi constant": {
-        "prefix": "m_pi",
+        "prefix": "pi|m_pi",
         "body": "m_pi",
         "description": "m_pi -> number - Mathematical constant π (3.14159...)"
     },
@@ -158,6 +158,16 @@
         "prefix": "m_e",
         "body": "m_e",
         "description": "m_e -> number - Mathematical constant e (2.71828...)"
+    },
+    "m_inf constant": {
+        "prefix": "inf|m_inf",
+        "body": "m_inf",
+        "description": "m_inf -> number - Infinity"
+    },
+    "m_max constant": {
+        "prefix": "max|m_max",
+        "body": "m_max",
+        "description": "The most possible maximum value."
     },
     "if statement": {
         "prefix": "if",

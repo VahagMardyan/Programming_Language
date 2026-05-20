@@ -159,7 +159,7 @@ This file defines the behavior of the editor (comments and brackets).
             "name": "constant.numeric.vhg"
         },
         "builtIn": {
-            "match": "(?i)\\b(input|length|void|m_e|m_pi|ord|chr|bin|oct|dec|hex|type)\\b",
+            "match": "(?i)\\b(input|length|void|m_e|m_pi|m_inf|m_max|ord|chr|bin|oct|dec|hex|type)\\b",
             "name": "support.function.vhg"
         },
         "math_functions": {
@@ -343,7 +343,7 @@ This file defines the behavior of the editor (comments and brackets).
         "description": "input(prompt) -> string/number - User input"
     },
     "m_pi constant": {
-        "prefix": "m_pi",
+        "prefix": "pi|m_pi",
         "body": "m_pi",
         "description": "m_pi -> number - Mathematical constant π (3.14159...)"
     },
@@ -351,6 +351,16 @@ This file defines the behavior of the editor (comments and brackets).
         "prefix": "m_e",
         "body": "m_e",
         "description": "m_e -> number - Mathematical constant e (2.71828...)"
+    },
+    "m_inf constant": {
+        "prefix": "inf|m_inf",
+        "body": "m_inf",
+        "description": "m_inf -> number - Infinity"
+    },
+    "m_max constant": {
+        "prefix": "max|m_max",
+        "body": "m_max",
+        "description": "The most possible maximum value."
     },
     "if statement": {
         "prefix": "if",
