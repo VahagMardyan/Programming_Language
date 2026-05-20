@@ -103,13 +103,29 @@ Token Tokenizer::getNextToken() {
     if(current == ':') { lexer.advance(); return {TokenType::Colon, ":", lexer.getLineNumber()}; }
 
     // 4. Numbers
+    // Supports: 1_000_000 (underscore separator, stripped)
+    // 1e6, 1e+6, 1.5e-3 (scientific notation)
     if(isdigit(current) || current == '.') {
         std::string val;
         bool hasDot = false;
-        while(!lexer.isEOF() && (isdigit(lexer.peek()) || lexer.peek() == '.')) {
+        while(!lexer.isEOF() && (isdigit(lexer.peek()) || lexer.peek() == '.' || lexer.peek() == '_')) {
+            if(lexer.peek() == '_') { lexer.advance(); continue; } // strip separator
             if(lexer.peek() == '.') { if(hasDot) break; hasDot = true; }
             val += (char)lexer.peek();
             lexer.advance();
+        }
+        // Scientific notation: e/E followed by optional +/- and digits
+        if(!lexer.isEOF() && (lexer.peek() == 'e' || lexer.peek() == 'E')) {
+            val += (char)lexer.peek();
+            lexer.advance();
+            if(!lexer.isEOF() && (lexer.peek() == '+' || lexer.peek() == '-')) {
+                val += (char)lexer.peek();
+                lexer.advance();
+            }
+            while(!lexer.isEOF() && isdigit(lexer.peek())) {
+                val += (char)lexer.peek();
+                lexer.advance();
+            }
         }
         return {TokenType::Number, val, lexer.getLineNumber()};
     }

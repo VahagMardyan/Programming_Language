@@ -155,7 +155,7 @@ This file defines the behavior of the editor (comments and brackets).
             "name": "keyword.operator.logical.vhg"
         },
         "numbers": {
-            "match": "\\b\\d+(\\.\\d+)?\\b",
+            "match": "\\b\\d[\\d_]*(\\.\\d[\\d_]*)?(([eE][+-]?\\d+))?\\b",
             "name": "constant.numeric.vhg"
         },
         "builtIn": {

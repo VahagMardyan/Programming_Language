@@ -26,7 +26,7 @@
   - [Program entry (`main function`)](#program-entry-main)
   - [Switch/case](#switchcase)
   - [Built‑in I/O](#builtin-io)
-  - [Number Syntax](#the-syntaxis-of-number-types)
+  - [Number Syntax](#the-syntax-of-number-types)
   - [Import Preprocessing](#import-preprocessing)
 - [Architecture Deep Dive](#-architecture-deep-dive)
   - [Lexer & Tokenizer](#lexer--tokenizer)
@@ -444,13 +444,22 @@ switch(x) {
 - `dec(string)` - Returns the decimal representation of given argment (if possible).
 ---
 
-### The syntaxis of number types.
+### The syntax of number types.
 
 |   Syntax  |   Example   | Will understand as           |
 | ----------| ------------|------------------------------|
 |   `0b`, `0B`    |   `0b1100`   | BIN                   |
 |   `0o`, `0O`    |   `0o45`    | OCT                    |
 |   `0x`, `0X`     |   `0xff`    | HEX                   |
+| `_` separator  |  `1_000_000`  | `1000000` |
+| `e±N` `E±N` | `2e+3`, `3E-4` |  `2000`, `0.0003`  |
+
+>**Note** Implicit multiplication (`3x` as `3*x`) won't work for variables 
+named `e` or `E`, as `3e4` will always be parsed as `3×10⁴ = 30000`.
+
+>**Note** `_` is stripped silently as a visual separator. `e`/`E` are 
+processed as scientific notation. Unlike `0b`/`0o`/`0x`, none of these 
+require quotes in string context.
 
 >**Note:** Negative numbers are written with a leading `-`, e.g. `"-0b1100"` is `-12`.
 >**Note:** type of `binary`, `octal` or `hexadecimal` numbers is `string`. So don't forget `""` or `''`.
