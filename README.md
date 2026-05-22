@@ -34,6 +34,19 @@
   - [Symbol Table](#symbol-table)
   - [Compiler](#compiler)
   - [Bytecode Format](#bytecode-format-vhb)
+    - [File Structure](#file-structure)
+    - [Header Fields](#header-fields)
+    - [Line Numbers Table](#line-numbers-table)
+    - [Instruction Format](#instruction-format)
+    - [Address decoding for jump/call instructions](#address-decoding-for-jumpcall-instructions)
+    - [Address encoding](#address-encoding)
+    - [Constants Table](#constants-table)
+    - [Strings Table](#strings-table)
+    - [Globals Metadata](#globals-metadata)
+    - [VHB File Size Calculation](#vhb-file-size-calculation)
+    - [Complete Example](#complete-example)
+    - [Parsing the file](#parsing-the-file)
+    - [Loading Process](#loading-process)
   - [Virtual Machine](#virtual-machine)
 - [Example Program](#-example-program)
 - [Debug Mode](#debug-mode)
@@ -500,17 +513,187 @@ require quotes in string context.
 - Patches forward function calls after all code is generated.
 - **Constant folding** is re‑applied during optimization (redundant constants are merged).
 - Outputs a `ByteCode` structure containing instructions, constant pool (numbers), and string pool.
+---
 
 ### Bytecode Format (`.vhb`)
-| Offset | Field               | Size            |
-|--------|---------------------|-----------------|
-| 0      | Magic `"VHB1"`      | 4 bytes         |
-| 4      | Instruction count   | 4 bytes (uint32)|
-| 8      | Constant count      | 4 bytes (uint32)|
-| 12     | String count        | 4 bytes (uint32)|
-| 16     | Instructions        | `count * 4` bytes (op, dst, left, right each 1 byte) |
-| …      | Constants           | `count * 8` bytes (double) |
-| …      | Strings             | each: length (uint32) + UTF‑8 data |
+The `.vhb` (VH Binary) file is a platform-independent binary representation of the compiled program.
+It contains all inforamtion needed to execute the program without re-parsing the source code.
+
+#### File Structure
+```
++--------------------------------------------------+
+| HEADER |
++--------------------------------------------------+
+| Magic: "VHB1" | 4 bytes |
+| Instruction Count (M) | 4 bytes |
+| Constant Count (C) | 4 bytes |
+| String Count (S) | 4 bytes |
+| Line Numbers Count (L = M) | 4 bytes |
++--------------------------------------------------+
+| LINE NUMBERS TABLE |
++--------------------------------------------------+
+| Line Numbers (M entries) | M * 4 bytes |
++--------------------------------------------------+
+| INSTRUCTION TABLE |
++--------------------------------------------------+
+| Instructions (M entries) | M * 4 bytes |
++--------------------------------------------------+
+| CONSTANTS TABLE |
++--------------------------------------------------+
+| Constants (C entries) | C * 8 bytes |
++--------------------------------------------------+
+| STRINGS TABLE |
++--------------------------------------------------+
+| For each of S strings: |
+| - Length (uint32) | 4 bytes |
+| - UTF-8 data | length bytes |
++--------------------------------------------------+
+| GLOBALS METADATA |
++--------------------------------------------------+
+| Global Slot Count (G) | 4 bytes |
+| For each of G slots: |
+| - Name length (uint32) | 4 bytes |
+| - Name data | length bytes |
++--------------------------------------------------+
+```
+
+#### Header Fields
+| Offset | Field | Size | Description |
+|--------|-------|------|-------------|
+| 0 | Magic | 4 bytes | File identifier: `'V'` `'H'` `'B'` `'1'` |
+| 4 | Instruction Count | 4 bytes | Number of bytecode instructions (M) |
+| 8 | Constant Count | 4 bytes | Number of floating‑point constants (C) |
+| 12 | String Count | 4 bytes | Number of string literals (S) |
+| 16 | Line Numbers Count | 4 bytes | Number of line number entries (must equal M) |
+
+#### Line Numbers Table
+Contains the source line number for each instruction (used for error reporting).
+```text
+[Line0] [Line1] [Line2] ... [LineM-1]
+```
+
+Each entry is a 4-byte (32-bit) unsigned integer.
+
+#### Instruction Format
+Each instruction is exactly **4 bytes** with the following layout:
+Byte 0: Opcode (8 bits)
+Byte 1: Destination Register (8 bits)
+Byte 2: Left Operand / Address low byte (8 bits)
+Byte 3: Right Operand / Address high byte (8 bits)
+
+**C++ representation:**
+```c++
+struct Instruction {
+    uint32_t op : 8; // Operation code
+    uint32_t dst : 8; // Destination register
+    uint32_t left : 8; // Left operand or address low byte
+    uint32_t right : 8; // Right operand or address high byte
+};
+```
+
+#### Address decoding for jump/call instructions:
+```c++
+    uint16_t address = (inst.right << 8) | inst.left;  
+```
+
+#### Address encoding:
+```c++
+    inst.left = address & 0xFF;
+    inst.right = (address >> 8) & 0xFF;
+```
+
+#### Constants Table:
+Stores floating-point constant values (IEEE-754 double precision, 8 bytes each).
+
+```text
+[Constant0] [Constant1] ... [ConstantC-1]
+```
+
+#### Strings Table
+Each string is stored as a length-prefixed UTF-8 sequence:
+
+```text
+For i = 0 to S-1:
+    uint32_t length = strlen(strings[i])
+    write(length)
+    write(strings[i], length)
+```
+
+Example:
+`Hello` -> 0x05 0x00 0x00 'H' 'e' 'l' 'l' 'o'
+
+#### Globals Metadata
+Stores global variable names for runtime error messages (detecting reads for uninitialized globals).
+```text
+Global Slot Count (G) = number of global variable slots
+
+For slot = 0 to G-1:
+    uint32_t nameLength = strlen(globalNames[slot])
+    write(nameLength)
+    write(globalNames[slot], nameLength)
+```
+
+#### VHB File Size Calculation
+```math
+    Size = 24 + 8×M + 8×C + ∑(4 + |s|) + ∑(4 + |n|) bytes
+```
+**Where:**
+
+`M` = number of instructions
+
+`C` = number of constants
+
+`|s|` = length of each string
+
+`|n|` = length of each global variable name
+
+`∑` over all strings and global names
+
+
+#### Complete Example
+```vhg
+    void function main() {
+        global var x = 10;
+        print("Hello");
+    }
+```
+
+![alt text](./Readme-images/hex_example.png)
+
+**Its size will be:**
+M = 11; (run `.vhb` in `--debug` to see all instructions)
+
+C = 1 (only `10`);
+|s|₁ = 5 (`"Hello"`); |s|₂=1 (`"\n"` from `print` function)
+
+|n| = 1 (only `x`.)
+
+```math
+    Size = 24 + 8(11+1) + (9+5) + 5 = 139 bytes
+```
+
+#### Parsing the file:
+* Offset 0-3: Magic `"VHB1"`
+* Offset 4-7: Instruction count=2
+* Offset 8-11: Constant count=1
+* Offset 12-15: String count=1
+* Offset 16-19: Line numbers count=2
+* Offset 20-27: Line numbers = [1,2]
+* Offset 28-35: Instruction (2×4 bytes)
+* Offset 36-43: Constant (10.0)
+* Offset 44-52: String ("Hello")
+* Offset 53-56: Global slot count=1
+* Offset 57-61: Global name length=1, name = "x"
+
+#### Loading Process
+When the VM loads a `.vhb` file, it performs these steps:
+1. **Read and validate header** - Check magic number
+2. **Read line numbers** - Store the error reporting
+3. **Read instructions** - Copy into `current_program` vector
+4. **Read constants** - Copy into `current_constants` vector
+5. **Read strings** - Copy into `current_strings` vector
+6. **Read globals metadata** - Set up `vmGlobalNames` for runtime checks
+7. **Initialize registers and memory** - Set SP, FP, allocate memory.
 
 ### Virtual Machine
 - **Register file** – 256+ registers (indexed by `uint8_t`), with `x2` as stack pointer and `x8` as frame pointer.
