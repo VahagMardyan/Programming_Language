@@ -262,6 +262,8 @@ for (i = 0; i < 10; i += 1) {
 | `global var x = expr;` | Global | Short form with global |
 | `x = expr;` | Auto (implicit declaration if new) | Assignment/declaration |
 | `x;` | Auto (implicit declaration with `none`) | Declaration-only |
+| `global/local var a,b,c = 3,4,5` | Equvalent to `var a=3; var b=4; var c=5;` | Multiple variable declaration |
+| `global/local var a=5, b=4, c="Hello"` | Equvalent to `var a=5; var b=4; var c="Hello";` | Multiple variable declaration |
 
 ***Important Rules:***
 - Variables cannot be redeclared in the same scope
@@ -269,7 +271,8 @@ for (i = 0; i < 10; i += 1) {
 - `local` is not allowed in top-level (global) scope
 - Implicit declarations follow the same scope rules as explicit ones
 - All variables default to `none` if not explicitly initialized
-
+- For `Multiple variable declaration` the keyword `variable` (`var`) is required
+- The `Multiple variable declaration` follows `single variable declaration` rules
 ### It is desirable to know
 The keywords `var` and `variable` are iterchangeable. You can use either form.
 
