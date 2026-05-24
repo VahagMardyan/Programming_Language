@@ -328,6 +328,8 @@ ByteCode Compiler::compile(
     constantPool.clear();
     lineNumbers.clear();
     stringPool.clear();
+    stringMap.clear();
+    constMap.clear();
     nextTempIndex = 0;
     functionTable.clear();
     forwardCalls.clear();
@@ -423,8 +425,15 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
         if(auto num = std::dynamic_pointer_cast<NumberNode>(node)) {
             double val = num -> getValue();
             int reg = allocateTempRegister();
-            int idx = (int)constantPool.size();
-            constantPool.push_back(val);
+            int idx;
+            auto it = constMap.find(val);
+            if(it != constMap.end()) {
+                idx = it->second;
+            } else {
+                idx = (int)constantPool.size();
+                constantPool.push_back(val);
+                constMap[val] = idx;
+            }
             code.push_back({(uint32_t)OpCode::LOAD_CONST, (uint32_t)reg, (uint32_t)idx, 0});
             storage.push(reg);
         }
@@ -470,8 +479,16 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
             storage.push(target);
         }
         else if(auto strNode = std::dynamic_pointer_cast<StringNode>(node)) {
-            int strIdx = (int)stringPool.size();
-            stringPool.push_back(strNode->getValue());
+            const std::string& val = strNode->getValue();
+            int strIdx;
+            auto it = stringMap.find(val);
+            if(it != stringMap.end()) {
+                strIdx = it->second;
+            } else {
+                strIdx = (int)stringPool.size();
+                stringPool.push_back(val);
+                stringMap[val] = strIdx;
+            }
             int reg = allocateTempRegister();
             code.push_back({(uint32_t)OpCode::LOAD_STR, (uint32_t)reg, (uint32_t)strIdx, 0});
             storage.push(reg);
@@ -649,7 +666,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         lineNumbers.push_back(stmt -> lineNumber);
         size_t afterLoopAddr = code.size();
         
-        // JZ-ն պետք է ցատկի ցիկլից հետո
+        // JZ should jump after the cycle
         setAddress(code[jzIdx], (uint16_t)afterLoopAddr);
         
         // Patch all break jumps to point after the loop
@@ -675,8 +692,16 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
     else if(auto printStmt = std::dynamic_pointer_cast<PrintNode>(stmt)) {
         for(const auto& expr : printStmt->getExpressions()) {
             if(auto strNode = std::dynamic_pointer_cast<StringNode>(expr)) {
-                int strIdx = (int)stringPool.size();
-                stringPool.push_back(strNode->getValue());
+                const std::string& val = strNode->getValue();
+                int strIdx;
+                auto it = stringMap.find(val);
+                if(it != stringMap.end()) {
+                    strIdx = it->second;
+                } else {
+                    strIdx = (int)stringPool.size();
+                    stringPool.push_back(val);
+                    stringMap[val] = strIdx;
+                }
                 code.push_back({(uint32_t)OpCode::PRINT_STR, (uint32_t)strIdx, 0, 0});
                 lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
             } else {
@@ -690,7 +715,6 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
                 int lastReg = exprCode.empty() ? 0 : exprCode.back().dst;
                 code.push_back({(uint32_t)OpCode::PRINT, (uint32_t)lastReg, 0, 0});
                 lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
-                // PRINT-ից հետո ազատել
                 freeTempRegister(lastReg);
             }
         }

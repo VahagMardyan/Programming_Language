@@ -53,6 +53,8 @@ class Compiler {
         CompileContext globalCtx;
         std::vector<double> constantPool;
         std::vector<std::string> stringPool;
+        std::unordered_map<std::string, int> stringMap;
+        std::unordered_map<double, int> constMap;
         // Function Table
         std::unordered_map<std::string, FunctionInfo> functionTable;
 
