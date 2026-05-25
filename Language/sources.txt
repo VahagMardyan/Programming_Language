@@ -1,7 +1,0 @@
-Runner/main.cpp
-Compiler/Compiler.cpp
-AST/ast.cpp
-Lexer/lexer.cpp
-Parser/parser.cpp
-Tokenizer/tokenizer.cpp
-VirtualMachine/vm.cpp

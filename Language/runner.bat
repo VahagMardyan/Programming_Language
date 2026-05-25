@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-set SOURCES=AST\ast.cpp Compiler\compiler.cpp Lexer\lexer.cpp Parser\parser.cpp Runner\main.cpp Tokenizer\tokenizer.cpp VirtualMachine\vm.cpp
+set SOURCES=AST\ast.cpp Compiler\compiler.cpp Lexer\lexer.cpp Parser\parser.cpp Runner\main.cpp Tokenizer\tokenizer.cpp VirtualMachine\vm.cpp VirtualMachine\debugger.cpp VirtualMachine\printer.cpp
 
 set CXX=cl
 set CXXFLAGS=/EHsc /O2 /std:c++20 /W3

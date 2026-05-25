@@ -2,7 +2,7 @@
 
 set -e
 
-SOURCES="AST/ast.cpp Compiler/compiler.cpp Lexer/lexer.cpp Parser/parser.cpp Runner/main.cpp Tokenizer/tokenizer.cpp VirtualMachine/vm.cpp"
+SOURCES="AST/ast.cpp Compiler/compiler.cpp Lexer/lexer.cpp Parser/parser.cpp Runner/main.cpp Tokenizer/tokenizer.cpp VirtualMachine/vm.cpp VirtualMachine/debugger.cpp VirtualMachine/printer.cpp"
 
 CXX="g++"
 CXXFLAGS="-std=c++20 -O3"
