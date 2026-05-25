@@ -1,61 +1,45 @@
 ## Created for my convenience.
 
-# RV32I arithmetic and logic (0 - 19)
-
+# RV32I arithmetic and logic (0 - 20)
 0: ADD, 1: MOV, 2: SUB, 3: AND, 4: OR, 5: XOR, 6: NOT
-
 7: SLL, 8: SRL, 9: SRA
-
 10: SLT, 11: SLTU
-
 12: ADDI, 13: ANDI, 14: ORI, 15: XORI
-
 16: SLLI, 17: SRLI, 18: SRAI
-
 19: LUI, 20: AUIPC
 
 # RV32I control flow (21 - 28)
-
 21: JAL, 22: JALR
-
 23: BEQ, 24: BNE, 25: BLT, 26: BGE, 27: BLTU, 28: BGEU
 
 # RV32I memory (29 - 30)
-
 29: LW, 30: SW
 
-# Existing VM extensions (31 - 83)
+# Existing VM extensions (31 - 92)
 31: MUL, 32: DIV, 33: MODULO, 34: POW, 35: FLOOR_DIV, 36: FRAC_DIV
-
 37: UNARY, 38: LOAD_CONST, 39: LOAD_VAR, 40: LOAD_STR, 41: LOAD_NONE
-
 42: UNDEFINED
-
 43: CMP_GT, 44: CMP_LT, 45: CMP_GET, 46: CMP_LET, 47: CMP_EQ, 48: CMP_NEQ
-
 49: JMP, 50: JZ, 51: JNZ
-
 52: STORE_VAR
-
 53: PRINT, 54: PRINT_STR
-
 55: LOGICAL_AND, 56: LOGICAL_OR, 57: LOGICAL_NOT
-
 58: CALL, 59: RETURN, 60: PUSH_ARG, 61: LOAD_PARAM
-
 62: LOAD, 63: STORE
-
 64: INPUT
-
 65: LENGTH
 
 # Math functions
 66: SIN, 67: COS, 68: TAN
-
 69: ASIN, 70: ACOS, 71: ATAN, 72: ATAN2
-
 73: SQRT, 74: EXP, 75: LOG, 76: LOG10
-
 77: CEIL, 78: FLOOR, 79: ABS, 80: ROUND
+81: FMOD, 82: CBRT, 83: MATH_POW, 84: LOG2, 85: LOG_AB
 
-81: FMOD, 82: CBRT, 83: MATH_POW
+# Math constants
+86: CONST_PI, 87: CONST_E, 88: CONST_INF, 89: CONST_MAX
+
+# Conversions & Scope
+90: ORD, 91: CHR, 92: BIN, 93: OCT, 94: DEC, 95: HEX
+96: TYPE
+97: LOAD_OUTER, 98: STORE_OUTER
