@@ -395,6 +395,15 @@ This file defines the behavior of the editor (comments and brackets).
         ],
         "description": "if-else if-else statement - Multiple conditions"
     },
+    "else-if statement": {
+        "prefix" : "elif",
+        "body": [
+            "else if(${1:condition}) {",
+            "\t ${2:# code}",
+            "}"
+        ],
+        "description" : "if-else statement"
+    },
     "while loop": {
         "prefix": "while",
         "body": [
@@ -407,14 +416,14 @@ This file defines the behavior of the editor (comments and brackets).
     "for loop": {
         "prefix": "for",
         "body": [
-            "for (${1:variable i = 0}; ${2:i < 10}; ${3:i = i + 1}) {",
+            "for (${1:variable i = 0}; ${2:i < count}; ${3:i = i + 1}) {",
             "\t${4:# code}",
             "}"
         ],
         "description": "for loop - Execute with initialization, condition, and update"
     },
     "function definition": {
-        "prefix": "func",
+        "prefix": "function",
         "body": [
             "function ${1:name}(${2:params}) {",
             "\t${3:# body}",
@@ -424,7 +433,7 @@ This file defines the behavior of the editor (comments and brackets).
         "description": "function - Define a function with return value"
     },
     "void function": {
-        "prefix": "vfunc|void",
+        "prefix": "vfunction | void",
         "body": [
             "void function ${1:name}(${2:params}) {",
             "\t${3:# body}",
@@ -443,8 +452,8 @@ This file defines the behavior of the editor (comments and brackets).
         "description": "print with newline - Output with explicit newline"
     },
     "return statement": {
-        "prefix": "ret",
-        "body": "return ${1:value};",
+        "prefix": "return",
+        "body": "return ;",
         "description": "return - Return value from function"
     },
     "local variable": {
@@ -474,7 +483,7 @@ This file defines the behavior of the editor (comments and brackets).
     },
     "not keyword": {
         "prefix": "not",
-        "body": "not ${1:expression}",
+        "body": "not",
         "description": "not - Logical not operator"
     },
     "true keyword": {
