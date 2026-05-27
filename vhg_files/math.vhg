@@ -1,37 +1,177 @@
+# n! = n * (n-1) * (n-2) * ... * 1
 function factorial(n) {
-    if(n == 0) return 1;
-    return n * factorial(n-1);
+    # if(n == 0) return 1;
+    # return n * factorial(n - 1);
+
+    variable result = 1;
+    for (variable i = 1; i <= n; i = i + 1) {
+        result *= i;
+    }
+    return result;
 }
 
-function fib(n) {
-    if(n <= 1) return n;
-    return fib(n-1) + fib(n-2);
+# C(n,r) = n! / (r! * (n-r)!); where n ≥ r
+function nCr(n, r) {
+    if(r < 0 or r > n) return 0;
+    if(r == 0 or r == n) return 1;
+    variable result = 1;
+    for(variable i = 1; i <= r; i+=1) {
+        result = result * (n - r + i) / i;
+    }
+    return result;
 }
 
-function isFib(n) {
-    n1 = 5*n**2 + 4;
-    n2 = 5*n**2 - 4;
-    answer = (fmod(sqrt(n1),1) == 0 or fmod(sqrt(n2),1) == 0);
-    return answer ? "true" : "false";
+# P(n,r) = n! / (n-r)!; where n ≥ r
+function nPr(n, r) {
+    if(n < r or n < 0 or r < 0) return 0;
+
+    variable result = 1;
+    for(variable i = 0; i < r; i += 1) {
+        result *= (n - i);
+    }
+    return result;
 }
 
-function isPrime(n) {
-    for(i=2;i<=floor(sqrt(n)); i+=1) {
-        if(n % i == 0) return false;
+# F(n) = F(n-1) + F(n-2), F(0) = 0, F(1) = 1, F(2) = 1, F(3) = 2, ...
+function fibonacci(n) {
+    # if(n <= 1) return n;
+    # return fibonacci(n - 2) + fibonacci(n - 1);
+    if(n <= 0) return 0;
+    if(n == 1) return 1;
+    variable a,b = 0,1;
+    for(variable i = 2; i <= n; i+=1) {
+        variable temp = a + b;
+        a = b;
+        b = temp;
+    }
+    return b;
+}
+
+# √(5n^2 + 4) ∈ N or √(5n^2 - 4) ∈ N, then we can say that n ∈ Fibonacci
+function is_fibonacci(n) {
+    variable x1 = sqrt(5*n**2 + 4);
+    variable x2 = sqrt(5*n**2 - 4);
+    
+    return (fmod(x1, 1) == 0 or fmod(x2, 1) == 0);
+}
+
+# ax**2 + bx + c = 0
+void function quadratic_equation(a,b,c) {
+    variable discriminant = b**2 - 4*a*c;
+    if(discriminant < 0) {
+        print("No real roots");
+        variable x1 = (-b + sqrt(abs(discriminant)) / (2*a));
+        variable x2 = (-b - sqrt(abs(discriminant)) / (2*a));
+        print("x1=", x1, "i, x2=", x2,'i',"\n");
+    } else if(discriminant == 0) {
+        variable x = -b / (2*a);
+        print("x=", x);
+    } else {
+        variable x1 = (-b + sqrt(discriminant)) / (2*a);
+        variable x2 = (-b - sqrt(discriminant)) / (2*a);
+        print("x1=", x1, ", x2=", x2);
+    }
+}
+
+# ax**3 + bx**2 + cx + d = 0
+void function cubic_equation(a, b, c, d) {
+    # Normalize
+    variable B = b / a;
+    variable C = c / a;
+    variable D = d / a;
+    
+    # Depressed cubic: t³ + pt + q = 0, where x = t - B/3
+    variable p = C - B**2 / 3;
+    variable q = 2*B**3/27 - (B*C)/3 + D;
+    
+    # Discriminant
+    variable discriminant = (q/2)**2 + (p/3)**3;
+    
+    if (discriminant > 0) {
+        # One real root + two complex roots
+        variable sqrtD = sqrt(discriminant);
+        variable u = cbrt(-q/2 + sqrtD);
+        variable v = cbrt(-q/2 - sqrtD);
+        
+        # Real root
+        variable t_real = u + v;
+        variable x1 = t_real - B/3;
+        print("x1 (real) = ", x1, "\n");
+        
+        # Complex roots
+        variable real_part = -(u + v)/2 - B/3;
+        variable imag_part = (sqrt(3)/2) * (u - v);
+        
+        # Handle precision: if imag_part is very small, treat as 0
+        if (abs(imag_part) < 1e-10) {
+            imag_part = 0;
+        }
+        
+        if (imag_part >= 0) {
+            print("x2 = ", real_part, " + ", imag_part, "i\n");
+            print("x3 = ", real_part, " - ", imag_part, "i\n");
+        } else {
+            print("x2 = ", real_part, " - ", -imag_part, "i\n");
+            print("x3 = ", real_part, " + ", -imag_part, "i\n");
+        }
+    } 
+    else if (discriminant == 0) {
+        # Multiple roots (all real)
+        variable t1 = 2 * cbrt(-q/2);
+        variable t2 = -cbrt(-q/2);
+        variable x1 = t1 - B/3;
+        variable x2 = t2 - B/3;
+        
+        if (abs(x1 - x2) < 1e-10) {
+            print("x = ", x1, " (triple root)\n");
+        } else {
+            print("x1 = ", x1, ", x2 = ", x2, "\n");
+        }
+    } 
+    else {
+        # Three real roots
+        variable r = sqrt(-(p/3)**3);
+        variable theta = acos(-q / (2 * r));
+        variable t1 = 2 * cbrt(r) * cos(theta / 3);
+        variable t2 = 2 * cbrt(r) * cos((theta + 2 * m_pi) / 3);
+        variable t3 = 2 * cbrt(r) * cos((theta + 4 * m_pi) / 3);
+        variable x1 = t1 - B/3;
+        variable x2 = t2 - B/3;
+        variable x3 = t3 - B/3;
+        print("x1 = ", x1, ", x2 = ", x2, ", x3 = ", x3, "\n");
+    }
+}
+
+function is_prime(n) {
+    for(variable i = 2; i <= sqrt(n); i += 1) {
+        if(n % i == 0) {
+            print("Divisor: ",i,"\n");
+            return false;
+        }
     }
     return true;
 }
 
-# # Greatest Common Division
-function gcd(a, b) {
-    if(b == 0) return a;
-    return gcd(b, a % b);
+function is_odd(n) {
+    return n % 2 == 1;
 }
 
-# # Least Common Multiple
-function lcm(a,b) {
-    return abs(a*b) / gcd(a,b);
+function is_even(n) {
+    return n > 0 and n % 2 == 0;
 }
 
-void function main() {
+# # Greatest common divisor
+function gcd(a,b) {
+    while (b != 0) {
+        variable temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+# # Least common multiple
+function lcm(a, b) {
+    if(a == 0 or b == 0) return 0;
+    return abs(a * b) / gcd(a, b);
 }
