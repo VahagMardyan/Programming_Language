@@ -3,6 +3,7 @@
 #include <cmath>
 #include <limits>
 #include <iomanip>
+#include <random>
 
 namespace {
     int32_t toInt32(const Value& v) {
@@ -21,6 +22,9 @@ namespace {
         return frames[idx].callerFp;
     }
 }
+
+// Shared RNG — seeded once at startup, reused across all RANDOM instructions.
+static std::mt19937_64 s_rng{std::random_device{}()};
 
 VirtualMachine::VirtualMachine(bool debugMode) : debug_mode(debugMode) {
     if (debug_mode) {
@@ -678,6 +682,21 @@ size_t VirtualMachine::executeSingleInstruction() {
             case OpCode::SW:
                 memory[inst.left] = registers[inst.dst];
                 break;
+            case OpCode::RANDOM: {
+                // inst.left == 0 && inst.right == 0  ->  range [0, 1)
+                // otherwise  inst.left = minReg, inst.right = maxReg  ->  [min, max]
+                if (inst.left == 0 && inst.right == 0) {
+                    std::uniform_real_distribution<double> dist(0.0, 1.0);
+                    registers[inst.dst] = dist(s_rng);
+                } else {
+                    double low = asNumber(registers[inst.left]);
+                    double high = asNumber(registers[inst.right]);
+                    if (low > high) std::swap(low, high);
+                    std::uniform_real_distribution<double> dist(low, std::nextafter(high, std::numeric_limits<double>::infinity()));
+                    registers[inst.dst] = dist(s_rng);
+                }
+            }
+            break;
             default: break;
         }
     if (!jumped) pc++;

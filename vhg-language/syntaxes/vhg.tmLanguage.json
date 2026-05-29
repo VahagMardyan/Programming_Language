@@ -72,7 +72,7 @@
             "name": "support.function.vhg"
         },
         "math_functions": {
-            "match": "(?i)\\b(sin|cos|tan|asin|acos|atan|atan2|sqrt|cbrt|exp|log|log2|log10|log_ab|ceil|floor|round|abs|fmod)\\b",
+            "match": "(?i)\\b(sin|cos|tan|asin|acos|atan|atan2|sqrt|cbrt|exp|log|log2|log10|log_ab|ceil|floor|round|abs|fmod|random)\\b",
             "name": "support.math.functions.vhg"
         },
         "function_definition": {

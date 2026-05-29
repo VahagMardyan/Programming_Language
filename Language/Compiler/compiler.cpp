@@ -164,6 +164,25 @@ bool Compiler::tryEmitMathBuiltinCall(
         code.push_back({(uint32_t)OpCode::DEC, (uint32_t)resultReg, (uint32_t)argReg, 0});
         return true;
     }
+    if(name == "random") {
+        if(args.size() == 0) {
+            // random() -> [0, 1)
+            resultReg = allocateTempRegister();
+            code.push_back({(uint32_t)OpCode::RANDOM, (uint32_t)resultReg, 0, 0});
+            return true;
+        } else if(args.size() == 2) {
+            // random(min, max) -> [min, max]
+            int leftReg  = emitArg(args[0]);
+            int rightReg = emitArg(args[1]);
+            resultReg = allocateTempRegister();
+            code.push_back({(uint32_t)OpCode::RANDOM, (uint32_t)resultReg,
+                            (uint32_t)leftReg, (uint32_t)rightReg});
+            freeTempRegister(leftReg);
+            freeTempRegister(rightReg);
+            return true;
+        }
+        return false; // wrong arg count
+    }
 
     return false;
 }

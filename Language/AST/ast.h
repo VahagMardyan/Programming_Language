@@ -54,6 +54,7 @@ enum class OpCode : uint8_t {
     TYPE, // type(argument) -> "string" / "number" / "none"
     LOAD_OUTER, // dst = mem[enclosingCallerFp(hops) + int8_offset]
     STORE_OUTER, // mem[enclosingCallerFp(hops) + int8_offset] = dstReg
+    RANDOM, // random(min=0, max=1)
 };
 
 class ASTNode {

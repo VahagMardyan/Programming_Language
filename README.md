@@ -357,6 +357,7 @@ for(variable global i = 0;i<4;i+=1) { #* ... *# }
 | `round(x)` | Round to nearest integer | 1 |
 | `abs(x)` | Absolute value | 1 |
 | `fmod(x, y)` | Floating-point remainder | 2 |
+| `random(min=0, max=1)` | Returns a random floating-point number in the range **[min, max]**. Default range is **[0, 1]** | 0 or 2 |
 ---
 
 ### Mathematical Constants

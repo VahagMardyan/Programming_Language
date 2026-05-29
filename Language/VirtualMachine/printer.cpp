@@ -114,6 +114,16 @@ void Debugger::printInstructionCompact(size_t pc) const {
         case OpCode::OCT:         std::cout << "OCT r" << inst.dst << " = oct(r" << inst.left << ")"; break;
         case OpCode::DEC:         std::cout << "DEC r" << inst.dst << " = dec(r" << inst.left << ")"; break;
 
+        case OpCode::RANDOM: {
+            if(inst.left == 0 && inst.right == 0) {
+                std::cout << "RANDOM r" << inst.dst << " = random()";
+            } else {
+                std::cout << "RANDOM r" << inst.dst << " = random(r"
+                          << inst.left << ", r" << inst.right << ")";
+            }
+        };
+        break;
+
         default:                  std::cout << "OP(" << (int)op << ")"; break;
     }
     std::cout << std::endl;
@@ -334,7 +344,7 @@ void Debugger::visualize() const {
             case OpCode::HEX:  std::cout << "HEX";     break;
             case OpCode::OCT:  std::cout << "OCT";     break;
             case OpCode::DEC:  std::cout << "DEC";     break;
-
+            case OpCode::RANDOM: std::cout << "RANDOM"; break;
             default:
                 std::cout << "UNKNOWN (op=" << (int)op << ")";
                 break;

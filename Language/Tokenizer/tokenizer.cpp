@@ -29,7 +29,7 @@ namespace {
         "fmod", "cbrt", "log2", "pow", "log_ab", // log(b)/log(a)
         "input", // user-input
         "ord", "chr", "type",
-        "bin", "oct", "hex", "dec",
+        "bin", "oct", "hex", "dec", "random",
     };
 }
 

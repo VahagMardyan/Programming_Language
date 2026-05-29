@@ -1,8 +1,5 @@
 # n! = n * (n-1) * (n-2) * ... * 1
 function factorial(n) {
-    # if(n == 0) return 1;
-    # return n * factorial(n - 1);
-
     variable result = 1;
     for (variable i = 1; i <= n; i = i + 1) {
         result *= i;
@@ -34,11 +31,9 @@ function nPr(n, r) {
 
 # F(n) = F(n-1) + F(n-2), F(0) = 0, F(1) = 1, F(2) = 1, F(3) = 2, ...
 function fibonacci(n) {
-    # if(n <= 1) return n;
-    # return fibonacci(n - 2) + fibonacci(n - 1);
     if(n <= 0) return 0;
     if(n == 1) return 1;
-    variable a,b = 0,1;
+    variable a, b = 0, 1;
     for(variable i = 2; i <= n; i+=1) {
         variable temp = a + b;
         a = b;
@@ -53,6 +48,36 @@ function is_fibonacci(n) {
     variable x2 = sqrt(5*n**2 - 4);
     
     return (fmod(x1, 1) == 0 or fmod(x2, 1) == 0);
+}
+
+# Given Fibonacci(n) => this function finds n. Returns "none" if not found.
+
+function fibonacci_index(F_n) {
+    variable even_factor = sqrt(5*F_n**2 + 4);
+    variable odd_factor = sqrt(5*F_n**2 - 4);
+    variable n; # index
+    
+    # Φ = (1+√5)/2 ≈ 1.618
+    variable GOLDEN_RATIO = (1 + sqrt(5)) / 2;
+    
+    # # That means n is even number
+    if(fmod(even_factor, 1) == 0) {
+        # n = log_Φ((√5*F_n + (5F_n² + 4))/2);
+        n = log_ab(GOLDEN_RATIO, (F_n * sqrt(5) + even_factor)/2);
+    }
+    # # That means n is odd number
+    if(fmod(odd_factor, 1) == 0) {
+        # n = log_Φ((√5*F_n + (5F_n² - 4))/2);
+        n = log_ab(GOLDEN_RATIO, (F_n * sqrt(5) + odd_factor)/2);
+    }
+    return type(n) == "none" ? (F_n + " is not a fibonacci number!") : n;
+}
+
+# Checks if √x is integer. For example, 25 is perfect square => 5*5 = 25
+
+function is_perfect_square(x) {
+    variable s = sqrt(x);
+    return s * s == x;
 }
 
 # ax**2 + bx + c = 0
@@ -100,19 +125,19 @@ void function cubic_equation(a, b, c, d) {
         
         # Complex roots
         variable real_part = -(u + v)/2 - B/3;
-        variable imag_part = (sqrt(3)/2) * (u - v);
+        variable imaginary_part = (sqrt(3)/2) * (u - v);
         
-        # Handle precision: if imag_part is very small, treat as 0
-        if (abs(imag_part) < 1e-10) {
-            imag_part = 0;
+        # Handle precision: if imaginary_part is very small, treat as 0
+        if (abs(imaginary_part) < 1e-10) {
+            imaginary_part = 0;
         }
         
-        if (imag_part >= 0) {
-            print("x2 = ", real_part, " + ", imag_part, "i\n");
-            print("x3 = ", real_part, " - ", imag_part, "i\n");
+        if (imaginary_part >= 0) {
+            print("x2 = ", real_part, " + ", imaginary_part, "i\n");
+            print("x3 = ", real_part, " - ", imaginary_part, "i\n");
         } else {
-            print("x2 = ", real_part, " - ", -imag_part, "i\n");
-            print("x3 = ", real_part, " + ", -imag_part, "i\n");
+            print("x2 = ", real_part, " - ", -imaginary_part, "i\n");
+            print("x3 = ", real_part, " + ", -imaginary_part, "i\n");
         }
     } 
     else if (discriminant == 0) {

@@ -163,7 +163,7 @@ This file defines the behavior of the editor (comments and brackets).
             "name": "support.function.vhg"
         },
         "math_functions": {
-            "match": "(?i)\\b(sin|cos|tan|asin|acos|atan|atan2|sqrt|cbrt|exp|log|log2|log10|log_ab|ceil|floor|round|abs|fmod)\\b",
+            "match": "(?i)\\b(sin|cos|tan|asin|acos|atan|atan2|sqrt|cbrt|exp|log|log2|log10|log_ab|ceil|floor|round|abs|fmod|random)\\b",
             "name": "support.math.functions.vhg"
         },
         "function_definition": {
@@ -336,6 +336,11 @@ This file defines the behavior of the editor (comments and brackets).
         "prefix": "dec",
         "body": "dec(${1:string})",
         "description": "dec(arg) -> number - Decimal representation of given argument"
+    },
+    "random function": {
+        "prefix": "random",
+        "body": "random(${1:min}, ${2:max})",
+        "description": "random(min=0, max=1) -> number - Generates a random floating-point number in the range [min, max]. Default range is [0,1]"
     },
     "input function": {
         "prefix": "input",
