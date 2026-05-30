@@ -340,7 +340,7 @@ This file defines the behavior of the editor (comments and brackets).
     "random function": {
         "prefix": "random",
         "body": "random(${1:min}, ${2:max})",
-        "description": "random(min=0, max=1) -> number - Generates a random floating-point number in the range [min, max]. Default range is [0,1]"
+        "description": "random(min=0, max=1) -> number - Generates a random floating-point number in the range [min, max). Default range is [0,1)"
     },
     "input function": {
         "prefix": "input",
