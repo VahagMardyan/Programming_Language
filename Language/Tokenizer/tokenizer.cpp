@@ -95,6 +95,8 @@ Token Tokenizer::getNextToken() {
     // 3. Punctuation
     if(current == '(') { lexer.advance(); return {TokenType::OpenParen,  "(", lexer.getLineNumber()}; }
     if(current == ')') { lexer.advance(); return {TokenType::CloseParen,  ")", lexer.getLineNumber()}; }
+    if(current == '[') { lexer.advance(); return {TokenType::OpenBracket, "[", lexer.getLineNumber()}; }
+    if(current == ']') { lexer.advance(); return {TokenType::CloseBracket, "]", lexer.getLineNumber()}; }
     if(current == '{') { lexer.advance(); return {TokenType::OpenBrace,   "{", lexer.getLineNumber()}; }
     if(current == '}') { lexer.advance(); return {TokenType::CloseBrace,  "}", lexer.getLineNumber()}; }
     if(current == ';') { lexer.advance(); return {TokenType::Semicolon,   ";", lexer.getLineNumber()}; }

@@ -55,6 +55,8 @@ enum class OpCode : uint8_t {
     LOAD_OUTER, // dst = mem[enclosingCallerFp(hops) + int8_offset]
     STORE_OUTER, // mem[enclosingCallerFp(hops) + int8_offset] = dstReg
     RANDOM, // random(min=0, max=1)
+    LOAD_STR_IDX, // dst = str[left][right] (single-char string)
+    STORE_STR_IDX, // str[left][right] = dst (mutates string in register left)
 };
 
 class ASTNode {
@@ -186,6 +188,44 @@ class StatementNode : public ASTNode {
         virtual ~StatementNode() = default;
         virtual void print(std::string prefix, bool isLast) const = 0;
         std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
+};
+
+class SubscriptReadNode : public ASTNode {
+    std::shared_ptr<ASTNode> object;
+    std::shared_ptr<ASTNode> index;
+public:
+    SubscriptReadNode(std::shared_ptr<ASTNode> obj, std::shared_ptr<ASTNode> idx)
+        : object(std::move(obj)), index(std::move(idx)) {}
+    std::shared_ptr<ASTNode> getObject() const { return object; }
+    std::shared_ptr<ASTNode> getIndex() const { return index; }
+    void print(std::string prefix, bool isLast) const override {
+        std::cout << prefix << (isLast ? "└── " : "├── ") << "SubscriptRead []" << std::endl;
+        std::string p = prefix + (isLast ? "    " : "│   ");
+        object->print(p, false);
+        index->print(p, true);
+    }
+    std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {object, index}; }
+};
+
+class SubscriptWriteNode : public StatementNode {
+    std::shared_ptr<ASTNode> object;
+    std::shared_ptr<ASTNode> index;
+    std::shared_ptr<ASTNode> value;
+public:
+    SubscriptWriteNode(std::shared_ptr<ASTNode> obj, std::shared_ptr<ASTNode> idx,
+                       std::shared_ptr<ASTNode> val)
+        : object(std::move(obj)), index(std::move(idx)), value(std::move(val)) {}
+    std::shared_ptr<ASTNode> getObject() const { return object; }
+    std::shared_ptr<ASTNode> getIndex() const { return index; }
+    std::shared_ptr<ASTNode> getValue() const { return value; }
+    void print(std::string prefix, bool isLast) const override {
+        std::cout << prefix << (isLast ? "└── " : "├── ") << "SubscriptWrite []=" << std::endl;
+        std::string p = prefix + (isLast ? "    " : "│   ");
+        object->print(p, false);
+        index->print(p, false);
+        value->print(p, true);
+    }
+    std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {object, index, value}; }
 };
 
 class LengthNode : public ASTNode {

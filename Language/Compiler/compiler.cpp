@@ -336,6 +336,18 @@ std::shared_ptr<ASTNode> Compiler::optimize(std::shared_ptr<ASTNode> node) {
     if(auto strNode = std::dynamic_pointer_cast<StringNode>(node)) {
         return strNode;
     }
+    if(auto sub = std::dynamic_pointer_cast<SubscriptReadNode>(node)) {
+        return std::make_shared<SubscriptReadNode>(
+            optimize(sub->getObject()), optimize(sub->getIndex()));
+    }
+    if(auto subWrite = std::dynamic_pointer_cast<SubscriptWriteNode>(node)) {
+        auto n = std::make_shared<SubscriptWriteNode>(
+            optimize(subWrite->getObject()),
+            optimize(subWrite->getIndex()),
+            optimize(subWrite->getValue()));
+        n->lineNumber = subWrite->lineNumber;
+        return n;
+    }
     return node;
 }
 
@@ -595,12 +607,82 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
             code.push_back({(uint32_t)OpCode::LOAD_NONE, (uint32_t)reg, 0, 0});
             storage.push(reg);
         }
+        else if(auto sub = std::dynamic_pointer_cast<SubscriptReadNode>(node)) {
+            int idxReg = storage.top(); storage.pop();
+            int strReg = storage.top(); storage.pop();
+            int dst = allocateTempRegister();
+            code.push_back({(uint32_t)OpCode::LOAD_STR_IDX, (uint32_t)dst, (uint32_t)strReg, (uint32_t)idxReg});
+            freeTempRegister(strReg);
+            freeTempRegister(idxReg);
+            storage.push(dst);
+        }
     }
     return code;
 }
 
+namespace {
+    void emitStoreVariable(const std::shared_ptr<VariableNode>& var, int srcReg, std::vector<Instruction>& code) {
+        if (var->getIsLocal()) {
+            int32_t off = var->getLocalOffset();
+            if (var->getOuterHops() > 0) {
+                code.push_back({(uint32_t)OpCode::STORE_OUTER,
+                    (uint32_t)srcReg,
+                    (uint32_t)var->getOuterHops(),
+                    (uint32_t)(uint8_t)(int8_t)off});
+            } else {
+                code.push_back({(uint32_t)OpCode::STORE, (uint32_t)srcReg, (uint32_t)FP, (uint32_t)off});
+            }
+        } else {
+            code.push_back({(uint32_t)OpCode::STORE_VAR, 0, (uint32_t)var->getGlobalAddr(), (uint32_t)srcReg});
+        }
+    }
+}
+
 void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector<Instruction>& code) {
     if(!stmt) return;
+
+    if (auto subWrite = std::dynamic_pointer_cast<SubscriptWriteNode>(stmt)) {
+        auto var = std::dynamic_pointer_cast<VariableNode>(subWrite->getObject());
+        if (!var) {
+            throw std::runtime_error("String subscript assignment requires a variable base");
+        }
+
+        globalCtx.consts.clear();
+        globalCtx.vars.clear();
+        auto valueCode = generateByteCode(postOrderTraverse(subWrite->getValue()));
+        rebaseJumpTargets(valueCode, static_cast<uint16_t>(code.size()));
+        code.insert(code.end(), valueCode.begin(), valueCode.end());
+        int valReg = valueCode.empty() ? 0 : valueCode.back().dst;
+
+        globalCtx.consts.clear();
+        globalCtx.vars.clear();
+        auto indexCode = generateByteCode(postOrderTraverse(subWrite->getIndex()));
+        rebaseJumpTargets(indexCode, static_cast<uint16_t>(code.size()));
+        code.insert(code.end(), indexCode.begin(), indexCode.end());
+        int idxReg = indexCode.empty() ? 0 : indexCode.back().dst;
+
+        int strReg = allocateTempRegister();
+        if (var->getIsLocal()) {
+            int32_t off = var->getLocalOffset();
+            if (var->getOuterHops() > 0) {
+                code.push_back({(uint32_t)OpCode::LOAD_OUTER, (uint32_t)strReg, (uint32_t)var->getOuterHops(),
+                    (uint32_t)(uint8_t)(int8_t)off});
+            } else {
+                code.push_back({(uint32_t)OpCode::LOAD, (uint32_t)strReg, (uint32_t)FP, (uint32_t)off});
+            }
+        } else {
+            code.push_back({(uint32_t)OpCode::LOAD_VAR, (uint32_t)strReg, (uint32_t)var->getGlobalAddr(), 0});
+        }
+
+        code.push_back({(uint32_t)OpCode::STORE_STR_IDX, (uint32_t)valReg, (uint32_t)strReg, (uint32_t)idxReg});
+        emitStoreVariable(var, strReg, code);
+        addLineNumbers(stmt->lineNumber, 1);
+
+        freeTempRegister(valReg);
+        freeTempRegister(idxReg);
+        freeTempRegister(strReg);
+        return;
+    }
     
     if (auto assign = std::dynamic_pointer_cast<AssignmentNode>(stmt)) {
         globalCtx.consts.clear();

@@ -18,6 +18,7 @@
   - [Variable Declaration Rules](#variable-declaration-rules)
   - [It is desirable to know](#it-is-desirable-to-know)
   - [Data Types](#data-types)
+  - [String Indexing](#string-indexing)
   - [Operators](#operators)
   - [Mathematical Functions](#mathematical-functions)
   - [Mathematical Constants](#mathematical-constants)
@@ -65,7 +66,7 @@
 
 - **Full compiler pipeline** – Lexer → Tokenizer → Parser → AST → Compiler → Bytecode → VM.
 - **Rich language features** – variables (global/local), block scoping, `if`/`else`, `while`, `for` loops, functions with parameters and return values.
-- **Strong typing for numbers and strings** – arithmetic, bitwise, logical, and comparison operators; string concatenation.
+- **Strong typing for numbers and strings** – arithmetic, bitwise, logical, and comparison operators; string concatenation; **mutable string indexing** (`s[i]` read/write).
 - **Optimizations** – constant folding, implicit multiplication, post‑order code generation.
 - **Standalone bytecode** – binary `.vhb` files with a `VHB1` magic header, loadable and executable by the VM without re‑parsing.
 - **Clean, modular C++20** – extensive use of standard library, smart pointers, and RAII.
@@ -316,8 +317,69 @@ for(variable global i = 0;i<4;i+=1) { #* ... *# }
 ### Data Types
 
 - **Numbers** – double‑precision floating point (internally `double`).
-- **Strings** – double‑ or single‑quoted literals; supports escape sequences `\n`, `\t`, `\"`, `\\`.
+- **Strings** – double‑ or single‑quoted literals; supports escape sequences `\n`, `\t`, `\"`, `\\`. Strings are **mutable**: characters can be read and written by index (see [String Indexing](#string-indexing)).
 - **Booleans** – `true` and `false` are stored as `1.0` and `0.0`.
+
+### String Indexing
+
+Strings support subscript syntax for reading and writing individual characters. Indices are **0‑based**; both read and write use the same `[]` syntax.
+
+**Read** (expression) — returns a **single‑character string**:
+
+```vhg
+var str = "hello";
+var ch = str[2];     # ch is "l"
+print(ch, "\n");
+```
+
+**Write** (statement) — modifies the string **in place**:
+
+```vhg
+var message = "world";
+message[0] = 'W';    # message becomes "World"
+message[4] = 'd';    # no visible change (already 'd')
+```
+
+**Chained reads** are supported (each step yields a one‑character string):
+
+```vhg
+var s = "abc";
+print(s[0][0], "\n");   # "a"
+```
+
+**Assignment target** for writes must be a **variable** with a single index (e.g. `msg[i] = 'x'`). Chained assignment such as `msg[0][1] = 'a'` is not supported.
+
+| Rule | Behavior |
+|------|----------|
+| Index type | Must be a number; non‑integers are a runtime error |
+| Bounds | `0 <= index < length(s)`; out of range → runtime error |
+| Object | Must be a string; otherwise → runtime error |
+| Assigned value | Must be a string of **length 1** (e.g. `'W'` or `"x"`) |
+| Empty string | No valid index; any access is out of bounds |
+
+**Example program** (`vhg_files/string_index.vhg`):
+
+```vhg
+void function main() {
+    var message = "world";
+    message[0] = 'W';
+    message[4] = 'd';
+    print(message[0], "\n");    # W
+    print(message);             # World
+}
+```
+
+**Implementation (pipeline):**
+
+| Stage | Role |
+|-------|------|
+| Tokenizer | `[` `]` tokens |
+| AST | `SubscriptReadNode`, `SubscriptWriteNode` |
+| Parser | `x[y]` in expressions; `x[y] = z` as assignment |
+| Compiler | `LOAD_STR_IDX`, `STORE_STR_IDX` |
+| VM | Bounds and type checks; in‑place mutation on write |
+
+Opcodes **100** (`LOAD_STR_IDX`) and **101** (`STORE_STR_IDX`) — see `Language/AST/OpCodes.md`.
 
 ### Operators
 | Category          | Operators                                               |
@@ -327,7 +389,7 @@ for(variable global i = 0;i<4;i+=1) { #* ... *# }
 | Logical           | `and` `or` `not`                                        |
 | Comparison        | `==` `!=` `<` `>` `<=` `>=`                             |
 | Assignment        | `=` `+=` `-=` `*=` `/=` `%=` `^=`                       |
-| String            | `+` `+=` (concatenation), `length(s)` -> s.size(), `*` -> string multiplication       |
+| String            | `+` `+=` (concatenation), `length(s)` → size, `*` → repetition, `s[i]` read, `s[i] = c` write |
 | Ternary           | `condition ? trueBranch : falseBranch` (e.g `x = 5 > 6 ? 7 : 8;`)         |
 | Loop operators    | `break;` -> exit loop earlier, `continue;` -> skip next iteration |
 | **Declarations** | `variable`, `var`, `local`, `global` |
@@ -502,6 +564,7 @@ require quotes in string context.
 - **Shunting‑Yard algorithm** for expressions, respecting operator precedence and associativity.
 - Implicit multiplication (e.g., `2x` or `(a+b)(c+d)`) is handled by injecting a `*` token when appropriate.
 - **Constant folding** is performed *during parsing* to simplify the AST immediately.
+- **String subscripts** — postfix `[expr]` builds `SubscriptReadNode`; `name[idx] = value` builds `SubscriptWriteNode` (variable base only).
 
 ### Symbol Table
 - Manages nested block scopes via a stack of `ScopeLevel` objects.
@@ -520,6 +583,7 @@ require quotes in string context.
 - Patches forward function calls after all code is generated.
 - **Constant folding** is re‑applied during optimization (redundant constants are merged).
 - Outputs a `ByteCode` structure containing instructions, constant pool (numbers), and string pool.
+- Emits **`LOAD_STR_IDX`** (read character) and **`STORE_STR_IDX`** (write character, then store string back to the variable slot).
 ---
 
 ### Bytecode Format (`.vhb`)
@@ -706,7 +770,7 @@ When the VM loads a `.vhb` file, it performs these steps:
 - **Register file** – 256+ registers (indexed by `uint8_t`), with `x2` as stack pointer and `x8` as frame pointer.
 - **Memory** – linear array of `Value` (variant of double and string).
 - **Call stack** – saves return address, caller’s SP/FP, and argument buffer.
-- **Instruction set** – includes RISC‑V inspired arithmetic (`ADD`, `SUB`, `AND`, …), control flow (`JMP`, `JZ`, `CALL`, `RETURN`), and memory access (`LOAD`/`STORE` relative to FP).
+- **Instruction set** – includes RISC‑V inspired arithmetic (`ADD`, `SUB`, `AND`, …), control flow (`JMP`, `JZ`, `CALL`, `RETURN`), memory access (`LOAD`/`STORE` relative to FP), and string indexing (`LOAD_STR_IDX`, `STORE_STR_IDX`).
 - Debug mode (`VirtualMachine(true)`) prints the AST and a disassembly of the generated bytecode.
 
 ## Example Program

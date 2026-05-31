@@ -751,6 +751,14 @@ std::shared_ptr<StatementNode> Parser::parseAssignment(bool explicitDeclare) {
         return std::make_shared<FunctionCallStatementNode>(callNode);
     }
 
+    std::shared_ptr<ASTNode> lhs;
+    if (currentToken.type == TokenType::OpenBracket) {
+        lhs = resolveVariableNode(name);
+        if (!lhs) return nullptr;
+        lhs = applySubscriptChain(lhs);
+        if (!lhs) return nullptr;
+    }
+
     bool isLocalVar = false;
     bool haveLocalBinding = false;
     int32_t resolvedLocalOff = 0;
@@ -799,6 +807,18 @@ std::shared_ptr<StatementNode> Parser::parseAssignment(bool explicitDeclare) {
         if (explicitGlobal && symTable.hasGlobal(name) && !symTable.isInsideFunction()) {
             error("Global variable redefinition is not allowed: " + name);
         }
+    }
+
+    if (lhs) {
+        auto subLhs = std::dynamic_pointer_cast<SubscriptReadNode>(lhs);
+        if (!subLhs) {
+            error("Invalid subscript assignment target");
+        }
+        if (assignOp != "=") {
+            error("Compound assignment is not supported on string subscript");
+        }
+        return std::make_shared<SubscriptWriteNode>(
+            subLhs->getObject(), subLhs->getIndex(), valueExpr);
     }
 
     if(assignOp != "=") {
@@ -895,6 +915,29 @@ std::shared_ptr<StatementNode> Parser::parsePrint() {
     return std::make_shared<PrintNode>(std::move(exprs));
 }
 
+std::shared_ptr<ASTNode> Parser::applySubscriptChain(std::shared_ptr<ASTNode> base) {
+    while (currentToken.type == TokenType::OpenBracket) {
+        nextToken(); // skip '['
+        auto savedOps = ops;
+        auto savedNodes = nodes;
+        auto savedState = state;
+        auto index = parseExpression();
+        ops = savedOps;
+        nodes = savedNodes;
+        state = savedState;
+        if (!index) {
+            state = ParserState::Error;
+            return nullptr;
+        }
+        if (currentToken.type != TokenType::CloseBracket) {
+            error("Expected ']' after subscript index");
+        }
+        nextToken(); // skip ']'
+        base = std::make_shared<SubscriptReadNode>(base, index);
+    }
+    return base;
+}
+
 std::shared_ptr<ASTNode> Parser::parseBuiltInCall(const std::string& name) {
     if(name == "length") {
         nextToken(); // skip '('
@@ -936,7 +979,8 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
            token.type == TokenType::Semicolon ||
            token.type == TokenType::Comma ||
            token.type == TokenType::Colon ||
-           (token.type == TokenType::CloseParen && ops.empty())) {
+           (token.type == TokenType::CloseParen && ops.empty()) ||
+           (token.type == TokenType::CloseBracket && ops.empty())) {
             break;
         }
 
@@ -963,14 +1007,16 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                                 node = parseFunctionCall(name);
                             }
                             if(!node) return nullptr;
-                            nodes.push(node);
+                            nodes.push(applySubscriptChain(node));
                             state = ParserState::ExpectOperator;
                         } else {
-                            nodes.push(resolveVariableNode(name));
+                            auto varNode = resolveVariableNode(name);
+                            if(!varNode) return nullptr;
+                            nodes.push(applySubscriptChain(varNode));
                             state = ParserState::ExpectOperator;
                         }
                 } else if(token.type == TokenType::StringLiteral) {
-                    nodes.push(std::make_shared<StringNode>(token.value));
+                    nodes.push(applySubscriptChain(std::make_shared<StringNode>(token.value)));
                     state = ParserState::ExpectOperator;
                     nextToken();
                 }  else if(token.type == TokenType::Math_const_vars) {
@@ -1050,12 +1096,19 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                     while(!ops.empty() && ops.top() != "(") createNodeFromOp();
                     if(!ops.empty() && ops.top() == "(") {
                         ops.pop();
+                        if (!nodes.empty()) {
+                            nodes.top() = applySubscriptChain(nodes.top());
+                        }
                         state = ParserState::ExpectOperator; nextToken();
                     } else if (ops.empty()) {
                         break;
                     } else {
                         state = ParserState::Error;
                     }
+                } else if(token.type == TokenType::OpenBracket) {
+                    if (nodes.empty()) { state = ParserState::Error; break; }
+                    nodes.top() = applySubscriptChain(nodes.top());
+                    state = ParserState::ExpectOperator;
                 } else if(token.type == TokenType::Number ||
                           token.type == TokenType::Name   ||
                           token.type == TokenType::OpenParen ||
@@ -1075,13 +1128,15 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                                     node = parseFunctionCall(name);
                                 }
                                 if(!node) return nullptr;
-                                nodes.push(node);
+                                nodes.push(applySubscriptChain(node));
                             } else {
-                                nodes.push(resolveVariableNode(name));
+                                auto varNode = resolveVariableNode(name);
+                                if(!varNode) return nullptr;
+                                nodes.push(applySubscriptChain(varNode));
                             }
                             state = ParserState::ExpectOperator;
                         } else if(token.type == TokenType::StringLiteral) {
-                            nodes.push(std::make_shared<StringNode>(token.value));
+                            nodes.push(applySubscriptChain(std::make_shared<StringNode>(token.value)));
                             state = ParserState::ExpectOperator;
                             nextToken();
                     } else {

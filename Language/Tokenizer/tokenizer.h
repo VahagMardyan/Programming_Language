@@ -3,7 +3,7 @@
 #include <unordered_map>
 
 enum class TokenType {
-    Number, Name, Operator, OpenParen, CloseParen, EndOfExpr, Error,
+    Number, Name, Operator, OpenParen, CloseParen, OpenBracket, CloseBracket, EndOfExpr, Error,
     If, Else, While, For,
     OpenBrace, CloseBrace, // {, }
     Semicolon, // ;

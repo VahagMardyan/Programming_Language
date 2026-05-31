@@ -69,6 +69,8 @@ void Debugger::printInstructionCompact(size_t pc) const {
         
         case OpCode::INPUT:       std::cout << "INPUT r" << inst.dst; break;
         case OpCode::LENGTH:      std::cout << "LENGTH r" << inst.dst << " = len(r" << inst.left << ")"; break;
+        case OpCode::LOAD_STR_IDX: std::cout << "LOAD_STR_IDX r" << inst.dst << " = r" << inst.left << "[r" << inst.right << "]"; break;
+        case OpCode::STORE_STR_IDX: std::cout << "STORE_STR_IDX r" << inst.left << "[r" << inst.right << "] = r" << inst.dst; break;
         
         case OpCode::SIN:         std::cout << "SIN r" << inst.dst << " = sin(r" << inst.left << ")"; break;
         case OpCode::COS:         std::cout << "COS r" << inst.dst << " = cos(r" << inst.left << ")"; break;
@@ -345,6 +347,8 @@ void Debugger::visualize() const {
             case OpCode::OCT:  std::cout << "OCT";     break;
             case OpCode::DEC:  std::cout << "DEC";     break;
             case OpCode::RANDOM: std::cout << "RANDOM"; break;
+            case OpCode::LOAD_STR_IDX: std::cout << "LOAD_STR_IDX"; break;
+            case OpCode::STORE_STR_IDX: std::cout << "STORE_STR_IDX"; break;
             default:
                 std::cout << "UNKNOWN (op=" << (int)op << ")";
                 break;

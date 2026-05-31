@@ -21,6 +21,34 @@ namespace {
         size_t idx = frames.size() - static_cast<size_t>(hops);
         return frames[idx].callerFp;
     }
+
+    int32_t stringIndexFromValue(const Value& idxVal) {
+        if (!isNumber(idxVal)) {
+            throw std::runtime_error("String index must be a number");
+        }
+        double d = asNumber(idxVal);
+        if (d != std::floor(d)) {
+            throw std::runtime_error("String index must be an integer");
+        }
+        return static_cast<int32_t>(d);
+    }
+
+    void checkStringBounds(const std::string& s, int32_t idx) {
+        if (idx < 0 || static_cast<size_t>(idx) >= s.size()) {
+            throw std::runtime_error("String index out of bounds");
+        }
+    }
+
+    char singleCharFromValue(const Value& v) {
+        if (!isString(v)) {
+            throw std::runtime_error("String subscript assignment requires a string value");
+        }
+        const std::string& s = asString(v);
+        if (s.size() != 1) {
+            throw std::runtime_error("String subscript assignment requires a single character");
+        }
+        return s[0];
+    }
 }
 
 // Shared RNG — seeded once at startup, reused across all RANDOM instructions.
@@ -383,6 +411,33 @@ size_t VirtualMachine::executeSingleInstruction() {
                 } else {
                     throw std::runtime_error("length() excepts a string argument");
                 }
+            }
+            break;
+
+            case OpCode::LOAD_STR_IDX: {
+                const Value& strVal = registers[inst.left];
+                const Value& idxVal = registers[inst.right];
+                if (!isString(strVal)) {
+                    throw std::runtime_error("String subscript requires a string");
+                }
+                const std::string& str = asString(strVal);
+                int32_t idx = stringIndexFromValue(idxVal);
+                checkStringBounds(str, idx);
+                registers[inst.dst] = std::string(1, str[static_cast<size_t>(idx)]);
+            }
+            break;
+
+            case OpCode::STORE_STR_IDX: {
+                Value& strVal = registers[inst.left];
+                const Value& idxVal = registers[inst.right];
+                if (!isString(strVal)) {
+                    throw std::runtime_error("String subscript assignment requires a string");
+                }
+                char ch = singleCharFromValue(registers[inst.dst]);
+                int32_t idx = stringIndexFromValue(idxVal);
+                std::string& str = std::get<std::string>(strVal);
+                checkStringBounds(str, idx);
+                str[static_cast<size_t>(idx)] = ch;
             }
             break;
     

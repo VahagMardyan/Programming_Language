@@ -50,6 +50,7 @@ private:
     std::shared_ptr<StatementNode> parseReturn();
     std::shared_ptr<ASTNode> parseFunctionCall(const std::string& name);
     std::shared_ptr<ASTNode> parseBuiltInCall(const std::string& name);
+    std::shared_ptr<ASTNode> applySubscriptChain(std::shared_ptr<ASTNode> base);
     std::shared_ptr<StatementNode> parseSwitch();
 public:
     Parser(Tokenizer& tok, SymbolTable& st)
