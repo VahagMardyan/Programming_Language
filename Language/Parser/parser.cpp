@@ -79,7 +79,7 @@ void Parser::rejectTopLevelExecutable(const std::string& construct) const {
     if(isTopLevelProgramScope()) {
         throw std::runtime_error(
             "Line " + std::to_string(currentToken.lineNumber) + ": " + construct
-            + " is only allowed inside function main()"
+            + " is only allowed inside a function"
         );
     }
 }
@@ -104,7 +104,7 @@ void Parser::validateTopLevelStatement(const std::shared_ptr<StatementNode>& stm
     }
 
     throw std::runtime_error(
-        "Line " + std::to_string(line) + ": executable statements are only allowed inside function main()"
+        "Line " + std::to_string(line) + ": executable statements are only allowed inside a function"
     );
 }
 
@@ -178,6 +178,8 @@ std::shared_ptr<StatementNode> Parser::parseProgram() {
         if(stmt) {
             validateTopLevelStatement(stmt, stmtLine);
             block->addStatement(stmt);
+        } else if(currentToken.type == TokenType::Semicolon) {
+            nextToken(); // allow optional ';' between top-level declarations (e.g. after '};')
         } else if(state == ParserState::Error) break;
         else nextToken();
     }
@@ -394,7 +396,11 @@ std::shared_ptr<StatementNode> Parser::parseStatement() {
 
         default:
             if(isTopLevelProgramScope()) {
-                error("executable statements are only allowed inside function main()");
+                if(currentToken.type == TokenType::Semicolon) {
+                    nextToken();
+                    return nullptr;
+                }
+                error("executable statements are only allowed inside a function");
             }
             parseExpression();
             if(currentToken.type == TokenType::Semicolon) nextToken();
@@ -1314,6 +1320,10 @@ std::shared_ptr<StatementNode> Parser::parseFunction() {
     }
 
     auto body = parseBlock();
+
+    if (currentToken.type == TokenType::Semicolon) {
+        nextToken(); // optional ';' after function body (e.g. `};` at file scope)
+    }
 
     if (!isVoid) {
 
