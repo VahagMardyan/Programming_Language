@@ -1,5 +1,5 @@
 void function main() {
-print("=== Switch Test ===\n");
+print("--- Switch Test ---\n");
 x = 2;
 
 switch(x) {
@@ -16,7 +16,7 @@ switch(x) {
         print("Other\n");
 }
 
-print("\n=== Fallthrough test ===\n");
+print("\n--- Fallthrough test ---\n");
 y = 10;
 switch(y) {
     case 10:
@@ -28,7 +28,7 @@ switch(y) {
         print("Not 10 nor 20\n");
 }
 
-print("\n=== Switch with no match ===\n");
+print("\n--- Switch with no match ---\n");
 z = 100;
 switch(z) {
     case 1: print("1\n"); break;
@@ -36,7 +36,7 @@ switch(z) {
     default: print("Default\n");
 }
 
-print("\n=== Should print only this ===\n");
+print("\n--- Should print only this ---\n");
 q = 1000;
 switch(q) {
     case 1, 3, 55: {

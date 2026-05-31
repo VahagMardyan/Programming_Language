@@ -1,6 +1,5 @@
-#* =============================================
-VHG Test Suite v2.0: Complex Logic & Scoping
-=============================================
+#*
+    VHG Test Suite v2.0: Complex Logic & Scoping
 *#
 
 # 1. Shadowing & Scoping Test
@@ -63,5 +62,5 @@ if ((10 > 5 or 5 > 10) and 1 == 1) {
     print("Complex logic works\n");
 }
 
-print("\n=== Test v2.0 Completed ===\n");
+print("\n--- Test v2.0 Completed ---\n");
 }

@@ -1,0 +1,7 @@
+import "./Standard_Libs/string.vhg";
+import "./Standard_Libs/math.vhg";
+
+void function main() {
+    print(is_palindrome("anna"));
+    print(fibonacci(14));
+}

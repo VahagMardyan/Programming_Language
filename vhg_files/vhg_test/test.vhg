@@ -1,7 +1,5 @@
 #*
-=============================================
-VHG Language Comprehensive Test
-=============================================
+    VHG Language Comprehensive Test
 *#
 
 # 1. Global variables and basic operations
@@ -11,7 +9,7 @@ str1 = "Hello";
 str2 = 'World';
 
 void function main() {
-print("=== Global variables and math ===\n");
+print("--- Global variables and math ---\n");
 print("a = ", a, "\n");
 print("b = ", b, "\n");
 print("a + b = ", a + b, "\n");
@@ -22,12 +20,12 @@ print("str1 + str2 = ", str1 + " " + str2, "\n");
 global x = 100;
 global y = 200;
 
-print("\n=== Local variables ===\n");
+print("\n--- Local variables ---\n");
 print("x = ", x, "\n");
 print("y = ", y, "\n");
 
 # 3. If - else if - else
-print("\n=== If-else ===\n");
+print("\n--- If-else ---\n");
 if (a > 5) {
     print("a > 5 is true\n");
 } else if (a == 5) {
@@ -37,7 +35,7 @@ if (a > 5) {
 }
 
 # 4. While loop
-print("\n=== While loop ===\n");
+print("\n--- While loop ---\n");
 i = 0;
 while (i < 5) {
     print("while i = ", i, "\n");
@@ -45,7 +43,7 @@ while (i < 5) {
 }
 
 # 5. For loop
-print("\n=== For loop ===\n");
+print("\n--- For loop ---\n");
 for (j = 0; j < 4; j = j + 1) {
     print("for local j = ", j, "\n");
 }
@@ -61,22 +59,22 @@ function test_func(n, m) {
     return result;
 }
 
-print("\n=== Function test ===\n");
+print("\n--- Function test ---\n");
 func_result = test_func(5, 10);
 print("Function returned: ", func_result, "\n");
 
 # 7. String operations and print with multiple arguments
-print("\n=== String and multi-arg print ===\n");
+print("\n--- String and multi-arg print ---\n");
 print("Mixed: ", "Number=", 42, " String=", "Test", "\n");
 
 # 8. Unary operations
-print("\n=== Unary ===\n");
+print("\n--- Unary ---\n");
 neg = -15;
 print("neg = ", neg, "\n");
 print("-neg = ", -neg, "\n");
 
 # 9. Comparison operators
-print("\n=== Comparisons ===\n");
+print("\n--- Comparisons ---\n");
 if (10 > 5 and 5 < 10) {
     print("10 > 5 and 5 < 10 → true\n");
 }
@@ -89,5 +87,5 @@ if(not empty_text) {
 } else {
     print('false');
 }
-print("\n=== All tests completed ===\n");
+print("\n--- All tests completed ---\n");
 }

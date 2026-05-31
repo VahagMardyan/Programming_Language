@@ -2,7 +2,7 @@
 
 # Test 1: For loop scope
 void function main() {
-print("=== Test 1: For loop creates its own scope ===");
+print("--- Test 1: For loop creates its own scope ---");
 x = 100;  # global x
 for(i = 0; i < 3; i += 1) {
     result = i * 2;  # local to for loop
@@ -14,7 +14,7 @@ for(i = 0; i < 3; i += 1) {
 print("");
 
 # Test 2: If/else block scope
-print("=== Test 2: If/else blocks create their own scopes ===");
+print("--- Test 2: If/else blocks create their own scopes ---");
 condition = 1;
 if(condition) {
     thenVar = 42;  # local to if block
@@ -28,7 +28,7 @@ if(condition) {
 print("");
 
 # Test 3: While loop scope
-print("=== Test 3: While loop creates its own scope ===");
+print("--- Test 3: While loop creates its own scope ---");
 counter = 0;  # global
 while(counter < 3) {
     loopVar = counter * 10;  # local to while loop
@@ -40,7 +40,7 @@ while(counter < 3) {
 print("");
 
 # Test 4: Nested blocks
-print("=== Test 4: Nested blocks create nested scopes ===");
+print("--- Test 4: Nested blocks create nested scopes ---");
 outer = 1;  # global
 {
     middle = 2;  # local to outer block
@@ -57,7 +57,7 @@ outer = 1;  # global
 print("");
 
 # Test 5: Function with local scopes
-print("=== Test 5: Function with nested scopes ===");
+print("--- Test 5: Function with nested scopes ---");
 function testFunc(param) {
     funcVar = 10;  # local to function
     print("Function start: param =", param, "funcVar =", funcVar);
@@ -80,5 +80,5 @@ result = testFunc(7);
 print("Function returned:", result);
 
 print("");
-print("=== All tests completed ===");
+print("--- All tests completed ---");
 }

@@ -182,4 +182,5 @@ void function hourglass(n) {
 }
 
 void function main() {
+    diamond(5);
 }

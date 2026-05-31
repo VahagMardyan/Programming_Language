@@ -1,5 +1,5 @@
 void function main() {
-print("=== Break Test ===\n");
+print("0--- Break Test 0---\n");
 i = 0;
 while (i < 10) {
     if (i == 5) {
@@ -10,7 +10,7 @@ while (i < 10) {
     i = i + 1;
 }
 
-print("\n=== Continue Test ===\n");
+print("\n--- Continue Test 0---\n");
 i = 0;
 while (i < 10) {
     i = i + 1;
@@ -20,7 +20,7 @@ while (i < 10) {
     print("Odd number: ", i, "\n");
 }
 
-print("\n=== Nested Loop Break ===\n");
+print("\n--- Nested Loop Break 0---\n");
 i = 0;
 j = 0;
 while (i < 5) {
@@ -36,7 +36,7 @@ while (i < 5) {
     i = i + 1;
 }
 
-print("\n=== For loop with break/continue ===\n");
+print("\n--- For loop with break/continue 0---\n");
 for (local x = 0; x < 10; x = x + 1) {
     if (x == 3) {
         print("Breaking for loop at x = ", x, "\n");

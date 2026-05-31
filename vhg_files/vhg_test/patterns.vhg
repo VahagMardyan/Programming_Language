@@ -1,0 +1,138 @@
+void function heart(size) {
+    # 1. FOR THE APEX (TOP) OF THE HEART
+    for (a = size / 2; a <= size; a += 2) {
+        # Space before first hump
+        for (b = 1; b < size - a; b += 2) {
+            print(" ","");
+        }
+        # Prfirst hump
+        for (b = 1; b <= a; b+=1) {
+            print("*","");
+        }
+        # Space between humps
+        for (b = 1; b <= size - a; b+=1) {
+            print(" ","");
+        }
+        # Prsecond hump
+        for (b = 1; b <= a - 1; b+=1) {
+            print("*","");
+        }
+        print("\n","");
+    }
+
+    # 2. FOR THE BASE (BOTTOM) OF THE HEART
+    for (a = size; a >= 0; a-=1) {
+        # Space before the inverted triangle
+        for (b = a; b < size; b+=1) {
+            print(" ","");
+        }
+        # Prthe triangle shape
+        for (b = 1; b <= (a * 2) - 1; b+=1) {
+            print("*","");
+        }
+        print("\n","");
+    }
+}
+
+void function printRectangle(n, m) {
+    for(i=1; i <= n; i+=1) {
+        for(j=1; j <= m; j+=1) {
+            if(i == 1 or i == n or j == 1 or j == m) {
+                print("*","");
+            } else {
+                print(" ","");
+            }
+        }
+        print("\n");
+    }
+}
+
+void function triangle(n) {
+    for(i=1; i <= n; i+=1) {
+        for(j=1; j <= i; j+=1) {
+            if(j == 1 or j == i or i == n) {
+                print("*","");
+            } else {
+                print(" ","");
+            }
+        }
+        print("\n");
+    }
+}
+
+void function diamond(n) {
+    for(i=1; i <= n; i+=1) {
+        for(j=1; j <= n - i; j+=1) {
+            print(" ","");
+        }
+        for(j=1; j <= 2 * i - 1; j+=1) {
+            if(j == 1 or j == 2 * i - 1) {
+                print("*","");
+            } else {
+                print(" ","");
+            }
+        }
+        print("\n");
+    }
+    for(i=n-1; i >= 1; i-=1) {
+        for(j=1; j <= n - i; j+=1) {
+            print(" ","");
+        }
+        for(j=1; j <= 2 * i - 1; j+=1) {
+            if(j == 1 or j == 2 * i - 1) {
+                print("*","");
+            } else {
+                print(" ","");
+            }
+        }
+        print("\n");
+    }
+}
+
+function min(a, b, c, d) {
+    min_val = a < b ? a : b;
+    min_out = c < min_val ? c : min_val;
+    return d < min_out ? d : min_out;
+}
+
+void function printSpiralPattern(n) {
+
+    if(n <= 0) {
+        print("n must be a positive integer");
+        return;
+    }
+
+    if(fmod(n,1) != 0) {
+        print("n must be an integer");
+        return;
+    }
+
+    for (i = 0; i < n; i+=1) {
+        for (j = 0; j < n; j+=1) {
+            # Find the distance to the nearest edge (the "layer")
+            x = i;
+            y = j;
+            ring = min(x, y, n - 1 - x, n - 1 - y);
+
+            # Logic for a square spiral pattern
+            if (ring % 2 == 0) {
+                # Determine which symbol to use (alternating for contrast)
+                if (i <= n / 2) {
+                   if (i == ring + 1 and j == ring)  print("  ",""); # The "break"
+                   else print("* ","");
+                } else {
+                    print("# ","");
+                }
+            } else {
+                print("  ","");
+            }
+        }
+        print("\n","");
+    }
+}
+
+void function main() {
+    n = input("n=");
+    printSpiralPattern(n);
+}
+

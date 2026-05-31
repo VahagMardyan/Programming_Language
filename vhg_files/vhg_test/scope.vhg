@@ -1,16 +1,12 @@
 void function main() {
 print("=== Variable Scope Test ===\n");
 
-# ----------------------------------
 # 1. Top-level (should be GLOBAL)
-# ----------------------------------
 print("--- 1. Top-level ---\n");
 a = 10;
 print("a = ", a, "\n");          # 10
 
-# ----------------------------------
 # 2. Block scope (should be LOCAL)
-# ----------------------------------
 print("--- 2. Block scope ---\n");
 {
     b = 20;
@@ -19,9 +15,7 @@ print("--- 2. Block scope ---\n");
 # b should be undefined here
 # print("Outside block, b = ", b, "\n");  # Should be ERROR
 
-# ----------------------------------
 # 3. Explicit local
-# ----------------------------------
 print("--- 3. Explicit local ---\n");
 {
     local c = 30;
@@ -29,9 +23,7 @@ print("--- 3. Explicit local ---\n");
 }
 # c should be undefined here
 
-# ----------------------------------
 # 4. Explicit global
-# ----------------------------------
 print("--- 4. Explicit global ---\n");
 {
     global d = 40;
@@ -39,9 +31,7 @@ print("--- 4. Explicit global ---\n");
 }
 print("Outside block, d = ", d, "\n");     # 40 (global)
 
-# ----------------------------------
 # 5. Function accessing global
-# ----------------------------------
 print("--- 5. Function with global ---\n");
 global e = 50;
 
@@ -54,9 +44,7 @@ void function testGlobal() {
 testGlobal();
 print("Outside function, e = ", e, "\n");     # 60
 
-# ----------------------------------
 # 6. Function with local (default)
-# ----------------------------------
 print("--- 6. Function with local ---\n");
 
 void function testLocal() {
@@ -66,9 +54,7 @@ void function testLocal() {
 testLocal();
 # print("Outside function, f = ", f, "\n");  # Should be ERROR
 
-# ----------------------------------
 # 7. For loop variable
-# ----------------------------------
 print("--- 7. For loop variable ---\n");
 
 for (g = 0; g < 3; g = g + 1) {
@@ -77,9 +63,7 @@ for (g = 0; g < 3; g = g + 1) {
 print("\n");
 # g should be undefined here (local to for scope)
 
-# ----------------------------------
 # 8. Nested blocks
-# ----------------------------------
 print("--- 8. Nested blocks ---\n");
 
 {
@@ -92,9 +76,7 @@ print("--- 8. Nested blocks ---\n");
     # print("i=", i);  # Should be ERROR
 }
 
-# ----------------------------------
 # 9. If/else scope
-# ----------------------------------
 print("--- 9. If/else scope ---\n");
 
 if (1) {
@@ -103,9 +85,7 @@ if (1) {
 }
 # print("Outside if, j = ", j, "\n");  # Should be ERROR
 
-# ----------------------------------
 # 10. While loop variable
-# ----------------------------------
 print("--- 10. While loop ---\n");
 
 k = 0;
@@ -117,9 +97,7 @@ while (k < 3) {
 print("\n");
 # print("Outside while, m = ", m);  # Should be ERROR
 
-# ----------------------------------
 # 11. Global x before and after function
-# ----------------------------------
 print("--- 11. Global x ---\n");
 
 global x = 10;

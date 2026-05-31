@@ -1,5 +1,5 @@
 void function main() {
-print("=== Built-in Functions Test ===\n");
+print("--- Built-in Functions Test ---\n");
 
 # type()
 

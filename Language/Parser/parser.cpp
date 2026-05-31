@@ -980,7 +980,7 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
            token.type == TokenType::Comma ||
            token.type == TokenType::Colon ||
            (token.type == TokenType::CloseParen && ops.empty()) ||
-           (token.type == TokenType::CloseBracket && ops.empty())) {
+           token.type == TokenType::CloseBracket) {
             break;
         }
 
