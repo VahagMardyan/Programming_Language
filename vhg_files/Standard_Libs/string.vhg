@@ -45,6 +45,38 @@ function to_lower(s) {
     return result;
 }
 
+function capitalize(s) {
+    variable result = "";
+    variable n = length(s);
+    variable new_word = true;
+
+    for(variable i = 0; i < n; i+=1) {
+        variable c = s[i];
+        variable code = ord(c);
+
+        if(c == ' ') {
+            result += " ";
+            new_word = true;
+        } else {
+            if(new_word) {
+                if(code >= ord("a") and code <= ord("z")) {
+                    result += chr(code - 32);
+                } else {
+                    result += c;
+                }
+                new_word = false;
+            } else {
+                if(code >= ord("A") and code <= ord("Z")) {
+                    result += chr(code + 32);
+                } else {
+                    result += c;
+                }
+            }
+        }
+    }
+    return result;
+}
+
 function substring(s, start, end) {
     variable result = "";
     for(variable i = start; i < end and i < length(s); i+=1) {
