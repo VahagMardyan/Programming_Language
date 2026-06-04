@@ -515,6 +515,14 @@ switch(x) {
 ```
 ### Built‑in I/O
 - `input(prompt)` - User Input.
+    | Input | Type | Description |
+    |-------|------|-------------|
+    | `"123"` or `'123'` | `string` | Will return `123` as string|
+    | `123` | `number` | Will return `123` as number|
+    |Empty input| `none` | Will return `none` (std::monostate) |
+    | `Hello World`, `"Hello World"` or `'Hello World'`| `string` | Will return `Hello World`|
+    
+    >The `input` function automatically determines the type of the entered value and removes any quotation marks (`""` or `''`) if they were included.
 - `print(expr1, expr2, ...)` – prints each argument; automatically appends a newline **if only one argument is given** (otherwise you must include `"\n"` explicitly).
 - `length(string)` - returns the size of given string.
 - `type(argument)` - Returns the type of given argument (`string`, `number` or `none`).

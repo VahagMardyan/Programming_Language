@@ -590,38 +590,65 @@ size_t VirtualMachine::executeSingleInstruction() {
                 }
             }
             break;
-    
+            
             case OpCode::INPUT: {
                 std::cout << std::flush;
                 std::string inputStr;
-    
+ 
+                // EOF -> none
                 if (!std::getline(std::cin, inputStr)) {
-                    registers[inst.dst] = "";
+                    registers[inst.dst] = std::monostate{};
                     break;
                 }
-    
+ 
+                // Strip Windows-style CR
                 if (!inputStr.empty() && inputStr.back() == '\r') {
                     inputStr.pop_back();
                 }
-    
-                size_t start = inputStr.find_first_not_of(" \t");
-                if (start == std::string::npos) {
-                    registers[inst.dst] = "";
+ 
+                // Empty line -> none
+                if (inputStr.empty()) {
+                    registers[inst.dst] = std::monostate{};
                     break;
                 }
-    
-                const char* str = inputStr.c_str() + start;
-                char* endPtr;
+ 
+                // Trim leading/trailing whitespace
+                size_t trimStart = inputStr.find_first_not_of(" \t");
+                size_t trimEnd   = inputStr.find_last_not_of(" \t");
+ 
+                // Step 3a: Only whitespace → none
+                if (trimStart == std::string::npos) {
+                    registers[inst.dst] = std::monostate{};
+                    break;
+                }
+ 
+                std::string trimmed = inputStr.substr(trimStart, trimEnd - trimStart + 1);
+ 
+                // Quoted string -> strip quotes, return as string (no number conversion)
+                if (trimmed.size() >= 2) {
+                    char first = trimmed.front(), last = trimmed.back();
+                    if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
+                        registers[inst.dst] = trimmed.substr(1, trimmed.size() - 2);
+                        break;
+                    }
+                }
+ 
+                // No quotes -> try number conversion via strtod
+                const char* str = trimmed.c_str();
+                char* endPtr = nullptr;
                 double numValue = std::strtod(str, &endPtr);
-    
+ 
+                // Consume any trailing whitespace after the number
                 while (*endPtr == ' ' || *endPtr == '\t') {
                     ++endPtr;
                 }
-    
+ 
+                // Full string consumed as number return double
                 if (endPtr != str && *endPtr == '\0') {
                     registers[inst.dst] = numValue;
                 } else {
-                    registers[inst.dst] = inputStr;
+                    // Not a valid number return as string (trimmed)
+                    registers[inst.dst] = trimmed;
                 }
             }
             break;
