@@ -192,6 +192,11 @@ std::shared_ptr<StatementNode> Parser::parseProgram() {
 
 std::shared_ptr<StatementNode> Parser::parseStatement() {
     int stmtLine = currentToken.lineNumber;
+    if(currentToken.type == TokenType::Error) {
+        error("Error Line " + std::to_string(currentToken.lineNumber) +
+              " unknown operator: " + currentToken.value);
+        return nullptr;
+    }
     switch(currentToken.type) {
         case TokenType::If: {
             rejectTopLevelExecutable("if");
@@ -980,6 +985,12 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
 
     while(true) {
         Token token = currentToken;
+
+        if(token.type == TokenType::Error) {
+            error("Error Line " + std::to_string(token.lineNumber) +
+                  " unknown operator: " + token.value);
+            return nullptr;
+        }
         
         if(token.type == TokenType::EndOfExpr ||
            token.type == TokenType::Semicolon ||
@@ -1157,6 +1168,7 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
         }
         if(state == ParserState::Error) break;
     }
+    if(state == ParserState::Error) return nullptr;
     while(state != ParserState::Error && !ops.empty()) {
         if(ops.top() == "(") {
             state = ParserState::Error;
