@@ -18,6 +18,7 @@ void Debugger::reset() {
 void Debugger::run() {
     reset();
     visualize();
+    printHelp();
 
     size_t pc = vm.getPc();
     while (pc < vm.getProgram().size()) {
@@ -64,34 +65,33 @@ bool Debugger::shouldStop(size_t currentPc) {
 }
 
 void Debugger::execCommand(const ParsedCmd& cmd, size_t pc, bool& resume) {
-    using Cmd = CmdCode;
     switch (cmd.code) {
-        case Cmd::Step:
+        case CmdCode::Step:
             stepOverDepth = -1;
             stepOutDepth = -1;
             vm.setContinueFlag(false);
             resume = true;
             break;
-        case Cmd::StepOver:
+        case CmdCode::StepOver:
             stepOverDepth = (int)vm.getCallStack().size();
             vm.setContinueFlag(true);
             resume = true;
             break;
-        case Cmd::StepOut:
+        case CmdCode::StepOut:
             stepOutDepth = (int)vm.getCallStack().size();
             vm.setContinueFlag(true);
             resume = true;
             break;
-        case Cmd::Go:
-        case Cmd::Continue:
+        case CmdCode::Go:
+        case CmdCode::Continue:
             stepOverDepth = -1;
             stepOutDepth = -1;
             vm.setContinueFlag(true);
             resume = true;
             break;
-        case Cmd::Quit:
+        case CmdCode::Quit:
             throw std::runtime_error("Debug quit by user");
-        case Cmd::BrAdd: {
+        case CmdCode::BrAdd: {
             size_t addr = 0;
             bool resolved = false;
             if (cmd.args.count("offset")) {
@@ -115,7 +115,7 @@ void Debugger::execCommand(const ParsedCmd& cmd, size_t pc, bool& resume) {
             }
             break;
         }
-        case Cmd::BrRem: {
+        case CmdCode::BrRem: {
             size_t addr = 0;
             bool resolved = false;
             if (cmd.args.count("offset")) {
@@ -135,10 +135,10 @@ void Debugger::execCommand(const ParsedCmd& cmd, size_t pc, bool& resume) {
             }
             break;
         }
-        case Cmd::BrList:
+        case CmdCode::BrList:
             printBreakpoints();
             break;
-        case Cmd::PrintReg: {
+        case CmdCode::PrintReg: {
             std::string s = cmd.positional;
             if (s.empty() && cmd.args.count("n")) s = cmd.args.at("n");
             const auto& regs = vm.getRegisters();
@@ -159,7 +159,7 @@ void Debugger::execCommand(const ParsedCmd& cmd, size_t pc, bool& resume) {
             }
             break;
         }
-        case Cmd::PrintMem: {
+        case CmdCode::PrintMem: {
             std::string s = cmd.positional;
             if (s.empty() && cmd.args.count("addr")) s = cmd.args.at("addr");
             if (s.empty()) {
@@ -174,11 +174,14 @@ void Debugger::execCommand(const ParsedCmd& cmd, size_t pc, bool& resume) {
             }
             break;
         }
-        case Cmd::Unknown:
+        case CmdCode::Help: {
+            printHelp();
+        }
+        break;
+        case CmdCode::Unknown:
             std::cout << "[dbg] unknown command '" << cmd.positional << "'\n";
             break;
         default:
-            printHelp();
             break;
     }
 }
@@ -195,12 +198,13 @@ Debugger::ParsedCmd Debugger::parseCommand(const std::string& line) {
     else if (verb == "out"  || verb == "su") result.code = CmdCode::StepOut;
     else if (verb == "go"   || verb == "g")  result.code = CmdCode::Go;
     else if (verb == "c"    || verb == "continue") result.code = CmdCode::Continue;
-    else if (verb == "q"    || verb == "quit")     result.code = CmdCode::Quit;
+    else if (verb == "q"    || verb == "quit" || verb == "exit")     result.code = CmdCode::Quit;
     else if (verb == "br.add")  result.code = CmdCode::BrAdd;
     else if (verb == "br.rem")  result.code = CmdCode::BrRem;
     else if (verb == "br" || verb == "br.list") result.code = CmdCode::BrList;
     else if (verb == "r" || verb == "reg")     result.code = CmdCode::PrintReg;
     else if (verb == "m" || verb == "mem")     result.code = CmdCode::PrintMem;
+    else if (verb == "help" || verb == "h")    result.code = CmdCode::Help;
     else {
         // shorthand: r3, m100
         if (verb.size() > 1 && verb[0] == 'r' && isdigit(verb[1])) {
@@ -246,7 +250,8 @@ void Debugger::printHelp() const {
               << "  br             List all breakpoints\n"
               << "  r<n>           Show register value (e.g., r0)\n"
               << "  m<n>           Show memory value (e.g., m100)\n"
-              << "  q              Quit debugger\n"
+              << "  help / h       Show Commands Menu\n"
+              << "  quit / q / exit       Quit debugger\n"
               << "────────────────────────────────────────────────────\n";
 }
 
@@ -286,5 +291,5 @@ void Debugger::printState(size_t pc) {
     }
     if (anyReg) std::cout << "\n";
 
-    printHelp();
+    // printHelp();
 }

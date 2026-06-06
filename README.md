@@ -841,7 +841,8 @@ The debugger provides interactive control over program execution with the follow
 | `br` | `br.list` | List all breakpoints |
 | `r<n>` | `reg <n>` | Show register value (e.g., `r0`, `r3`) |
 | `m<addr>` | `mem <addr>` | Show memory value (e.g., `m100`, `m10000`) |
-| `q` | `quit` | Quit debugger |
+| `h` | `help` | Open Commands Menu | 
+| `q` | `quit`, `exit` | Quit debugger |
 
 #### Debugger Features
 

@@ -184,7 +184,7 @@ Token Tokenizer::getNextToken() {
            (current == '/' && next == '=') || // /=
            (current == '*' && next == '=') || // *=
            (current == '%' && next == '=') || // %=
-           (current == '^' && next == '=') ||
+           (current == '^' && next == '=') || // ^=
            (current == '*' && next == '*') || // **
            (current == '/' && next == '/') || // floor division operator (//) 
            (current == '%' && next == '/')) { // fractional division operator (a%/b = a/b - a//b). Fractional part

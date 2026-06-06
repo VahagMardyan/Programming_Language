@@ -29,7 +29,7 @@ private:
     enum class CmdCode {
         Step, StepOver, StepOut, Go, Continue, Quit,
         BrAdd, BrRem, BrList,
-        PrintReg, PrintMem,
+        PrintReg, PrintMem, Help,
         Unknown
     };
     struct ParsedCmd {
