@@ -168,7 +168,7 @@ void Parser::processOperatorStack(const std::string& currentOp) {
     }
 }
 
-std::shared_ptr<StatementNode> Parser::parseProgram() {
+std::shared_ptr<StatementNode> Parser::parseProgram(bool requireMain) {
     programHasMain = false;
     symTable.beginProgramParse();
     auto block = std::make_shared<BlockCode>();
@@ -184,7 +184,7 @@ std::shared_ptr<StatementNode> Parser::parseProgram() {
         else nextToken();
     }
     symTable.endProgramParse();
-    if(!programHasMain) {
+    if(requireMain && !programHasMain) {
         error("Program must define function main() (void function main() { ... })");
     }
     return block;

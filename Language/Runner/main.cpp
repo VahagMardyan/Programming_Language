@@ -11,13 +11,14 @@
 #include "../Compiler/compiler.h"
 #include "../SymbolTable/symbol_table.h"
 #include "../VirtualMachine/vm.h"
+#include "../Linker/linker.h"
 
 namespace {
+
 std::string readAllText(const std::filesystem::path& path) {
     std::ifstream file(path);
-    if(!file.is_open()) {
+    if (!file.is_open())
         throw std::runtime_error("Cannot open file '" + path.string() + "'");
-    }
     std::ostringstream ss;
     ss << file.rdbuf();
     return ss.str();
@@ -26,15 +27,14 @@ std::string readAllText(const std::filesystem::path& path) {
 std::string expandImports(
     const std::filesystem::path& path,
     std::unordered_set<std::string>& visiting,
-    std::unordered_set<std::string>& seen) {
+    std::unordered_set<std::string>& seen)
+{
     const std::filesystem::path normalized = std::filesystem::absolute(path).lexically_normal();
     const std::string key = normalized.generic_string();
-    if(visiting.count(key) > 0) {
+    if (visiting.count(key))
         throw std::runtime_error("Circular import detected at '" + normalized.string() + "'");
-    }
-    if(seen.count(key) > 0) {
+    if (seen.count(key))
         return "";
-    }
 
     visiting.insert(key);
     const std::string source = readAllText(normalized);
@@ -43,10 +43,11 @@ std::string expandImports(
     std::string line;
     const std::regex importPattern(R"re(^\s*import\s+['"]([^'"]+)['"]\s*;?\s*$)re");
 
-    while(std::getline(sourceLines, line)) {
+    while (std::getline(sourceLines, line)) {
         std::smatch match;
-        if(std::regex_match(line, match, importPattern)) {
-            const std::filesystem::path next = (normalized.parent_path() / match[1].str()).lexically_normal();
+        if (std::regex_match(line, match, importPattern)) {
+            const std::filesystem::path next =
+                (normalized.parent_path() / match[1].str()).lexically_normal();
             merged << expandImports(next, visiting, seen);
             continue;
         }
@@ -58,44 +59,61 @@ std::string expandImports(
     return merged.str();
 }
 
-ByteCode compileWithImports(const std::string& inputPath) {
-    std::unordered_set<std::string> visiting;
-    std::unordered_set<std::string> seen;
+// Compile a single .vhg source (with import expansion) into ByteCode.
+// allowUnresolved=true is used when producing object units for the linker.
+
+ByteCode compileSource(
+    const std::string& inputPath,
+    bool allowUnresolved = false,
+    bool emitMainFramePrologue = true) {
+    std::unordered_set<std::string> visiting, seen;
     const std::string source = expandImports(inputPath, visiting, seen);
     std::istringstream stream(source);
     Lexer lexer(stream);
     Tokenizer tokenizer(lexer);
     SymbolTable symbols;
     Parser parser(tokenizer, symbols);
-    auto root = std::static_pointer_cast<ASTNode>(parser.parseProgram());
-    if(!root) {
+    auto root = std::static_pointer_cast<ASTNode>(parser.parseProgram(!allowUnresolved));
+    if (!root)
         throw std::runtime_error("Parsing failed for '" + inputPath + "'");
-    }
     Compiler compiler(symbols);
-    return compiler.compile(root);
-}
+    return compiler.compile(root, /*allowUnresolvedCalls=*/allowUnresolved,
+                            /*emitMainFramePrologue=*/emitMainFramePrologue);
 }
 
+// Legacy name kept for backward compat
+ByteCode compileWithImports(const std::string& inputPath) {
+    return compileSource(inputPath, /*allowUnresolved=*/false);
+}
+
+void printUsage(const char* prog) {
+    std::cerr
+        << "Usage:\n"
+        << "  " << prog << " <file.vhg>                    Build and run source directly\n"
+        << "  " << prog << " compile <in.vhg> [out.vhb]    Compile to bytecode object\n"
+        << "  " << prog << " compile-obj <in.vhg> [out.vhb] Compile to linkable object\n"
+        << "  " << prog << " link <a.vhb> [b.vhb ...] -o <out.vhb>  Link objects\n"
+        << "  " << prog << " run <in.vhb> [--debug]         Run bytecode\n";
+}
+
+} // namespace
+
 int main(int argc, char* argv[]) {
-    if(argc < 2) {
-        std::cerr << "Usage:\n"
-                  << "  " << argv[0] << " <filename.vhg>\n"
-                  << "  " << argv[0] << " compile <input.vhg> [output.vhb]\n"
-                  << "  " << argv[0] << " run <input.vhb> [--debug]\n";
+    if (argc < 2) {
+        printUsage(argv[0]);
         return 1;
     }
 
     try {
-        std::string modeOrFile = argv[1];
+        std::string mode = argv[1];
 
-        if(modeOrFile == "compile") {
-            if(argc < 3) {
-                throw std::runtime_error("compile mode requires input .vhg file");
-            }
+        // compile — full compile (must have main, not linkable)
+        if (mode == "compile") {
+            if (argc < 3) throw std::runtime_error("compile: requires input .vhg file");
             const std::string inputPath = argv[2];
-            if(inputPath.size() < 4 || inputPath.substr(inputPath.size() - 4) != ".vhg") {
-                throw std::runtime_error("compile input must be a .vhg file");
-            }
+            if (inputPath.size() < 4 || inputPath.substr(inputPath.size() - 4) != ".vhg")
+                throw std::runtime_error("compile: input must be a .vhg file");
+
             std::string outputPath = (argc >= 4)
                 ? std::string(argv[3])
                 : inputPath.substr(0, inputPath.size() - 4) + ".vhb";
@@ -106,36 +124,91 @@ int main(int argc, char* argv[]) {
             return 0;
         }
 
-        if(modeOrFile == "run") {
-            if(argc < 3) {
-                throw std::runtime_error("run mode requires input .vhb file");
+        // compile-obj — compile to a linkable object unit (.vhb)
+        //               cross-unit calls are allowed to remain unresolved
+        if (mode == "compile-obj") {
+            if (argc < 3) throw std::runtime_error("compile-obj: requires input .vhg file");
+            const std::string inputPath = argv[2];
+            if (inputPath.size() < 4 || inputPath.substr(inputPath.size() - 4) != ".vhg")
+                throw std::runtime_error("compile-obj: input must be a .vhg file");
+
+            std::string outputPath = (argc >= 4)
+                ? std::string(argv[3])
+                : inputPath.substr(0, inputPath.size() - 4) + ".vhb";
+
+            // Object units omit the program entry prologue; the linker emits
+            // CALL main (and a single prologue) in the final executable.
+            ByteCode bc = compileSource(inputPath, /*allowUnresolved=*/true,
+                                        /*emitMainFramePrologue=*/false);
+            writeByteCodeToFile(bc, outputPath);
+            std::cout << "Object unit written to: " << outputPath << std::endl;
+            return 0;
+        }
+
+        // link — merge multiple .vhb object units into one executable .vhb
+        //   vhg link a.vhb b.vhb lib.vhb -o program.vhb
+        if (mode == "link") {
+            // Collect inputs and -o output
+            std::vector<std::string> inputs;
+            std::string outputPath;
+            bool nextIsOutput = false;
+
+            for (int i = 2; i < argc; ++i) {
+                std::string arg = argv[i];
+                if (nextIsOutput) {
+                    outputPath = arg;
+                    nextIsOutput = false;
+                } else if (arg == "-o") {
+                    nextIsOutput = true;
+                } else {
+                    inputs.push_back(arg);
+                }
             }
+
+            if (inputs.empty())
+                throw std::runtime_error("link: no input files");
+            if (outputPath.empty())
+                throw std::runtime_error("link: missing -o <output.vhb>");
+
+            Linker linker;
+            for (const auto& inp : inputs) {
+                ByteCode unit = readByteCodeFromFile(inp);
+                linker.addUnit(std::move(unit), inp);
+                std::cout << "  loaded: " << inp << "\n";
+            }
+
+            ByteCode linked = linker.link();
+            writeByteCodeToFile(linked, outputPath);
+            std::cout << "Linked bytecode written to: " << outputPath << std::endl;
+            return 0;
+        }
+
+        // run — execute a .vhb bytecode file
+        if (mode == "run") {
+            if (argc < 3) throw std::runtime_error("run: requires input .vhb file");
             bool debugFlag = false;
             std::string inputByteCode;
-            for(int i=2; i<argc; ++i) {
+            for (int i = 2; i < argc; ++i) {
                 std::string arg = argv[i];
-                if(arg == "--debug") {
-                    debugFlag = true;
-                } else {
-                    inputByteCode = arg;
-                }
+                if (arg == "--debug") debugFlag = true;
+                else inputByteCode = arg;
             }
             VirtualMachine vm(debugFlag);
             vm.loadFromFile(inputByteCode);
             vm.run();
             return 0;
         }
+        // Backward-compatible mode: run .vhg source directly
+        std::string filename = mode;
+        if (filename.size() < 4 || filename.substr(filename.size() - 4) != ".vhg")
+            throw std::runtime_error("Expected .vhg source, or use compile / compile-obj / link / run");
 
-        // Backward-compatible mode: run source directly
-        std::string filename = modeOrFile;
-        if(filename.size() < 4 || filename.substr(filename.size() - 4) != ".vhg") {
-            throw std::runtime_error("Expected .vhg source, or use compile/run modes");
-        }
         ByteCode bc = compileWithImports(filename);
         VirtualMachine vm(false);
         vm.load(bc);
         vm.run();
-    } catch(const std::exception& e) {
+
+    } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
         return 1;
     }

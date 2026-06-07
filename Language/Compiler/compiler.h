@@ -65,12 +65,15 @@ class Compiler {
         void emitMainPrologue(std::vector<Instruction>& code);
 
         std::vector<std::shared_ptr<ASTNode>> postOrderTraverse(std::shared_ptr<ASTNode> root);
-        std::vector<Instruction> generateByteCode(const std::vector<std::shared_ptr<ASTNode>>& nodes);
+        std::vector<Instruction> generateByteCode(
+            const std::vector<std::shared_ptr<ASTNode>>& nodes,
+            size_t pcBase = 0);
         bool tryEmitMathBuiltinCall(
             const std::string& name,
             const std::vector<std::shared_ptr<ASTNode>>& args,
             std::vector<Instruction>& code,
-            int& resultReg
+            int& resultReg,
+            size_t pcBase = 0
         );
         std::stack<std::vector<size_t>> breakStack;
         std::stack<std::vector<size_t>> continueStack;

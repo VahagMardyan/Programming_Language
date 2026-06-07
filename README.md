@@ -13,6 +13,9 @@
   - [1. Run source directly](#1-run-source-directly-backwardcompatible)
   - [2. Compile to bytecode](#2-compile-to-bytecode)
   - [3. Run pre‑compiled bytecode](#3-run-precompiled-bytecode)
+  - [4. Compile to object unit](#4-compile-to-object-unit)
+  - [5. Link object units](#5-link-object-units)
+- [Linker](#linker)
 - [Language Syntax Overview](#-language-syntax-overview)
   - [Variables & Scoping](#variables--scoping)
   - [Variable Declaration Rules](#variable-declaration-rules)
@@ -34,6 +37,7 @@
   - [Parser](#parser)
   - [Symbol Table](#symbol-table)
   - [Compiler](#compiler)
+  - [Linker](#linker-1)
   - [Bytecode Format](#bytecode-format-vhb)
     - [File Structure](#file-structure)
     - [Header Fields](#header-fields)
@@ -85,6 +89,7 @@
 | `Parser/`                | Recursive‑descent parser with shunting‑yard expression handling.         |
 | `Compiler/`              | Transforms AST into bytecode; performs constant folding.                 |
 | `VirtualMachine/`        | Executes bytecode; includes register file, memory, and call stack.       |
+| `Linker/`                | Merges compiled object units; resolves cross-unit calls and global slots. |
 
 ---
 
@@ -218,6 +223,67 @@ If no output path is given, it defaults to `input.vhb`.
 ./vhg run program.vhb
 ```
 Loads the `.vhb` binary and executes it on the VM.
+
+### 4. Compile to object unit
+```bash
+./vhg compile-obj input.vhg [output.vhb]
+```
+Compiles a `.vhg` source file into a **linkable object unit** — cross-unit function calls are left unresolved and no `main` function is required. If no output path is given, defaults to `input.vhb`.
+
+### 5. Link object units
+```bash
+./vhg link a.vhb b.vhb lib.vhb -o program.vhb
+```
+Merges one or more `.vhb` object units produced by `compile-obj` into a single executable `.vhb`. The `-o` flag is required. The result can be run with `./vhg run program.vhb` as normal.
+
+---
+
+## Linker
+
+The linker combines multiple independently compiled object units (`.vhb` files) into a single executable bytecode file. This is the proper alternative to `import` for larger projects where you want to compile modules separately and reuse them without full recompilation.
+
+### When to use the linker vs. `import`
+
+| | `import "file.vhg"` | Linker (`compile-obj` + `link`) |
+|---|---|---|
+| How it works | Text substitution before parsing | Each file compiled independently, then merged |
+| Cross-file globals | Shared (merged at source level) | Shared by name across units |
+| Cross-file functions | Inlined at compile time | Resolved at link time |
+| Recompile on change | Full recompile every time | Only recompile the changed unit |
+| Multiple `main` allowed | No | No (exactly one across all units) |
+
+> **Note:** The `import` statement still works as before. The linker is an optional separate pipeline for larger projects.
+
+### Typical multi-file workflow
+
+```bash
+# 1. Compile each module into an object unit
+./vhg compile-obj math_utils.vhg
+./vhg compile-obj physics.vhg
+./vhg compile-obj main_module.vhg   # this file defines main()
+
+# 2. Link all units into one executable
+./vhg link math_utils.vhb physics.vhb main_module.vhb -o game.vhb
+
+# 3. Run
+./vhg run game.vhb
+```
+
+Only the file containing `main()` defines the entry point; all others are pure library units.
+
+If only one file changes, only that file needs to be recompiled:
+```bash
+./vhg compile-obj main_module.vhg   # only this changed
+./vhg link math_utils.vhb physics.vhb main_module.vhb -o game.vhb
+```
+
+### Rules and error conditions
+
+- Exactly **one** `main` function must be defined across all linked units. Missing or duplicate `main` is a link-time error.
+- **Function names must be unique** across all units. Defining the same function in two units is a link-time error.
+- Global variables with the **same name** in different units share one memory slot. Declaring `score = 0` in two files that are linked together is fine — they refer to the same variable.
+- Cross-unit calls to functions not defined in any unit produce a link-time error naming the missing function.
+- Global slot indices are stored in 8 bits in `STORE_VAR`; the linker enforces a limit of **255 total global slots** across all linked units.
 
 ---
 
@@ -559,7 +625,7 @@ require quotes in string context.
 ### Import preprocessing
 `import "path_to_file"`
 - This allows to import functions and variables (global) from other files.
->**Note:** Language doesn't support linker yet. So `import` works like `#include` in C++.
+>**Note:** `import "file.vhg"` works as a text-level include (equivalent to `#include` in C++). For projects with multiple independently compiled files, use `compile-obj` + `link` instead — see [Linker](#linker).
 
 ## Architecture Deep Dive
 
@@ -592,6 +658,26 @@ require quotes in string context.
 - **Constant folding** is re‑applied during optimization (redundant constants are merged).
 - Outputs a `ByteCode` structure containing instructions, constant pool (numbers), and string pool.
 - Emits **`LOAD_STR_IDX`** (read character) and **`STORE_STR_IDX`** (write character, then store string back to the variable slot).
+---
+
+### Linker
+- Accepts multiple `ByteCode` units produced by `compile-obj` (each compiled with `allowUnresolvedCalls = true`).
+- Computes a **base offset** for each unit in the merged instruction stream and rebases all jump/call addresses accordingly.
+- **Deduplicates constant and string pools** — identical `double` values and string literals across units are merged into one entry; `LOAD_CONST` / `LOAD_STR` / `PRINT_STR` indices are remapped.
+- **Unifies global variable slots by name** — two units that declare a global with the same name share one slot in the merged output; `LOAD_VAR` / `STORE_VAR` addresses are remapped.
+- **Resolves cross-unit calls** recorded in `ByteCode::unresolvedCalls` by patching the absolute address of each target function after all units are merged.
+- Validates that exactly one `main` is defined and emits the final `CALL main` epilogue.
+- Throws a descriptive `std::runtime_error` for duplicate function definitions, unresolved calls, missing `main`, or global slot overflow (> 255).
+
+| Step | What happens |
+|------|-------------|
+| Address rebasing | Each unit's `JMP`/`JZ`/`JNZ`/`CALL` targets are shifted by the unit's instruction base offset |
+| Constant pool merge | Identical `double` constants deduplicated; `LOAD_CONST` indices remapped |
+| String pool merge | Identical string literals deduplicated; `LOAD_STR`/`PRINT_STR` indices remapped |
+| Global slot merge | Globals unified by name; `LOAD_VAR`/`STORE_VAR` addresses remapped |
+| Call resolution | Unresolved cross-unit calls patched with target's absolute address |
+| `main` epilogue | `CALL main` appended after all units, same as single-file `compile` |
+
 ---
 
 ### Bytecode Format (`.vhb`)

@@ -47,12 +47,13 @@ bool Compiler::tryEmitMathBuiltinCall(
     const std::string& name,
     const std::vector<std::shared_ptr<ASTNode>>& args,
     std::vector<Instruction>& code,
-    int& resultReg
+    int& resultReg,
+    size_t pcBase
 ) {
     auto emitArg = [&](const std::shared_ptr<ASTNode>& arg) -> int {
         globalCtx.consts.clear();
         globalCtx.vars.clear();
-        auto argCode = generateByteCode(postOrderTraverse(arg));
+        auto argCode = generateByteCode(postOrderTraverse(arg), pcBase + code.size());
         rebaseJumpTargets(argCode, static_cast<uint16_t>(code.size()));
         code.insert(code.end(), argCode.begin(), argCode.end());
         return argCode.empty() ? 0 : static_cast<int>(argCode.back().dst);
@@ -448,7 +449,9 @@ ByteCode Compiler::compile(
     return bc;
 }
 
-std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::shared_ptr<ASTNode>>& nodes) {
+std::vector<Instruction> Compiler::generateByteCode(
+    const std::vector<std::shared_ptr<ASTNode>>& nodes,
+    size_t pcBase) {
     std::vector<Instruction> code;
     std::stack<int> storage;
     
@@ -526,7 +529,7 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
         }
         else if(auto callExpr = std::dynamic_pointer_cast<FunctionCallNode>(node)) {
             int builtinResultReg = 0;
-            if(tryEmitMathBuiltinCall(callExpr->getName(), callExpr->getArgs(), code, builtinResultReg)) {
+            if(tryEmitMathBuiltinCall(callExpr->getName(), callExpr->getArgs(), code, builtinResultReg, pcBase)) {
                 storage.push(builtinResultReg);
                 continue;
             }
@@ -534,7 +537,7 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
             for(const auto& arg : callExpr->getArgs()) {
                 globalCtx.consts.clear();
                 globalCtx.vars.clear();
-                auto argCode = generateByteCode(postOrderTraverse(arg));
+                auto argCode = generateByteCode(postOrderTraverse(arg), pcBase + code.size());
                 rebaseJumpTargets(argCode, static_cast<uint16_t>(code.size()));
                 code.insert(code.end(), argCode.begin(), argCode.end());
                 int argReg = argCode.empty() ? 0 : argCode.back().dst;
@@ -550,7 +553,7 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
                 setAddress(callInst, (uint16_t)functionTable[callExpr->getName()].address);
             } else {
                 setAddress(callInst, 0);
-                forwardCalls.push_back({code.size(), callExpr->getName()});
+                forwardCalls.push_back({pcBase + code.size(), callExpr->getName()});
             }
             code.push_back(callInst);
             storage.push(resultReg);
@@ -570,7 +573,7 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
             int resultReg = allocateTempRegister();
                 
             // Generate condition
-            auto condCode = generateByteCode(postOrderTraverse(ternary->getCondition()));
+            auto condCode = generateByteCode(postOrderTraverse(ternary->getCondition()), pcBase + code.size());
             rebaseJumpTargets(condCode, static_cast<uint16_t>(code.size()));
             code.insert(code.end(), condCode.begin(), condCode.end());
             int condReg = condCode.empty() ? 0 : condCode.back().dst;
@@ -579,7 +582,7 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
             size_t jzIdx = code.size();
             code.push_back({(uint32_t)OpCode::JZ, (uint32_t)condReg, 0, 0});
                 
-            auto trueCode = generateByteCode(postOrderTraverse(ternary->getTrueExpr()));
+            auto trueCode = generateByteCode(postOrderTraverse(ternary->getTrueExpr()), pcBase + code.size());
             rebaseJumpTargets(trueCode, static_cast<uint16_t>(code.size()));
             code.insert(code.end(), trueCode.begin(), trueCode.end());
             int trueReg = trueCode.empty() ? 0 : trueCode.back().dst;
@@ -591,7 +594,7 @@ std::vector<Instruction> Compiler::generateByteCode(const std::vector<std::share
             setAddress(code[jzIdx], (uint16_t)code.size());
                 
             // Generate false branch and store to resultReg
-            auto falseCode = generateByteCode(postOrderTraverse(ternary->getFalseExpr()));
+            auto falseCode = generateByteCode(postOrderTraverse(ternary->getFalseExpr()), pcBase + code.size());
             rebaseJumpTargets(falseCode, static_cast<uint16_t>(code.size()));
             code.insert(code.end(), falseCode.begin(), falseCode.end());
             int falseReg = falseCode.empty() ? 0 : falseCode.back().dst;
@@ -649,14 +652,14 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
 
         globalCtx.consts.clear();
         globalCtx.vars.clear();
-        auto valueCode = generateByteCode(postOrderTraverse(subWrite->getValue()));
+        auto valueCode = generateByteCode(postOrderTraverse(subWrite->getValue()), code.size());
         rebaseJumpTargets(valueCode, static_cast<uint16_t>(code.size()));
         code.insert(code.end(), valueCode.begin(), valueCode.end());
         int valReg = valueCode.empty() ? 0 : valueCode.back().dst;
 
         globalCtx.consts.clear();
         globalCtx.vars.clear();
-        auto indexCode = generateByteCode(postOrderTraverse(subWrite->getIndex()));
+        auto indexCode = generateByteCode(postOrderTraverse(subWrite->getIndex()), code.size());
         rebaseJumpTargets(indexCode, static_cast<uint16_t>(code.size()));
         code.insert(code.end(), indexCode.begin(), indexCode.end());
         int idxReg = indexCode.empty() ? 0 : indexCode.back().dst;
@@ -687,7 +690,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
     if (auto assign = std::dynamic_pointer_cast<AssignmentNode>(stmt)) {
         globalCtx.consts.clear();
         globalCtx.vars.clear();
-        auto exprCode = generateByteCode(postOrderTraverse(assign->getValue()));
+        auto exprCode = generateByteCode(postOrderTraverse(assign->getValue()), code.size());
         rebaseJumpTargets(exprCode, static_cast<uint16_t>(code.size()));
         code.insert(code.end(), exprCode.begin(), exprCode.end());
         addLineNumbers(stmt->lineNumber, exprCode.size());
@@ -723,7 +726,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
     
     else if(auto ifStmt = std::dynamic_pointer_cast<IfStatementNode>(stmt)) {
         globalCtx.consts.clear(); globalCtx.vars.clear();
-        auto condCode = generateByteCode(postOrderTraverse(ifStmt->getCondition()));
+        auto condCode = generateByteCode(postOrderTraverse(ifStmt->getCondition()), code.size());
         rebaseJumpTargets(condCode, static_cast<uint16_t>(code.size()));
         code.insert(code.end(), condCode.begin(), condCode.end());
         addLineNumbers(stmt->lineNumber, condCode.size());
@@ -748,7 +751,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         
         size_t startAddr = code.size();
         globalCtx.consts.clear(); globalCtx.vars.clear();
-        auto condCode = generateByteCode(postOrderTraverse(whileStmt->getCondition()));
+        auto condCode = generateByteCode(postOrderTraverse(whileStmt->getCondition()), code.size());
         rebaseJumpTargets(condCode, static_cast<uint16_t>(code.size()));
         code.insert(code.end(), condCode.begin(), condCode.end());
         addLineNumbers(stmt -> lineNumber, condCode.size());
@@ -807,7 +810,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
                 lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
             } else {
                 globalCtx.consts.clear(); globalCtx.vars.clear();
-                auto exprCode = generateByteCode(postOrderTraverse(expr));
+                auto exprCode = generateByteCode(postOrderTraverse(expr), code.size());
                 rebaseJumpTargets(exprCode, static_cast<uint16_t>(code.size()));
                 code.insert(code.end(), exprCode.begin(), exprCode.end());
                 for(size_t i = 0; i < exprCode.size(); ++i) {
@@ -829,7 +832,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         size_t startAddr = code.size();
         globalCtx.consts.clear(); globalCtx.vars.clear();
 
-        auto condCode = generateByteCode(postOrderTraverse(forStmt->getCondition()));
+        auto condCode = generateByteCode(postOrderTraverse(forStmt->getCondition()), code.size());
         rebaseJumpTargets(condCode, static_cast<uint16_t>(code.size()));
         code.insert(code.end(), condCode.begin(), condCode.end());
         addLineNumbers(stmt -> lineNumber, condCode.size());
@@ -912,7 +915,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         auto call = callStmt->getCall();
         int builtinResultReg = 0;
         size_t instCountBefore = code.size();
-        if(tryEmitMathBuiltinCall(call->getName(), call->getArgs(), code, builtinResultReg)) {
+        if(tryEmitMathBuiltinCall(call->getName(), call->getArgs(), code, builtinResultReg, code.size())) {
             addLineNumbers(callStmt->lineNumber, code.size() - instCountBefore);
             freeTempRegister(builtinResultReg);
             return;
@@ -920,7 +923,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         for(const auto& arg : call->getArgs()) {
             globalCtx.consts.clear();
             globalCtx.vars.clear();
-            auto exprCode = generateByteCode(postOrderTraverse(arg));
+            auto exprCode = generateByteCode(postOrderTraverse(arg), code.size());
             rebaseJumpTargets(exprCode, static_cast<uint16_t>(code.size()));
             code.insert(code.end(), exprCode.begin(), exprCode.end());
             addLineNumbers(stmt->lineNumber, exprCode.size());
@@ -948,7 +951,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         if(retStmt->getExpression()) {
             globalCtx.consts.clear();
             globalCtx.vars.clear();
-            auto exprCode = generateByteCode(postOrderTraverse(retStmt->getExpression()));
+            auto exprCode = generateByteCode(postOrderTraverse(retStmt->getExpression()), code.size());
             rebaseJumpTargets(exprCode, static_cast<uint16_t>(code.size()));
             code.insert(code.end(), exprCode.begin(), exprCode.end());
             addLineNumbers(stmt -> lineNumber, exprCode.size());
@@ -980,7 +983,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         
         // 1. Switch expression
         globalCtx.consts.clear(); globalCtx.vars.clear();
-        auto exprCode = generateByteCode(postOrderTraverse(switchNode->getExpression()));
+        auto exprCode = generateByteCode(postOrderTraverse(switchNode->getExpression()), code.size());
         rebaseJumpTargets(exprCode, static_cast<uint16_t>(code.size()));
         code.insert(code.end(), exprCode.begin(), exprCode.end());
         addLineNumbers(stmt -> lineNumber, exprCode.size());
@@ -1002,7 +1005,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         
             const auto& caseItem = cases[i];
             for(const auto& valueExpr : caseItem.values) {
-                auto valCode = generateByteCode(postOrderTraverse(valueExpr));
+                auto valCode = generateByteCode(postOrderTraverse(valueExpr), code.size());
                 rebaseJumpTargets(valCode, static_cast<uint16_t>(code.size()));
                 code.insert(code.end(), valCode.begin(), valCode.end());
                 addLineNumbers(stmt -> lineNumber, valCode.size());
@@ -1137,6 +1140,26 @@ void writeByteCodeToFile(const ByteCode& bc, const std::string& path) {
         if (nlen) out.write(nm.data(), nlen);
     }
 
+    uint32_t funcSymCount = static_cast<uint32_t>(bc.functionSymbols.size());
+    out.write(reinterpret_cast<const char*>(&funcSymCount), sizeof(funcSymCount));
+    for (const auto& [name, addr] : bc.functionSymbols) {
+        uint32_t nlen = static_cast<uint32_t>(name.size());
+        out.write(reinterpret_cast<const char*>(&nlen), sizeof(nlen));
+        if (nlen) out.write(name.data(), nlen);
+        uint32_t absAddr = static_cast<uint32_t>(addr);
+        out.write(reinterpret_cast<const char*>(&absAddr), sizeof(absAddr));
+    }
+
+    uint32_t unresolvedCount = static_cast<uint32_t>(bc.unresolvedCalls.size());
+    out.write(reinterpret_cast<const char*>(&unresolvedCount), sizeof(unresolvedCount));
+    for (const auto& [localIdx, funcName] : bc.unresolvedCalls) {
+        uint32_t idx = static_cast<uint32_t>(localIdx);
+        out.write(reinterpret_cast<const char*>(&idx), sizeof(idx));
+        uint32_t nlen = static_cast<uint32_t>(funcName.size());
+        out.write(reinterpret_cast<const char*>(&nlen), sizeof(nlen));
+        if (nlen) out.write(funcName.data(), nlen);
+    }
+
     if(!out.good()) {
         throw std::runtime_error("Failed writing bytecode file: " + path);
     }
@@ -1234,6 +1257,60 @@ ByteCode readByteCodeFromFile(const std::string& path) {
             }
         }
     }
+
+    auto readOptionalSection = [&](auto readFn) {
+        std::streampos pos = in.tellg();
+        if (!in) return;
+        if (!readFn()) {
+            in.clear();
+            in.seekg(pos);
+        }
+    };
+
+    readOptionalSection([&]() -> bool {
+        uint32_t funcSymCount = 0;
+        in.read(reinterpret_cast<char*>(&funcSymCount), sizeof(funcSymCount));
+        if (in.gcount() != static_cast<std::streamsize>(sizeof(funcSymCount))) return false;
+        bc.functionSymbols.clear();
+        for (uint32_t i = 0; i < funcSymCount; ++i) {
+            uint32_t nlen = 0;
+            in.read(reinterpret_cast<char*>(&nlen), sizeof(nlen));
+            if (in.gcount() != static_cast<std::streamsize>(sizeof(nlen))) return false;
+            std::string name(nlen, '\0');
+            if (nlen > 0) {
+                in.read(name.data(), nlen);
+                if (!in) return false;
+            }
+            uint32_t addr = 0;
+            in.read(reinterpret_cast<char*>(&addr), sizeof(addr));
+            if (in.gcount() != static_cast<std::streamsize>(sizeof(addr))) return false;
+            bc.functionSymbols[std::move(name)] = addr;
+        }
+        return true;
+    });
+
+    readOptionalSection([&]() -> bool {
+        uint32_t unresolvedCount = 0;
+        in.read(reinterpret_cast<char*>(&unresolvedCount), sizeof(unresolvedCount));
+        if (in.gcount() != static_cast<std::streamsize>(sizeof(unresolvedCount))) return false;
+        bc.unresolvedCalls.clear();
+        bc.unresolvedCalls.reserve(unresolvedCount);
+        for (uint32_t i = 0; i < unresolvedCount; ++i) {
+            uint32_t localIdx = 0;
+            in.read(reinterpret_cast<char*>(&localIdx), sizeof(localIdx));
+            if (in.gcount() != static_cast<std::streamsize>(sizeof(localIdx))) return false;
+            uint32_t nlen = 0;
+            in.read(reinterpret_cast<char*>(&nlen), sizeof(nlen));
+            if (in.gcount() != static_cast<std::streamsize>(sizeof(nlen))) return false;
+            std::string funcName(nlen, '\0');
+            if (nlen > 0) {
+                in.read(funcName.data(), nlen);
+                if (!in) return false;
+            }
+            bc.unresolvedCalls.emplace_back(localIdx, std::move(funcName));
+        }
+        return true;
+    });
 
     if(!in.good() && !in.eof()) {
         throw std::runtime_error("Failed reading bytecode file: " + path);

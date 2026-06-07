@@ -56,7 +56,7 @@ public:
     Parser(Tokenizer& tok, SymbolTable& st)
         : tokenizer(tok), symTable(st), state(ParserState::ExpectOperand) { nextToken(); }
 
-    std::shared_ptr<StatementNode> parseProgram();
+    std::shared_ptr<StatementNode> parseProgram(bool requireMain = true);
     void error(const std::string& message) {
         state = ParserState::Error;
         throw std::runtime_error(
