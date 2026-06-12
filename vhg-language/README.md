@@ -340,7 +340,7 @@ This file defines the behavior of the editor (comments and brackets).
     "random function": {
         "prefix": "random",
         "body": "random(${1:min}, ${2:max})",
-        "description": "random(min=0, max=1) -> number - Generates a random floating-point number in the range [min, max). Default range is [0,1)"
+        "description": "random(min=0, max=1) -> number - Generates a random floating-point number in the range [min, max). Default range is [0, 1)."
     },
     "input function": {
         "prefix": "input",
@@ -371,7 +371,7 @@ This file defines the behavior of the editor (comments and brackets).
         "prefix": "if",
         "body": [
             "if (${1:condition}) {",
-            "\t${2:# code}",
+                "",
             "}"
         ],
         "description": "if statement - Conditional execution"
@@ -380,9 +380,9 @@ This file defines the behavior of the editor (comments and brackets).
         "prefix": "ife",
         "body": [
             "if (${1:condition}) {",
-            "\t${2:# code}",
+                "",
             "} else {",
-            "\t${3:# code}",
+                "",
             "}"
         ],
         "description": "if-else statement - Conditional execution with else branch"
@@ -391,11 +391,11 @@ This file defines the behavior of the editor (comments and brackets).
         "prefix": "ifei",
         "body": [
             "if (${1:condition}) {",
-            "\t${2:# code}",
+                "",
             "} else if (${3:condition}) {",
-            "\t${4:# code}",
+                "",
             "} else {",
-            "\t${5:# code}",
+                "",
             "}"
         ],
         "description": "if-else if-else statement - Multiple conditions"
@@ -404,7 +404,7 @@ This file defines the behavior of the editor (comments and brackets).
         "prefix" : "elif",
         "body": [
             "else if(${1:condition}) {",
-            "\t ${2:# code}",
+                "",
             "}"
         ],
         "description" : "if-else statement"
@@ -413,7 +413,7 @@ This file defines the behavior of the editor (comments and brackets).
         "prefix": "while",
         "body": [
             "while (${1:condition}) {",
-            "\t${2:# code}",
+                "",
             "}"
         ],
         "description": "while loop - Execute while condition is true"
@@ -422,7 +422,7 @@ This file defines the behavior of the editor (comments and brackets).
         "prefix": "for",
         "body": [
             "for (${1:variable i = 0}; ${2:i < count}; ${3:i = i + 1}) {",
-            "\t${4:# code}",
+                "",
             "}"
         ],
         "description": "for loop - Execute with initialization, condition, and update"
@@ -431,8 +431,8 @@ This file defines the behavior of the editor (comments and brackets).
         "prefix": "function",
         "body": [
             "function ${1:name}(${2:params}) {",
-            "\t${3:# body}",
-            "\treturn ${4:value};",
+                "",
+            "  return ${4:value};",
             "}"
         ],
         "description": "function - Define a function with return value"
@@ -441,7 +441,7 @@ This file defines the behavior of the editor (comments and brackets).
         "prefix": "vfunction | void",
         "body": [
             "void function ${1:name}(${2:params}) {",
-            "\t${3:# body}",
+                "",
             "}"
         ],
         "description": "void function - Define a function without return value"
@@ -525,14 +525,22 @@ This file defines the behavior of the editor (comments and brackets).
         "prefix": "switch",
         "body": [
             "switch(${1:value}) {",
-            "\tcase ${2:c1}, ${3:c2}:",
-            "\t\t${4:# code}",
-            "\t\tbreak;",
-            "\tdefault:",
-            "\t\t${5:# code}",
+            "  case ${2:c1}, ${3:c2}:",
+                "",
+            "break;",
+            "default:",
+                "",
             "}"
         ],
         "description": "switch-case - Multi-way conditional execution"
+    },
+    "case": {
+        "prefix":"case",
+        "body": [
+            "case ${c1}, ${c2}:",
+                "",
+            "break;"
+        ]
     },
     "ternary operator": {
         "prefix": "tern",
@@ -552,7 +560,7 @@ This file defines the behavior of the editor (comments and brackets).
         "prefix":"main",
         "body" : [
             "void function main() {",
-            "\t",
+                "",
             "}"
         ]
     }

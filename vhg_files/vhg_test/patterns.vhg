@@ -132,7 +132,7 @@ void function printSpiralPattern(n) {
 }
 
 void function main() {
-    n = input("n=");
-    printSpiralPattern(n);
+    # n = input("n=");
+    printRectangle(4,5);
 }
 

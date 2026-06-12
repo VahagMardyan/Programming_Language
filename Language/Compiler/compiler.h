@@ -28,11 +28,6 @@ struct FunctionInfo {
     int paramCount;
 };
 
-struct CompileContext {
-    std::map<size_t, int> vars;
-    std::map<double, int> consts;
-};
-
 struct ByteCode {
     std::vector<Instruction> instructions;
     std::vector<double> constants;
@@ -50,7 +45,6 @@ class Compiler {
         SymbolTable& symTable;
         int nextTempIndex = 0;
         std::stack<int> freeRegisters;
-        CompileContext globalCtx;
         std::vector<double> constantPool;
         std::vector<std::string> stringPool;
         std::unordered_map<std::string, int> stringMap;
@@ -89,12 +83,8 @@ public:
         bool allowUnresolvedCalls = false,
         bool emitMainFramePrologue = true
     );
-    void printByteCode(const std::vector<Instruction>& code) const;
     std::shared_ptr<ASTNode> optimize(std::shared_ptr<ASTNode> node);
     void compileStatement(std::shared_ptr<StatementNode> stmt, std::vector<Instruction>& code);
-    const std::vector<std::string>& getStringPool() const {
-        return stringPool;
-    }
 };
 
 void writeByteCodeToFile(const ByteCode& bc, const std::string& path);

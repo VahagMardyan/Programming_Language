@@ -37,7 +37,7 @@ while (i < 5) {
 }
 
 print("\n--- For loop with break/continue 0---\n");
-for (local x = 0; x < 10; x = x + 1) {
+for (local variable x = 0; x < 10; x = x + 1) {
     if (x == 3) {
         print("Breaking for loop at x = ", x, "\n");
         break;

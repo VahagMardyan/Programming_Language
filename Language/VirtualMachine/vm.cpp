@@ -62,23 +62,6 @@ VirtualMachine::VirtualMachine(bool debugMode) : debug_mode(debugMode) {
 
 VirtualMachine::~VirtualMachine() = default;
 
-void VirtualMachine::load(const std::string& expr, SymbolTable& symtable) {
-    std::istringstream stream(expr);
-    Lexer lexer(stream);
-    Tokenizer tokenizer(lexer);
-    Parser parser(tokenizer, symtable);
-
-    auto root = std::static_pointer_cast<ASTNode>(parser.parseProgram());
-    if(!root) throw std::runtime_error("Parsing failed!");
-    Compiler compiler(symtable);
-    ByteCode bc = compiler.compile(root);
-    loadByteCode(bc);
-
-    if(debug_mode) {
-        root->print();
-    }
-}
-
 void VirtualMachine::loadFromFile(const std::string& byteCodePath) {
     ByteCode bc = readByteCodeFromFile(byteCodePath);
     loadByteCode(bc);

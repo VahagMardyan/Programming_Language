@@ -746,11 +746,11 @@ std::shared_ptr<StatementNode> Parser::parseAssignment(bool explicitDeclare) {
 
         std::shared_ptr<ASTNode> zeroNode = std::make_shared<NoneNode>();
         if(isLocal) {
-            int32_t off = symTable.getLocalOffset(name); // local, default 0
+            int32_t off = symTable.getLocalOffset(name); // local, default "none"
             nextToken(); // skip ';'
             return std::make_shared<AssignmentNode>(off,zeroNode);
         } else {
-            size_t addr = symTable.getGlobalAddress(name); // global, default 0
+            size_t addr = symTable.getGlobalAddress(name); // global, default "none"
             nextToken(); // skip ';'
             return std::make_shared<AssignmentNode>(addr, zeroNode);
         }
@@ -949,35 +949,6 @@ std::shared_ptr<ASTNode> Parser::applySubscriptChain(std::shared_ptr<ASTNode> ba
     return base;
 }
 
-std::shared_ptr<ASTNode> Parser::parseBuiltInCall(const std::string& name) {
-    if(name == "length") {
-        nextToken(); // skip '('
-        
-        // Save parser state before parseExpression()
-        auto savedOps = ops;
-        auto savedNodes = nodes;
-        auto savedState = state;
-        
-        auto arg = parseExpression();
-        
-        // Restore parser state after recursive call
-        ops = savedOps;
-        nodes = savedNodes;
-        state = savedState;
-        
-        if(!arg) return nullptr;
-        if(currentToken.value != ")") {
-            state = ParserState::Error;
-            return nullptr;
-        }
-        nextToken(); // skip ')'
-        return std::make_shared<LengthNode>(arg);
-    }
-    // future built-ins
-    state = ParserState::Error;
-    return nullptr;
-}
-
 std::shared_ptr<ASTNode> Parser::parseExpression() {
     state = ParserState::ExpectOperand;
     while(!ops.empty()) ops.pop();
@@ -1017,12 +988,7 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                         std::string name = token.value;
                         nextToken();
                         if(currentToken.type == TokenType::OpenParen) {
-                            std::shared_ptr<ASTNode> node;
-                            if(name == "length") { // or any other built-in
-                                node = parseBuiltInCall(name);
-                            } else {
-                                node = parseFunctionCall(name);
-                            }
+                            std::shared_ptr<ASTNode> node = parseFunctionCall(name);
                             if(!node) return nullptr;
                             nodes.push(applySubscriptChain(node));
                             state = ParserState::ExpectOperator;
@@ -1138,12 +1104,7 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                             std::string name = token.value;
                             nextToken();
                             if(currentToken.type == TokenType::OpenParen) {
-                                std::shared_ptr<ASTNode> node;
-                                if(name == "length") {
-                                    node = parseBuiltInCall(name);
-                                } else {
-                                    node = parseFunctionCall(name);
-                                }
+                                std::shared_ptr<ASTNode> node = parseFunctionCall(name);
                                 if(!node) return nullptr;
                                 nodes.push(applySubscriptChain(node));
                             } else {

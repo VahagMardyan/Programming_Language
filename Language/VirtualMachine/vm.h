@@ -13,7 +13,6 @@ public:
     VirtualMachine(bool debugMode = false);
     ~VirtualMachine();
 
-    void load(const std::string& expr, SymbolTable& st);
     void load(const ByteCode& bc);
     void loadFromFile(const std::string& byteCodePath);
     double run();

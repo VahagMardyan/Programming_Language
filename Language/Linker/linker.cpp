@@ -13,7 +13,6 @@ ByteCode Linker::link() {
     }
 
     // Pass 1 – Build unified constant / string / global pools and collect the
-    //          global function-symbol table (name -> absolute address).
 
     std::vector<double>      mergedConsts;
     std::vector<std::string> mergedStrings;
@@ -52,9 +51,7 @@ ByteCode Linker::link() {
         }
     }
 
-    // -----------------------------------------------------------------------
     // Pass 2 – Merge and patch instructions.
-    // -----------------------------------------------------------------------
 
     std::vector<Instruction> merged;
     merged.reserve(totalInstructions);
@@ -69,7 +66,7 @@ ByteCode Linker::link() {
             Instruction inst = bc.instructions[i];
             const uint8_t op = static_cast<uint8_t>(inst.op);
 
-            // --- Patch jump / call addresses (absolute within merged stream) ---
+            // Patch jump / call addresses (absolute within merged stream)
             if (isJumpOrCall(op)) {
                 uint16_t oldAddr = readAddr(inst);
                 // CALL with oldAddr == 0 means it was an unresolved forward call;
@@ -81,7 +78,7 @@ ByteCode Linker::link() {
                 }
             }
 
-            // --- Patch LOAD_CONST: remap constant-pool index ---
+            // Patch LOAD_CONST: remap constant-pool index
             if (op == static_cast<uint8_t>(OpCode::LOAD_CONST)) {
                 int oldIdx = static_cast<int>(inst.left) | (static_cast<int>(inst.right) << 8);
                 if (oldIdx < static_cast<int>(remapConst[u].size())) {
@@ -91,7 +88,7 @@ ByteCode Linker::link() {
                 }
             }
 
-            // --- Patch LOAD_STR / PRINT_STR: remap string-pool index ---
+            // Patch LOAD_STR / PRINT_STR: remap string-pool index
             if (op == static_cast<uint8_t>(OpCode::LOAD_STR) ||
                 op == static_cast<uint8_t>(OpCode::PRINT_STR)) {
                 int oldIdx = static_cast<int>(inst.left) | (static_cast<int>(inst.right) << 8);
@@ -102,7 +99,7 @@ ByteCode Linker::link() {
                 }
             }
 
-            // --- Patch LOAD_VAR / STORE_VAR: remap global-slot address ---
+            // Patch LOAD_VAR / STORE_VAR: remap global-slot address
             if (op == static_cast<uint8_t>(OpCode::LOAD_VAR)) {
                 // left+right hold the slot address (left = addr & 0xFF, right = addr >> 8)
                 size_t oldSlot = static_cast<size_t>(inst.left) |

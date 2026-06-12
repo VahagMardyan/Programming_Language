@@ -1,5 +1,4 @@
 #pragma once
-#include <iostream>
 #include <memory>
 #include <map>
 #include <string>
@@ -62,7 +61,6 @@ enum class OpCode : uint8_t {
 class ASTNode {
 public:
     virtual ~ASTNode() = default;
-    virtual void print(std::string prefix = "", bool isLast = true) const = 0;
     virtual std::vector<std::shared_ptr<ASTNode>> getChildren() const = 0;
 };
 
@@ -71,7 +69,6 @@ class NumberNode : public ASTNode {
 public:
     NumberNode(double val) : value(val) {}
     double getValue() const { return value; }
-    void print(std::string prefix, bool isLast) const override;
     std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 
@@ -81,17 +78,6 @@ class MathConstantNode : public ASTNode {
     public:
         MathConstantNode(OpCode c) : constant(c) {}
         OpCode getConstant() const { return constant; }
-        void print(std::string prefix, bool isLast) const override {
-            std::string text;
-            if(constant == OpCode::CONST_PI) {
-                text = "Constant: PI";
-            } else if(constant == OpCode::CONST_E) {
-                text = "Constant: E";
-            } else {
-                text = "Constant: INF";
-            }
-            std::cout << prefix << (isLast ? "└── " : "├── ") << text << std::endl;
-        }
         std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 
@@ -112,14 +98,6 @@ public:
     int getOuterHops() const { return outerHops_; }
     size_t getGlobalAddr() const { return globalAddr; }
     int32_t getLocalOffset() const { return localOffset; }
-
-    void print(std::string prefix, bool isLast) const override {
-        std::cout << prefix << (isLast ? "└── " : "├── ")
-                  << "Var (" << (isLocal ? "local off=" : "global addr=")
-                  << (isLocal ? localOffset : (int)globalAddr)
-                  << (isLocal && outerHops_ ? (std::string(" outer=") + std::to_string(outerHops_)) : "")
-                  << ")" << std::endl;
-    }
     std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 
@@ -129,7 +107,6 @@ class BinaryOpNode : public ASTNode {
 public:
     BinaryOpNode(const std::string& o, std::shared_ptr<ASTNode> l, std::shared_ptr<ASTNode> r)
         : op(o), left(std::move(l)), right(std::move(r)) {}
-    void print(std::string prefix, bool isLast) const override;
     OpCode getOpCode() const;
     std::shared_ptr<ASTNode> getLeft() const { return left; }
     std::shared_ptr<ASTNode> getRight() const { return right; }
@@ -142,7 +119,6 @@ class UnaryOpNode : public ASTNode {
     std::shared_ptr<ASTNode> child;
 public:
     UnaryOpNode(const std::string& o, std::shared_ptr<ASTNode> c) : op(o), child(std::move(c)) {}
-    void print(std::string prefix, bool isLast) const override;
     std::string getOp() const { return op; }
     std::shared_ptr<ASTNode> getChild() const { return child; }
     std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {child}; }
@@ -159,16 +135,7 @@ class TernaryOpNode : public ASTNode {
 
         std::shared_ptr<ASTNode> getCondition() const { return condition; }
         std::shared_ptr<ASTNode> getTrueExpr() const { return trueExpr; }
-        std::shared_ptr<ASTNode> getFalseExpr() const { return falseExpr; }
-        
-        void print(std::string prefix, bool isLast) const override {
-            std::cout << prefix << (isLast ? "└── " : "├── ") << "Ternary: ? :" << std::endl;
-            std::string newPrefix = prefix + (isLast ? "    " : "│   ");
-            condition->print(newPrefix, false);
-            trueExpr->print(newPrefix, false);
-            falseExpr->print(newPrefix, true);
-        }
-        
+        std::shared_ptr<ASTNode> getFalseExpr() const { return falseExpr; }       
         std::vector<std::shared_ptr<ASTNode>> getChildren() const override {
             return {condition, trueExpr, falseExpr};
         }
@@ -176,9 +143,6 @@ class TernaryOpNode : public ASTNode {
 
 class NoneNode : public ASTNode {
     public:
-    void print(std::string prefix, bool isLast) const override {
-        std::cout << prefix << (isLast ? "└── " : "├── ") << "None" << std::endl;
-    }
     std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 
@@ -186,7 +150,6 @@ class StatementNode : public ASTNode {
     public:
         int lineNumber = 0;
         virtual ~StatementNode() = default;
-        virtual void print(std::string prefix, bool isLast) const = 0;
         std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 
@@ -198,12 +161,6 @@ public:
         : object(std::move(obj)), index(std::move(idx)) {}
     std::shared_ptr<ASTNode> getObject() const { return object; }
     std::shared_ptr<ASTNode> getIndex() const { return index; }
-    void print(std::string prefix, bool isLast) const override {
-        std::cout << prefix << (isLast ? "└── " : "├── ") << "SubscriptRead []" << std::endl;
-        std::string p = prefix + (isLast ? "    " : "│   ");
-        object->print(p, false);
-        index->print(p, true);
-    }
     std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {object, index}; }
 };
 
@@ -218,34 +175,13 @@ public:
     std::shared_ptr<ASTNode> getObject() const { return object; }
     std::shared_ptr<ASTNode> getIndex() const { return index; }
     std::shared_ptr<ASTNode> getValue() const { return value; }
-    void print(std::string prefix, bool isLast) const override {
-        std::cout << prefix << (isLast ? "└── " : "├── ") << "SubscriptWrite []=" << std::endl;
-        std::string p = prefix + (isLast ? "    " : "│   ");
-        object->print(p, false);
-        index->print(p, false);
-        value->print(p, true);
-    }
     std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {object, index, value}; }
-};
-
-class LengthNode : public ASTNode {
-    private:
-        std::shared_ptr<ASTNode> arg;
-    public:
-        LengthNode(std::shared_ptr<ASTNode> a) : arg(std::move(a)) {}
-        std::shared_ptr<ASTNode> getArg() const { return arg; }
-        void print(std::string prefix, bool isLast) const override {
-            std::cout << prefix << (isLast ? "└── " : "├── ") << "Length" << std::endl;
-            arg->print(prefix + (isLast ? "    " : "│   "), true);
-        }
-    std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {arg}; }
 };
 
 class BlockCode : public StatementNode {
     std::vector<std::shared_ptr<StatementNode>> statements;
 public:
     void addStatement(std::shared_ptr<StatementNode> stmt) { statements.push_back(stmt); }
-    void print(std::string prefix, bool isLast) const override;
     std::vector<std::shared_ptr<StatementNode>> getStatements() const { return statements; }
 };
 
@@ -269,16 +205,6 @@ public:
     int getLocalOuterHops() const { return localOuterHops_; }
     size_t getAddress() const { return globalAddr; }
     std::shared_ptr<ASTNode> getValue() const { return value; }
-
-    void print(std::string prefix = "", bool isLast = true) const override {
-        std::cout << prefix << (isLast ? "└── " : "├── ") << "Assignment (=)" << std::endl;
-        if (isLocalFlag) {
-            std::cout << prefix << (isLast ? "    " : "│   ") << "Local offset: " << localOffset << std::endl;
-        } else {
-            std::cout << prefix << (isLast ? "    " : "│   ") << "Global addr: " << globalAddr << std::endl;
-        }
-        value->print(prefix + (isLast ? "    " : "│   "), true);
-    }
 };
 
 class IfStatementNode : public StatementNode {
@@ -289,7 +215,6 @@ public:
                     std::shared_ptr<StatementNode> thenBr,
                     std::shared_ptr<StatementNode> elseBr = nullptr)
         : condition(cond), thenBranch(thenBr), elseBranch(elseBr) {}
-    void print(std::string prefix, bool isLast) const override;
     std::shared_ptr<ASTNode> getCondition() const { return condition; }
     std::shared_ptr<StatementNode> getThenBr() const { return thenBranch; }
     std::shared_ptr<StatementNode> getElseBr() const { return elseBranch; }
@@ -301,7 +226,6 @@ class WhileStatementNode : public StatementNode {
 public:
     WhileStatementNode(std::shared_ptr<ASTNode> cond, std::shared_ptr<StatementNode> b)
         : condition(std::move(cond)), body(std::move(b)) {}
-    void print(std::string prefix, bool isLast) const override;
     std::shared_ptr<ASTNode> getCondition() const { return condition; }
     std::shared_ptr<StatementNode> getBody() const { return body; }
 };
@@ -311,7 +235,6 @@ class PrintNode : public StatementNode {
 public:
     PrintNode(std::vector<std::shared_ptr<ASTNode>> exprs) : expressions(std::move(exprs)) {}
     const std::vector<std::shared_ptr<ASTNode>>& getExpressions() const { return expressions; }
-    void print(std::string prefix, bool isLast) const override;
 };
 
 class ForStatementNode : public StatementNode {
@@ -326,7 +249,6 @@ class ForStatementNode : public StatementNode {
                          std::shared_ptr<StatementNode> updt,
                          std::shared_ptr<StatementNode> bdy)
         : init(std::move(in)), condition(std::move(cond)), update(std::move(updt)), body(std::move(bdy)) {}
-        void print(std::string prefix, bool isLast) const override;
         std::shared_ptr<StatementNode> getInit()      const { return init; }
     std::shared_ptr<ASTNode>       getCondition() const { return condition; }
     std::shared_ptr<StatementNode> getUpdate()    const { return update; }
@@ -340,9 +262,6 @@ class StringNode : public ASTNode {
         StringNode(const std::string& val = "") : value(val) {}
         const std::string getValue() const {
             return value;
-        }
-        void print(std::string prefix, bool isLast) const override {
-            std::cout << prefix << (isLast ? "└── " : "├── ") << "String: \"" << value << "\"" << std::endl;
         }
         std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
@@ -364,7 +283,6 @@ class FunctionDefNode : public StatementNode {
         std::shared_ptr<StatementNode> getBody() const { return body; }
         int getLocalSlotCount() const { return localSlotCount; }
         bool getIsVoid() const { return isVoid; }
-        void print(std::string prefix, bool isLast) const override;
         std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 
@@ -378,7 +296,6 @@ class FunctionCallNode : public ASTNode {
         : name(n), args(std::move(a)) {}
         const std::string& getName() const { return name; }
         const std::vector<std::shared_ptr<ASTNode>>& getArgs() const { return args; }
-        void print(std::string prefix, bool isLast) const override;
         std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 
@@ -389,7 +306,6 @@ class ReturnNode : public StatementNode {
     public:
         ReturnNode(std::shared_ptr<ASTNode> expr) : expression(std::move(expr)) {}
         std::shared_ptr<ASTNode> getExpression() const { return expression; }
-        void print(std::string prefix, bool isLast) const override;
         std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 
@@ -399,27 +315,18 @@ public:
     FunctionCallStatementNode(std::shared_ptr<ASTNode> c)
         : call(std::dynamic_pointer_cast<FunctionCallNode>(c)) {}
     std::shared_ptr<FunctionCallNode> getCall() const { return call; }
-    void print(std::string prefix, bool isLast) const override {
-        call->print(prefix, isLast);
-    }
     std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 
 // break Statement
 class BreakNode : public StatementNode {
     public:
-        void print(std::string prefix, bool isLast) const override {
-            std::cout << prefix << (isLast ? "└── " : "├── ") << "Break" << std::endl;
-        }
         std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 
 // continue Statement
 class ContinueNode : public StatementNode {
 public:
-    void print(std::string prefix, bool isLast) const override {
-        std::cout << prefix << (isLast ? "└── " : "├── ") << "Continue" << std::endl;
-    }
     std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 
@@ -442,25 +349,5 @@ public:
     std::shared_ptr<ASTNode> getExpression() const { return expression; }
     const std::vector<CaseItem>& getCases() const { return cases; }
     std::shared_ptr<StatementNode> getDefaultBody() const { return defaultBody; }
-
-    void print(std::string prefix, bool isLast) const override {
-        std::cout << prefix << (isLast ? "└── " : "├── ") << "Switch" << std::endl;
-        std::string p = prefix + (isLast ? "    " : "│   ");
-        expression->print(p, false);
-        for(size_t i = 0; i < cases.size(); ++i) {
-            std::cout << p << "├── Case: ";
-            for(size_t j = 0; j < cases[i].values.size(); ++j) {
-                if(j) std::cout << ", ";
-                cases[i].values[j]->print("", false);
-            }
-            std::cout << std::endl;
-            cases[i].body->print(p + "│   ", (i == cases.size()-1 && !defaultBody));
-        }
-        if(defaultBody) {
-            std::cout << p << "└── Default" << std::endl;
-            defaultBody->print(p + "    ", true);
-        }
-    }
-
     std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };

@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cctype>
 #include <unordered_set>
+#include <unordered_map>
 
 const std::unordered_map<std::string, TokenType> operations = {
     {"+", TokenType::Operator}, {"-", TokenType::Operator},

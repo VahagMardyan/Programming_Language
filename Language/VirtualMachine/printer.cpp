@@ -1,4 +1,3 @@
-#pragma once
 #include "debugger.h"
 #include "vm.h"
 #include "../Compiler/compiler.h"

@@ -120,16 +120,6 @@ public:
         return off;
     }
 
-    // Check if variable exists in any local scope
-    bool isLocal(const std::string& name) const {
-        for (auto it = scopeStack.rbegin(); it != scopeStack.rend(); ++it) {
-            if (it->locals.find(name) != it->locals.end()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     // True if name is bound in the innermost scope only (for explicit "local" redeclare rules).
     bool hasLocalInInnermostScope(const std::string& name) const {
         if (scopeStack.empty()) return false;
@@ -203,15 +193,6 @@ public:
         }
     }
 
-    // Get total number of local variables across all scopes
-    int getLocalCount() const {
-        int count = 0;
-        for (const auto& scope : scopeStack) {
-            count += static_cast<int>(scope.locals.size());
-        }
-        return count;
-    }
-
     // Lowest nextOffset across active scopes (most negative = deepest stack use).
     int32_t getMaxLocalOffset() const {
         if (scopeStack.empty()) return -4;
@@ -233,10 +214,6 @@ public:
         int32_t minNext = getMaxLocalOffset();
         int n = (-minNext) / 4 - 1;
         return std::max(1, n);
-    }
-
-    size_t getAddress(const std::string& name) {
-        return getGlobalAddress(name);
     }
 
     bool isInsideFunction() const {
