@@ -273,7 +273,7 @@ void Linker::mergeGlobals(
                     remapGlobal[u][s] = newSlot;
                 }
             } else {
-                // Anonymous slot — allocate fresh (no dedup).
+                // Anonymous slot - allocate fresh (no dedup).
                 size_t newSlot = outSlotCount++;
                 if (outNames.size() < outSlotCount) outNames.push_back("");
                 remapGlobal[u][s] = newSlot;

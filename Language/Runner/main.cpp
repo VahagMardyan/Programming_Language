@@ -77,8 +77,7 @@ ByteCode compileSource(
     if (!root)
         throw std::runtime_error("Parsing failed for '" + inputPath + "'");
     Compiler compiler(symbols);
-    return compiler.compile(root, /*allowUnresolvedCalls=*/allowUnresolved,
-                            /*emitMainFramePrologue=*/emitMainFramePrologue);
+    return compiler.compile(root, allowUnresolved, emitMainFramePrologue);
 }
 
 // Legacy name kept for backward compat
@@ -107,7 +106,7 @@ int main(int argc, char* argv[]) {
     try {
         std::string mode = argv[1];
 
-        // compile — full compile (must have main, not linkable)
+        // compile - full compile (must have main, not linkable)
         if (mode == "compile") {
             if (argc < 3) throw std::runtime_error("compile: requires input .vhg file");
             const std::string inputPath = argv[2];
@@ -124,7 +123,7 @@ int main(int argc, char* argv[]) {
             return 0;
         }
 
-        // compile-obj — compile to a linkable object unit (.vhb)
+        // compile-obj - compile to a linkable object unit (.vhb)
         //               cross-unit calls are allowed to remain unresolved
         if (mode == "compile-obj") {
             if (argc < 3) throw std::runtime_error("compile-obj: requires input .vhg file");
@@ -145,7 +144,7 @@ int main(int argc, char* argv[]) {
             return 0;
         }
 
-        // link — merge multiple .vhb object units into one executable .vhb
+        // link - merge multiple .vhb object units into one executable .vhb
         //   vhg link a.vhb b.vhb lib.vhb -o program.vhb
         if (mode == "link") {
             // Collect inputs and -o output
@@ -183,7 +182,7 @@ int main(int argc, char* argv[]) {
             return 0;
         }
 
-        // run — execute a .vhb bytecode file
+        // run - execute a .vhb bytecode file
         if (mode == "run") {
             if (argc < 3) throw std::runtime_error("run: requires input .vhb file");
             bool debugFlag = false;

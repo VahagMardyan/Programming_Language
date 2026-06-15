@@ -51,7 +51,7 @@ namespace {
     }
 }
 
-// Shared RNG — seeded once at startup, reused across all RANDOM instructions.
+// Shared RNG - seeded once at startup, reused across all RANDOM instructions.
 static std::mt19937_64 s_rng{std::random_device{}()};
 
 VirtualMachine::VirtualMachine(bool debugMode) : debug_mode(debugMode) {

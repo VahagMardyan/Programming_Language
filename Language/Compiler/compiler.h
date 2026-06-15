@@ -11,13 +11,14 @@
 struct Instruction {
     uint32_t op:    8;
     uint32_t dst:   8;
-    uint32_t left:  8;
-    uint32_t right: 8;
+    uint32_t left:  8; // left operand / low byte
+    uint32_t right: 8; // right operand / high byte
 };
 
 inline uint16_t getAddress(const Instruction& inst) {
     return (uint16_t)((inst.right << 8) | inst.left);
 }
+
 inline void setAddress(Instruction& inst, uint16_t addr) {
     inst.left = addr & 0xFF;
     inst.right = (addr >> 8) & 0xFF;
@@ -35,7 +36,7 @@ struct ByteCode {
     std::vector<int> lineNumbers;
     std::unordered_map<std::string, size_t> functionSymbols;
     std::vector<std::pair<size_t, std::string>> unresolvedCalls;
-    /** Globals slots 0 .. globalSlotCount-1; names for runtime errors (LOAD before STORE). */
+    // Globals slots 0 .. globalSlotCount-1; names for runtime errors (LOAD before STORE).
     size_t globalSlotCount = 0;
     std::vector<std::string> globalNamesBySlot;
 };

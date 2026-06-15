@@ -7,7 +7,7 @@
 #include <stack>
 #include <algorithm>
 
-using Value = std::variant<std::monostate ,double, std::string>;
+using Value = std::variant<std::monostate, double, std::string>;
 
 inline bool isNone(const Value& v) { return std::holds_alternative<std::monostate>(v); }
 inline bool isNumber(const Value& v) { return std::holds_alternative<double>(v); }

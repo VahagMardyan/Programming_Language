@@ -57,9 +57,9 @@ void Debugger::printInstructionCompact(size_t pc) const {
         case OpCode::PRINT:       std::cout << "PRINT r" << inst.dst; break;
         case OpCode::PRINT_STR:   std::cout << "PRINT_STR \"" << vm.getStrings()[inst.dst] << "\""; break;
         
-        case OpCode::LOGICAL_AND: std::cout << "LOG_AND r" << inst.dst << " = r" << inst.left << " && r" << inst.right; break;
-        case OpCode::LOGICAL_OR:  std::cout << "LOG_OR r" << inst.dst << " = r" << inst.left << " || r" << inst.right; break;
-        case OpCode::LOGICAL_NOT: std::cout << "LOG_NOT r" << inst.dst << " = !r" << inst.left; break;
+        case OpCode::LOGICAL_AND: std::cout << "LOGICAL_AND r" << inst.dst << " = r" << inst.left << " && r" << inst.right; break;
+        case OpCode::LOGICAL_OR:  std::cout << "LOGICAL_OR r" << inst.dst << " = r" << inst.left << " || r" << inst.right; break;
+        case OpCode::LOGICAL_NOT: std::cout << "LOGICAL_NOT r" << inst.dst << " = !r" << inst.left; break;
         
         case OpCode::CALL:        std::cout << "CALL r" << inst.dst << " -> " << getAddress(inst); break;
         case OpCode::RETURN:      std::cout << "RETURN r" << inst.dst; break;
@@ -131,227 +131,488 @@ void Debugger::printInstructionCompact(size_t pc) const {
 }
 
 void Debugger::visualize() const {
-    std::cout << "\n[VM Bytecode Visualization]" << std::endl;
-    std::cout << std::left << std::setw(6)  << "Addr"
-              << std::setw(12) << "OpCode" << std::setw(6)  << "L" 
-              << std::setw(6)  << "R" << std::setw(6)  << "Dst" << " Value" << std::endl; 
-    std::cout << std::string(50, '-') << std::endl;
+    std::cout << "\n[VM Bytecode Visualization]\n";
+    std::cout << std::left
+              << std::setw(7)  << "Addr"
+              << std::setw(20) << "OpCode"
+              << std::setw(6)  << "L"
+              << std::setw(6)  << "R"
+              << std::setw(6)  << "Dst"
+              << "Value\n";
+    std::cout << std::string(60, '-') << "\n";
 
-    for(size_t i = 0; i < vm.getProgram().size(); ++i) {
-        const auto& inst = vm.getProgram()[i];
+
+    auto R = [](int n) -> std::string { return "r" + std::to_string(n); };
+
+    auto IMM8 = [](uint8_t raw) -> std::string {
+        return std::to_string(static_cast<int32_t>(static_cast<int8_t>(raw)));
+    };
+
+
+    const auto& prog      = vm.getProgram();
+    const auto& constants = vm.getConstants();
+    const auto& strings   = vm.getStrings();
+
+    for (size_t i = 0; i < prog.size(); ++i) {
+        const auto& inst = prog[i];
         OpCode op = static_cast<OpCode>(inst.op);
 
-        std::cout << "[" << std::setw(3) << i << "]  ";
-        std::cout << std::left << std::setw(12);
+        std::string opStr  = "?";
+        std::string lStr   = "-";
+        std::string rStr   = "-";
+        std::string dstStr = "-";
+        std::string valStr = "";
 
-        switch(op) {
-            case OpCode::LOAD_CONST:
-                std::cout << "LOAD_CONST" << std::setw(6) << "-" << std::setw(6) << "-"
-                          << std::setw(6) << inst.dst << vm.getConstants()[inst.left];
-                break;
+        switch (op) {
 
-            case OpCode::LOAD_VAR:
-                std::cout << "LOAD_VAR" << std::setw(6) << inst.left << std::setw(6) << "-"
-                          << std::setw(6) << inst.dst;
-                break;
-
-            case OpCode::LOAD_STR:
-                std::cout << "LOAD_STR" << std::setw(6) << inst.left << std::setw(6) << "-"
-                          << std::setw(6) << inst.dst << "\"" << vm.getStrings()[inst.left] << "\"";
-                break;
-            
-            case OpCode::LOAD_NONE:
-                std::cout << "LOAD_NONE" << std::setw(6) << inst.dst;
-                break;
-            case OpCode::STORE_VAR:
-                std::cout << "STORE_VAR" << std::setw(6) << inst.left << std::setw(6) << inst.right
-                          << std::setw(6) << "-" << " mem[" << inst.left << "] = r" << inst.right;
-                break;
-
-            case OpCode::LOAD_OUTER:
-                std::cout << "LOAD_OUTER" << std::setw(6) << inst.left << std::setw(6) << (int)(int8_t)inst.right
-                          << std::setw(6) << inst.dst;
-                break;
-            case OpCode::STORE_OUTER:
-                std::cout << "STORE_OUTER" << std::setw(6) << inst.left << std::setw(6) << (int)(int8_t)inst.right
-                          << std::setw(6) << inst.dst;
-                break;
-
-            case OpCode::ADD:     std::cout << "ADD";     break;
-            case OpCode::MOV:     std::cout << "MOV";     break;
-            case OpCode::SUB:     std::cout << "SUB";     break;
-            case OpCode::MUL:     std::cout << "MUL";     break;
-            case OpCode::DIV:     std::cout << "DIV";     break;
-            case OpCode::FLOOR_DIV: std::cout << "FLOOR_DIV"; break;
-            case OpCode::FRAC_DIV: std::cout << "FRAC_DIV"; break;
-            case OpCode::POW:     std::cout << "POW";     break;
-            case OpCode::MATH_POW: std::cout<<"MATH_POW"; break;
-            case OpCode::MODULO:  std::cout << "MODULO";  break;
-            case OpCode::UNARY:   std::cout << "NEG";     break;
-
-            case OpCode::NOT:     std::cout << "NOT";     break;
-            case OpCode::AND:     std::cout << "AND";     break;
-            case OpCode::OR:      std::cout << "OR";      break;
-            case OpCode::XOR:     std::cout << "XOR";     break;
-            case OpCode::SLL:     std::cout << "SLL";     break;
-            case OpCode::SRL:     std::cout << "SRL";     break;
-            case OpCode::SRA:     std::cout << "SRA";     break;
-            case OpCode::SLT:     std::cout << "SLT";     break;
-            case OpCode::SLTU:    std::cout << "SLTU";    break;
-
-            case OpCode::CMP_GT:  std::cout << "CMP_GT";  break;
-            case OpCode::CMP_LT:  std::cout << "CMP_LT";  break;
-            case OpCode::CMP_GET: std::cout << "CMP_GET"; break;
-            case OpCode::CMP_LET: std::cout << "CMP_LET"; break;
-            case OpCode::CMP_EQ:  std::cout << "CMP_EQ";  break;
-            case OpCode::CMP_NEQ: std::cout << "CMP_NEQ"; break;
-
-            case OpCode::LOGICAL_AND:
-                std::cout << "LOGICAL_AND" << std::setw(6) << inst.left 
-                          << std::setw(6) << inst.right << std::setw(6) << inst.dst;
-                break;
-            case OpCode::LOGICAL_OR:
-                std::cout << "LOGICAL_OR" << std::setw(6) << inst.left 
-                          << std::setw(6) << inst.right << std::setw(6) << inst.dst;
-                break;
-            case OpCode::LOGICAL_NOT:
-                std::cout << "LOGICAL_NOT" << std::setw(6) << inst.left 
-                          << std::setw(6) << "-" << std::setw(6) << inst.dst;
-                break;
-
-            case OpCode::JZ:
-                std::cout << "JZ" << std::setw(6) << inst.dst << " TO ADDR: " << getAddress(inst);
-                break;
-            case OpCode::JMP:
-                std::cout << "JMP" << std::setw(6) << inst.dst << " TO: " << getAddress(inst);
-                break;
-
-            case OpCode::PRINT:
-                std::cout << "PRINT" << std::setw(6) << inst.dst;
-                break;
-
-            case OpCode::PRINT_STR:
-                std::cout<<"PRINT_STR" << std::setw(6) << inst.dst;
-                break;
-
-            case OpCode::CALL:
-                std::cout << "CALL" << std::setw(6) << "-" << std::setw(6) << "-"
-                          << std::setw(6) << inst.dst << " ADDR: " << getAddress(inst);
-                break;
-
-            case OpCode::LENGTH:
-                std::cout << "LENGTH" << std::setw(6) << inst.left << std::setw(6) << "-"
-                          << std::setw(6) << inst.dst;
+        case OpCode::ADD:
+            opStr  = "ADD "  + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr   = std::to_string(inst.left);
+            rStr   = std::to_string(inst.right);
+            dstStr = std::to_string(inst.dst);
             break;
-            case OpCode::SIN:   std::cout << "SIN"; break;
-            case OpCode::COS:   std::cout << "COS"; break;
-            case OpCode::TAN:   std::cout << "TAN"; break;
-            case OpCode::ASIN:  std::cout << "ASIN"; break;
-            case OpCode::ACOS:  std::cout << "ACOS"; break;
-            case OpCode::ATAN:  std::cout << "ATAN"; break;
-            case OpCode::ATAN2: std::cout << "ATAN2"; break;
-            case OpCode::SQRT:  std::cout << "SQRT"; break;
-            case OpCode::EXP:   std::cout << "EXP"; break;
-            case OpCode::LOG:   std::cout << "LOG"; break;
-            case OpCode::LOG10: std::cout << "LOG10"; break;
-            case OpCode::CEIL:  std::cout << "CEIL"; break;
-            case OpCode::FLOOR: std::cout << "FLOOR"; break;
-            case OpCode::ABS:   std::cout << "ABS"; break;
-            case OpCode::ROUND: std::cout << "ROUND"; break;
-            case OpCode::FMOD:  std::cout << "FMOD"; break;
-
-            case OpCode::CONST_PI:
-                std::cout << "LOAD_CONST PI" << std::setw(6);
+        case OpCode::SUB:
+            opStr  = "SUB "  + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
             break;
-
-            case OpCode::CONST_E:
-                std::cout << "LOAD_CONST E" << std::setw(6);
+        case OpCode::MUL:
+            opStr  = "MUL "  + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::DIV:
+            opStr  = "DIV "  + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::MODULO:
+            opStr  = "MOD "  + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::POW:
+            opStr  = "POW "  + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::MATH_POW:
+            opStr  = "MATH_POW " + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::FLOOR_DIV:
+            opStr  = "FLOOR_DIV " + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::FRAC_DIV:
+            opStr  = "FRAC_DIV " + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::AND:
+            opStr  = "AND "  + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::OR:
+            opStr  = "OR "   + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::XOR:
+            opStr  = "XOR "  + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::SLL:
+            opStr  = "SLL "  + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::SRL:
+            opStr  = "SRL "  + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::SRA:
+            opStr  = "SRA "  + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::SLT:
+            opStr  = "SLT "  + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::SLTU:
+            opStr  = "SLTU " + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::CMP_GT:
+            opStr  = "CMP_GT " + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::CMP_LT:
+            opStr  = "CMP_LT " + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::CMP_GET:
+            opStr  = "CMP_GET " + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::CMP_LET:
+            opStr  = "CMP_LET " + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::CMP_EQ:
+            opStr  = "CMP_EQ " + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::CMP_NEQ:
+            opStr  = "CMP_NEQ " + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::LOGICAL_AND:
+            opStr  = "LOGICAL_AND " + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::LOGICAL_OR:
+            opStr  = "LOGICAL_OR " + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::ATAN2:
+            opStr  = "ATAN2 " + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::FMOD:
+            opStr  = "FMOD " + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::LOG_AB:
+            opStr  = "LOG_AB " + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
             break;
 
-            case OpCode::CONST_INF:
-                std::cout << "LOAD_CONST INF" << std::setw(6);
+        case OpCode::MOV:
+            opStr  = "MOV "  + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::UNARY:
+            opStr  = "NEG "  + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::NOT:
+            opStr  = "NOT "  + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::LOGICAL_NOT:
+            opStr  = "LOGICAL_NOT " + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::SIN:
+            opStr  = "SIN "  + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::COS:
+            opStr  = "COS "  + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::TAN:
+            opStr  = "TAN "  + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::ASIN:
+            opStr  = "ASIN " + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::ACOS:
+            opStr  = "ACOS " + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::ATAN:
+            opStr  = "ATAN " + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::SQRT:
+            opStr  = "SQRT " + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::EXP:
+            opStr  = "EXP "  + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::LOG:
+            opStr  = "LOG "  + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::LOG10:
+            opStr  = "LOG10 " + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::LOG2:
+            opStr  = "LOG2 " + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::CEIL:
+            opStr  = "CEIL " + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::FLOOR:
+            opStr  = "FLOOR " + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::ABS:
+            opStr  = "ABS "  + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::ROUND:
+            opStr  = "ROUND " + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::CBRT:
+            opStr  = "CBRT " + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::TYPE:
+            opStr  = "TYPE " + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::ORD:
+            opStr  = "ORD "  + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::CHR:
+            opStr  = "CHR "  + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::BIN:
+            opStr  = "BIN "  + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::HEX:
+            opStr  = "HEX "  + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::OCT:
+            opStr  = "OCT "  + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::DEC:
+            opStr  = "DEC "  + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::LENGTH:
+            opStr  = "LENGTH " + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
             break;
 
-            case OpCode::CONST_MAX:
-                std::cout << "LOAD_CONST MAX" << std::setw(6);
+        case OpCode::ADDI:
+            opStr  = "ADDI " + R(inst.left) + " " + IMM8(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = IMM8(inst.right); dstStr = std::to_string(inst.dst);
             break;
-            case OpCode::RETURN:
-                std::cout << "RETURN" << std::setw(6) << inst.dst << std::setw(6) << "-" << std::setw(6) << "-";
-                break;
+        case OpCode::ANDI:
+            opStr  = "ANDI " + R(inst.left) + " " + IMM8(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = IMM8(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::ORI:
+            opStr  = "ORI "  + R(inst.left) + " " + IMM8(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = IMM8(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::XORI:
+            opStr  = "XORI " + R(inst.left) + " " + IMM8(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = IMM8(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::SLLI:
+            opStr  = "SLLI " + R(inst.left) + " " + std::to_string(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::SRLI:
+            opStr  = "SRLI " + R(inst.left) + " " + std::to_string(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::SRAI:
+            opStr  = "SRAI " + R(inst.left) + " " + std::to_string(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
 
-            case OpCode::PUSH_ARG:
-                std::cout << "PUSH_ARG" << std::setw(6) << inst.dst << std::setw(6) << "-" << std::setw(6) << "-";
-                break;
-
-            case OpCode::LOAD_PARAM:
-                std::cout << "LOAD_PARAM" << std::setw(6) << inst.left << std::setw(6) << "-" 
-                          << std::setw(6) << inst.dst;
-                break;
-
-            case OpCode::LOAD:
-                std::cout << "LOAD" << std::setw(6) << inst.left << std::setw(6) << inst.right 
-                          << std::setw(6) << inst.dst;
-                break;
-
-            case OpCode::STORE:
-                std::cout << "STORE" << std::setw(6) << inst.left << std::setw(6) << inst.right 
-                          << std::setw(6) << inst.dst;
-                break;
-
-            case OpCode::ADDI:
-                std::cout << "ADDI" 
-                          << std::setw(6) << inst.left 
-                          << std::setw(6) << inst.right 
-                          << std::setw(6) << inst.dst 
-                          << " (imm=" << (int32_t)inst.right << ")";
-                break;
-            case OpCode::ANDI:
-                std::cout << "ANDI" << std::setw(6) << inst.left << std::setw(6) << inst.right
-                          << std::setw(6) << inst.dst;
-                break;
-            case OpCode::ORI:
-                std::cout << "ORI" << std::setw(6) << inst.left << std::setw(6) << inst.right
-                          << std::setw(6) << inst.dst;
-                break;
-            case OpCode::XORI:
-                std::cout << "XORI" << std::setw(6) << inst.left << std::setw(6) << inst.right
-                          << std::setw(6) << inst.dst;
-                break;
-            case OpCode::SLLI:
-                std::cout << "SLLI" << std::setw(6) << inst.left << std::setw(6) << inst.right
-                          << std::setw(6) << inst.dst;
-                break;
-            case OpCode::SRLI:
-                std::cout << "SRLI" << std::setw(6) << inst.left << std::setw(6) << inst.right
-                          << std::setw(6) << inst.dst;
-                break;
-            case OpCode::SRAI:
-                std::cout << "SRAI" << std::setw(6) << inst.left << std::setw(6) << inst.right
-                          << std::setw(6) << inst.dst;
-                break;
-            case OpCode::LW:
-                std::cout << "LW" << std::setw(6) << inst.left << std::setw(6) << "-"
-                          << std::setw(6) << inst.dst;
-                break;
-            case OpCode::SW:
-                std::cout << "SW" << std::setw(6) << inst.left << std::setw(6) << "-"
-                          << std::setw(6) << inst.dst;
-                break;
-
-            case OpCode::TYPE: std::cout<<"TYPE";   break;
-            case OpCode::ORD:  std::cout << "ORD r" << inst.dst << " = ord(r" << inst.left << ")"; break;
-            case OpCode::CHR:  std::cout << "CHR r" << inst.dst << " = chr(r" << inst.left << ")"; break;
-            case OpCode::BIN:  std::cout << "BIN";     break;
-            case OpCode::HEX:  std::cout << "HEX";     break;
-            case OpCode::OCT:  std::cout << "OCT";     break;
-            case OpCode::DEC:  std::cout << "DEC";     break;
-            case OpCode::RANDOM: std::cout << "RANDOM"; break;
-            case OpCode::LOAD_STR_IDX: std::cout << "LOAD_STR_IDX"; break;
-            case OpCode::STORE_STR_IDX: std::cout << "STORE_STR_IDX"; break;
-            default:
-                std::cout << "UNKNOWN (op=" << (int)op << ")";
-                break;
+        case OpCode::LOAD_CONST: {
+            double cv = (inst.left < (int)constants.size()) ? constants[inst.left] : 0.0;
+            opStr  = "LOAD_CONST " + R(inst.dst);
+            lStr   = std::to_string(inst.left);
+            dstStr = std::to_string(inst.dst);
+            valStr = std::to_string(cv);
+            break;
         }
-        std::cout << std::endl;
+        case OpCode::LOAD_STR: {
+            std::string sv = (inst.left < (int)strings.size()) ? strings[inst.left] : "?";
+            opStr  = "LOAD_STR \"" + sv + "\" " + R(inst.dst);
+            lStr   = std::to_string(inst.left);
+            dstStr = std::to_string(inst.dst);
+            valStr = "\"" + sv + "\"";
+            break;
+        }
+        case OpCode::LOAD_VAR:
+            opStr  = "LOAD_VAR mem[" + std::to_string(inst.left) + "] " + R(inst.dst);
+            lStr   = std::to_string(inst.left);
+            dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::STORE_VAR:
+            opStr  = "STORE_VAR " + R(inst.right) + " mem[" + std::to_string(inst.left) + "]";
+            lStr   = std::to_string(inst.left);
+            rStr   = std::to_string(inst.right);
+            break;
+        case OpCode::LOAD_NONE:
+            opStr  = "LOAD_NONE " + R(inst.dst);
+            dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::LOAD_OUTER: {
+            int8_t off = static_cast<int8_t>(inst.right);
+            opStr  = "LOAD_OUTER hops=" + std::to_string(inst.left)
+                   + " off=" + std::to_string(static_cast<int>(off))
+                   + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(static_cast<int>(off)); dstStr = std::to_string(inst.dst);
+            break;
+        }
+        case OpCode::STORE_OUTER: {
+            int8_t off = static_cast<int8_t>(inst.right);
+            opStr  = "STORE_OUTER " + R(inst.dst)
+                   + " hops=" + std::to_string(inst.left)
+                   + " off=" + std::to_string(static_cast<int>(off));
+            lStr = std::to_string(inst.left); rStr = std::to_string(static_cast<int>(off)); dstStr = std::to_string(inst.dst);
+            break;
+        }
+        case OpCode::LOAD: {
+            int8_t off = static_cast<int8_t>(inst.right);
+            std::string sign = (off >= 0) ? "+" : "";
+            opStr  = "LOAD [fp" + sign + std::to_string(static_cast<int>(off)) + "] " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(static_cast<int>(off)); dstStr = std::to_string(inst.dst);
+            break;
+        }
+        case OpCode::STORE: {
+            int8_t off = static_cast<int8_t>(inst.right);
+            std::string sign = (off >= 0) ? "+" : "";
+            opStr  = "STORE " + R(inst.dst) + " -> fp" + sign + std::to_string(static_cast<int>(off));
+            lStr = std::to_string(inst.left); rStr = std::to_string(static_cast<int>(off)); dstStr = std::to_string(inst.dst);
+            break;
+        }
+        case OpCode::LW:
+            opStr  = "LW mem[" + std::to_string(inst.left) + "] " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::SW:
+            opStr  = "SW " + R(inst.dst) + " mem[" + std::to_string(inst.left) + "]";
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+
+        case OpCode::LOAD_STR_IDX:
+            opStr  = "LOAD_STR_IDX " + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::STORE_STR_IDX:
+            opStr  = "STORE_STR_IDX " + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+
+        case OpCode::JMP: {
+            size_t addr = static_cast<size_t>(getAddress(inst));
+            opStr  = "JMP " + std::to_string(addr);
+            dstStr = std::to_string(inst.dst);
+            lStr   = std::to_string(inst.left);
+            rStr   = std::to_string(inst.right);
+            break;
+        }
+        case OpCode::JZ: {
+            size_t addr = static_cast<size_t>(getAddress(inst));
+            opStr  = "JZ " + R(inst.dst) + " " + std::to_string(addr);
+            dstStr = std::to_string(inst.dst);
+            lStr   = std::to_string(inst.left);
+            rStr   = std::to_string(inst.right);
+            break;
+        }
+        case OpCode::JNZ: {
+            size_t addr = static_cast<size_t>(getAddress(inst));
+            opStr  = "JNZ " + R(inst.dst) + " " + std::to_string(addr);
+            dstStr = std::to_string(inst.dst);
+            lStr   = std::to_string(inst.left);
+            rStr   = std::to_string(inst.right);
+            break;
+        }
+        case OpCode::CALL: {
+            size_t addr = static_cast<size_t>(getAddress(inst));
+            opStr  = "CALL " + std::to_string(addr) + " " + R(inst.dst);
+            dstStr = std::to_string(inst.dst);
+            lStr   = std::to_string(inst.left);
+            rStr   = std::to_string(inst.right);
+            break;
+        }
+        case OpCode::RETURN:
+            opStr  = "RETURN " + R(inst.dst);
+            dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::PUSH_ARG:
+            opStr  = "PUSH_ARG " + R(inst.dst);
+            dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::LOAD_PARAM:
+            opStr  = "LOAD_PARAM arg[" + std::to_string(inst.left) + "] " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+
+        case OpCode::PRINT:
+            opStr  = "PRINT " + R(inst.dst);
+            dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::PRINT_STR: {
+            std::string sv = (inst.dst < (int)strings.size()) ? strings[inst.dst] : "?";
+            std::string escaped;
+            escaped.reserve(sv.size());
+            for (char c : sv) {
+                switch (c) {
+                    case '\n': escaped += "\\n";  break;
+                    case '\r': escaped += "\\r";  break;
+                    case '\t': escaped += "\\t";  break;
+                    case '\\': escaped += "\\\\"; break;
+                    case '"':  escaped += "\\\""; break;
+                    default:   escaped += c;      break;
+                }
+            }
+            opStr  = "PRINT_STR \"" + escaped + "\"";
+            dstStr = std::to_string(inst.dst);
+            valStr = "\"" + escaped + "\"";
+        }
+        break;
+        case OpCode::INPUT:
+            opStr  = "INPUT " + R(inst.dst);
+            dstStr = std::to_string(inst.dst);
+            break;
+
+        case OpCode::CONST_PI:
+            opStr  = "CONST_PI " + R(inst.dst);
+            dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::CONST_E:
+            opStr  = "CONST_E " + R(inst.dst);
+            dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::CONST_INF:
+            opStr  = "CONST_INF " + R(inst.dst);
+            dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::CONST_MAX:
+            opStr  = "CONST_MAX " + R(inst.dst);
+            dstStr = std::to_string(inst.dst);
+            break;
+
+        case OpCode::RANDOM:
+            if (inst.left == 0 && inst.right == 0) {
+                opStr = "RANDOM " + R(inst.dst);
+            } else {
+                opStr = "RANDOM " + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
+                lStr = std::to_string(inst.left); rStr = std::to_string(inst.right);
+            }
+            dstStr = std::to_string(inst.dst);
+            break;
+
+        default:
+            opStr  = "UNKNOWN(op=" + std::to_string(static_cast<int>(op)) + ")";
+            lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+        }
+
+        std::cout << std::left
+                  << "[" << std::setw(3) << i << "]  "
+                  << std::setw(20) << opStr
+                  << std::setw(6)  << lStr
+                  << std::setw(6)  << rStr
+                  << std::setw(6)  << dstStr
+                  << valStr
+                  << "\n";
     }
 }
