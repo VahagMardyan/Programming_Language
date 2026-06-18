@@ -177,12 +177,8 @@ function is_prime(n) {
     return true;
 }
 
-function is_odd(n) {
-    return n % 2 == 1;
-}
-
-function is_even(n) {
-    return n > 0 and n % 2 == 0;
+function even_odd(n) {
+    return n & 1 == 0 ? "Even" : "Odd";
 }
 
 # # Greatest common divisor
