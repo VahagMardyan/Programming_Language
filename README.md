@@ -17,7 +17,7 @@
   - [5. Link object units](#5-link-object-units)
 - [Linker](#linker)
 - [Language Syntax Overview](#-language-syntax-overview)
-  - [Variables & Scoping](#variables--scoping)
+  - [Variables &amp; Scoping](#variables--scoping)
   - [Variable Declaration Rules](#variable-declaration-rules)
   - [It is desirable to know](#it-is-desirable-to-know)
   - [Data Types](#data-types)
@@ -33,7 +33,7 @@
   - [Number Syntax](#the-syntax-of-number-types)
   - [Import Preprocessing](#import-preprocessing)
 - [Architecture Deep Dive](#-architecture-deep-dive)
-  - [Lexer & Tokenizer](#lexer--tokenizer)
+  - [Lexer &amp; Tokenizer](#lexer--tokenizer)
   - [Parser](#parser)
   - [Symbol Table](#symbol-table)
   - [Compiler](#compiler)
@@ -55,9 +55,9 @@
   - [Virtual Machine](#virtual-machine)
 - [Example Program](#-example-program)
 - [Debug Mode](#debug-mode)
-    - [Debugger Commands](#debugger-commands)
-    - [Debugger Features](#debugger-features)
-    - [Debugger Display](#debugger-display)
+  - [Debugger Commands](#debugger-commands)
+  - [Debugger Features](#debugger-features)
+  - [Debugger Display](#debugger-display)
 - [Line Numbers in Errors](#line-numbers-in-errors)
 
 ---
@@ -79,23 +79,24 @@
 
 ## Project Structure
 
-| Directory / File         | Purpose                                                                 |
-|--------------------------|-------------------------------------------------------------------------|
-| `main.cpp`               | CLI entry point – compile, run, or directly execute `.vhg` files.        |
-| `Lexer/`                 | Character‑by‑character input stream handling.                            |
-| `Tokenizer/`             | Converts characters into tokens (keywords, operators, literals).         |
-| `SymbolTable/`           | Manages variable scopes, stack offsets, and global addresses.            |
-| `AST/`                   | AST node definitions and the `OpCode` enumeration.                       |
-| `Parser/`                | Recursive‑descent parser with shunting‑yard expression handling.         |
-| `Compiler/`              | Transforms AST into bytecode; performs constant folding.                 |
-| `VirtualMachine/`        | Executes bytecode; includes register file, memory, and call stack.       |
-| `Linker/`                | Merges compiled object units; resolves cross-unit calls and global slots. |
+| Directory / File    | Purpose                                                                   |
+| ------------------- | ------------------------------------------------------------------------- |
+| `main.cpp`        | CLI entry point – compile, run, or directly execute`.vhg` files.       |
+| `Lexer/`          | Character‑by‑character input stream handling.                           |
+| `Tokenizer/`      | Converts characters into tokens (keywords, operators, literals).          |
+| `SymbolTable/`    | Manages variable scopes, stack offsets, and global addresses.             |
+| `AST/`            | AST node definitions and the`OpCode` enumeration.                       |
+| `Parser/`         | Recursive‑descent parser with shunting‑yard expression handling.        |
+| `Compiler/`       | Transforms AST into bytecode; performs constant folding.                  |
+| `VirtualMachine/` | Executes bytecode; includes register file, memory, and call stack.        |
+| `Linker/`         | Merges compiled object units; resolves cross-unit calls and global slots. |
 
 ---
 
 ## Building the Compiler
 
 ### Requirements
+
 - C++20 compatible compiler (g++ ≥ 11, clang ≥ 14, or MSVC 2022).
 - Standard library with filesystem support.
 - Simply run `runner.{ext}` on your OS.
@@ -103,7 +104,9 @@
 ### Runner files
 
 #### Linux, MacOS or WSL
->Compilers: `g++` or `clang++`
+
+> Compilers: `g++` or `clang++`
+
 ---
 
 ```bash
@@ -112,7 +115,7 @@ g++ -std=c++20 -O3 *.cpp -o vhg
 g++ -std=c++20 -O3 -static *.cpp -o vhg
 ```
 
-```sh (runner.sh)
+```sh
 #!/bin/bash
 
 set -e
@@ -148,16 +151,17 @@ bash ./runner.sh
 
 #### Windows
 
->Compiler: `cl.exe` (MSVC)
+> Compiler: `cl.exe` (MSVC)
 
->Required environment: `Developer Command Prompt for Visual Studio 2022`
+> Required environment: `Developer Command Prompt for Visual Studio 2022`
+
 ---
 
 ```cmd
 cl /EHsc /O2 /std:c++20 *.cpp /Fe:vhg.exe
 ```
 
-```bat (runner.bat)
+```bat
 @echo off
 
 @REM Find Visual Studio installation automatically
@@ -168,7 +172,7 @@ call "%VS_PATH%\VC\Auxiliary\Build\vcvarsall.bat" x64
 
 setlocal enabledelayedexpansion
 
-set SOURCES=..\Language\AST\ast.cpp ..\Language\Compiler\compiler.cpp ..\Language\Lexer\lexer.cpp ..\Language\Parser\parser.cpp ..\Language\Runner\main.cpp ..\Language\Tokenizer\tokenizer.cpp ..\Language\VirtualMachine\vm.cpp ..\Language\VirtualMachine\debugger.cpp ..\Language\VirtualMachine\printer.cpp 
+set SOURCES=..\Language\AST\ast.cpp ..\Language\Compiler\compiler.cpp ..\Language\Lexer\lexer.cpp ..\Language\Parser\parser.cpp ..\Language\Runner\main.cpp ..\Language\Tokenizer\tokenizer.cpp ..\Language\VirtualMachine\vm.cpp ..\Language\VirtualMachine\debugger.cpp ..\Language\VirtualMachine\printer.cpp ..\Language\Linker\linker.cpp
 
 set CXX=cl
 set CXXFLAGS=/EHsc /O2 /std:c++20 /W3
@@ -182,9 +186,11 @@ if %errorlevel% equ 0 (
     echo [OK] Build successful!
     echo.
     echo Usage:
-    echo   ./vhg.exe program.vhg
-    echo   ./vhg.exe compile input.vhg [output.vhb]
-    echo   ./vhg.exe run program.vhb [--debug]
+    echo "./vhg.exe <file.vhg>                               Build and run source directly"
+    echo "./vhg.exe comple <in.vhg> [out.vhb]                Compile to bytecode"
+    echo "./vhg.exe compile-obj <in.vhg> [out.vhb]           Compile to linkable object"
+    echo "./vhg.exe link <a.vhb> [b.vhb ...] -o out.vhb      Link objects"
+    echo "./vhg.exe run <in.vhb> [--debug]                   Run bytecode"
 ) else (
     echo.
     echo [ERROR] Build failed!
@@ -207,33 +213,43 @@ endlocal
 The executable `vhg` (or `vhg.exe`) accepts three modes:
 
 ### 1. Run source directly (backward‑compatible)
+
 ```bash
 ./vhg program.vhg
 ```
+
 Parses, compiles, and executes the `.vhg` source in one step.
 
 ### 2. Compile to bytecode
+
 ```bash
 ./vhg compile input.vhg [output.vhb]
 ```
+
 If no output path is given, it defaults to `input.vhb`.
 
 ### 3. Run pre‑compiled bytecode
+
 ```bash
 ./vhg run program.vhb
 ```
+
 Loads the `.vhb` binary and executes it on the VM.
 
 ### 4. Compile to object unit
+
 ```bash
 ./vhg compile-obj input.vhg [output.vhb]
 ```
+
 Compiles a `.vhg` source file into a **linkable object unit** — cross-unit function calls are left unresolved and no `main` function is required. If no output path is given, defaults to `input.vhb`.
 
 ### 5. Link object units
+
 ```bash
 ./vhg link a.vhb b.vhb lib.vhb -o program.vhb
 ```
+
 Merges one or more `.vhb` object units produced by `compile-obj` into a single executable `.vhb`. The `-o` flag is required. The result can be run with `./vhg run program.vhb` as normal.
 
 ---
@@ -244,13 +260,13 @@ The linker combines multiple independently compiled object units (`.vhb` files) 
 
 ### When to use the linker vs. `import`
 
-| | `import "file.vhg"` | Linker (`compile-obj` + `link`) |
-|---|---|---|
-| How it works | Text substitution before parsing | Each file compiled independently, then merged |
-| Cross-file globals | Shared (merged at source level) | Shared by name across units |
-| Cross-file functions | Inlined at compile time | Resolved at link time |
-| Recompile on change | Full recompile every time | Only recompile the changed unit |
-| Multiple `main` allowed | No | No (exactly one across all units) |
+|                          | `import "file.vhg"`            | Linker (`compile-obj` + `link`)           |
+| ------------------------ | -------------------------------- | --------------------------------------------- |
+| How it works             | Text substitution before parsing | Each file compiled independently, then merged |
+| Cross-file globals       | Shared (merged at source level)  | Shared by name across units                   |
+| Cross-file functions     | Inlined at compile time          | Resolved at link time                         |
+| Recompile on change      | Full recompile every time        | Only recompile the changed unit               |
+| Multiple`main` allowed | No                               | No (exactly one across all units)             |
 
 > **Note:** The `import` statement still works as before. The linker is an optional separate pipeline for larger projects.
 
@@ -272,6 +288,7 @@ The linker combines multiple independently compiled object units (`.vhb` files) 
 Only the file containing `main()` defines the entry point; all others are pure library units.
 
 If only one file changes, only that file needs to be recompiled:
+
 ```bash
 ./vhg compile-obj main_module.vhg   # only this changed
 ./vhg link math_utils.vhb physics.vhb main_module.vhb -o game.vhb
@@ -290,6 +307,7 @@ If only one file changes, only that file needs to be recompiled:
 ## Language Syntax Overview
 
 ### Variables & Scoping
+
 - **Global** variables persist throughout the program.
 - **Local** variables are declared inside blocks (including function bodies) and use stack‑based allocation.
 - Use the `local` or `global` keyword to explicitly control storage; otherwise, the parser defaults to **local** inside any block and **global** at the top level.
@@ -322,20 +340,21 @@ for (i = 0; i < 10; i += 1) {
 
 ### Variable Declaration Rules
 
-| Syntax | Scope | Notes |
-|--------|-------|-------|
-| `variable x = expr;` | Auto (local in blocks, global at top-level) | Explicit declaration |
-| `var x = expr;` | Auto (same as `variable`) | Short form alias |
-| `local variable x = expr;` | Local | Forces local storage |
-| `local var x = expr;` | Local | Short form with local |
-| `global variable x = expr;` | Global | Forces global storage |
-| `global var x = expr;` | Global | Short form with global |
-| `x = expr;` | Auto (implicit declaration if new) | Assignment/declaration |
-| `x;` | Auto (implicit declaration with `none`) | Declaration-only |
-| `global/local var a,b,c = 3,4,5` | Equvalent to `var a=3; var b=4; var c=5;` | Multiple variable declaration |
-| `global/local var a=5, b=4, c="Hello"` | Equvalent to `var a=5; var b=4; var c="Hello";` | Multiple variable declaration |
+| Syntax                                   | Scope                                            | Notes                         |
+| ---------------------------------------- | ------------------------------------------------ | ----------------------------- |
+| `variable x = expr;`                   | Auto (local in blocks, global at top-level)      | Explicit declaration          |
+| `var x = expr;`                        | Auto (same as`variable`)                       | Short form alias              |
+| `local variable x = expr;`             | Local                                            | Forces local storage          |
+| `local var x = expr;`                  | Local                                            | Short form with local         |
+| `global variable x = expr;`            | Global                                           | Forces global storage         |
+| `global var x = expr;`                 | Global                                           | Short form with global        |
+| `x = expr;`                            | Auto (implicit declaration if new)               | Assignment/declaration        |
+| `x;`                                   | Auto (implicit declaration with`none`)         | Declaration-only              |
+| `global/local var a,b,c = 3,4,5`       | Equvalent to`var a=3; var b=4; var c=5;`       | Multiple variable declaration |
+| `global/local var a=5, b=4, c="Hello"` | Equvalent to`var a=5; var b=4; var c="Hello";` | Multiple variable declaration |
 
 ***Important Rules:***
+
 - Variables cannot be redeclared in the same scope
 - Local variables shadow globals with the same name
 - `local` is not allowed in top-level (global) scope
@@ -343,10 +362,13 @@ for (i = 0; i < 10; i += 1) {
 - All variables default to `none` if not explicitly initialized
 - For `Multiple variable declaration` the keyword `variable` (`var`) is required
 - The `Multiple variable declaration` follows `single variable declaration` rules
+
 ### It is desirable to know
+
 The keywords `var` and `variable` are iterchangeable. You can use either form.
 
 ***Basic variable declarations***
+
 ```
 variable x = 10; # explicit declaration (auto scope)
 var y = 20; # 'var' is alias for 'variable'
@@ -355,6 +377,7 @@ global b = "Hello"; # explicit global variable
 ```
 
 ***The order of keywords is flexible***
+
 ```
 # # These are valid and equivalent:
 variable local x = 10;
@@ -378,6 +401,7 @@ for(local variable i = 0;i<4;i+=1) { #* ... *# }
 for(global variable i = 0;i<4;i+=1) { #* ... *# }
 for(variable global i = 0;i<4;i+=1) { #* ... *# }
 ```
+
 ---
 
 ### Data Types
@@ -415,13 +439,13 @@ print(s[0][0], "\n");   # "a"
 
 **Assignment target** for writes must be a **variable** with a single index (e.g. `msg[i] = 'x'`). Chained assignment such as `msg[0][1] = 'a'` is not supported.
 
-| Rule | Behavior |
-|------|----------|
-| Index type | Must be a number; non‑integers are a runtime error |
-| Bounds | `0 <= index < length(s)`; out of range → runtime error |
-| Object | Must be a string; otherwise → runtime error |
-| Assigned value | Must be a string of **length 1** (e.g. `'W'` or `"x"`) |
-| Empty string | No valid index; any access is out of bounds |
+| Rule           | Behavior                                                        |
+| -------------- | --------------------------------------------------------------- |
+| Index type     | Must be a number; non‑integers are a runtime error             |
+| Bounds         | `0 <= index < length(s)`; out of range → runtime error       |
+| Object         | Must be a string; otherwise → runtime error                    |
+| Assigned value | Must be a string of**length 1** (e.g. `'W'` or `"x"`) |
+| Empty string   | No valid index; any access is out of bounds                     |
 
 **Example program** (`vhg_files/string_index.vhg`):
 
@@ -437,71 +461,75 @@ void function main() {
 
 **Implementation (pipeline):**
 
-| Stage | Role |
-|-------|------|
-| Tokenizer | `[` `]` tokens |
-| AST | `SubscriptReadNode`, `SubscriptWriteNode` |
-| Parser | `x[y]` in expressions; `x[y] = z` as assignment |
-| Compiler | `LOAD_STR_IDX`, `STORE_STR_IDX` |
-| VM | Bounds and type checks; in‑place mutation on write |
+| Stage     | Role                                                |
+| --------- | --------------------------------------------------- |
+| Tokenizer | `[` `]` tokens                                  |
+| AST       | `SubscriptReadNode`, `SubscriptWriteNode`       |
+| Parser    | `x[y]` in expressions; `x[y] = z` as assignment |
+| Compiler  | `LOAD_STR_IDX`, `STORE_STR_IDX`                 |
+| VM        | Bounds and type checks; in‑place mutation on write |
 
 Opcodes **100** (`LOAD_STR_IDX`) and **101** (`STORE_STR_IDX`) — see `Language/AST/OpCodes.md`.
 
 ### Operators
-| Category          | Operators                                               |
-|-------------------|---------------------------------------------------------|
-| Arithmetic        | `+` `-` `*` `/` `%` `//` (floor) `%/` (fractional) `**` |
-| Bitwise           | `&` `\|` `^` `<<` `>>` `~`                              |
-| Logical           | `and` `or` `not`                                        |
-| Comparison        | `==` `!=` `<` `>` `<=` `>=`                             |
-| Assignment        | `=` `+=` `-=` `*=` `/=` `%=` `^=`                       |
-| String            | `+` `+=` (concatenation), `length(s)` → size, `*` → repetition, `s[i]` read, `s[i] = c` write |
-| Ternary           | `condition ? trueBranch : falseBranch` (e.g `x = 5 > 6 ? 7 : 8;`)         |
-| Loop operators    | `break;` -> exit loop earlier, `continue;` -> skip next iteration |
-| **Declarations** | `variable`, `var`, `local`, `global` |
+
+| Category               | Operators                                                                                                   |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Arithmetic             | `+` `-` `*` `/` `%` `//` (floor) `%/` (fractional) `**`                                     |
+| Bitwise                | `&` `\|` `^` `<<` `>>` `~`                                                                       |
+| Logical                | `and` `or` `not`                                                                                      |
+| Comparison             | `==` `!=` `<` `>` `<=` `>=`                                                                     |
+| Assignment             | `=` `+=` `-=` `*=` `/=` `%=` `^=`                                                             |
+| String                 | `+` `+=` (concatenation), `length(s)` → size, `*` → repetition, `s[i]` read, `s[i] = c` write |
+| Ternary                | `condition ? trueBranch : falseBranch` (e.g `x = 5 > 6 ? 7 : 8;`)                                       |
+| Loop operators         | `break;` -> exit loop earlier, `continue;` -> skip next iteration                                       |
+| **Declarations** | `variable`, `var`, `local`, `global`                                                                |
 
 ### Mathematical Functions
 
-| Function | Description | Number of Arguments |
-|----------|-------------|---------------------|
-| `sin(x)` | Sine | 1 |
-| `cos(x)` | Cosine | 1 |
-| `tan(x)` | Tangent | 1 |
-| `asin(x)` | Arc sine | 1 |
-| `acos(x)` | Arc cosine | 1 |
-| `atan(x)` | Arc tangent | 1 |
-| `atan2(y, x)` | Arc tangent (two arguments) | 2 |
-| `sqrt(x)` | Square root | 1 |
-| `cbrt(x)` | Cube root | 1 |
-| `pow(x, y)` | Power (x^y) | 2 |
-| `exp(x)` | Exponential (e^x) | 1 |
-| `log(x)` | Natural logarithm (base e) | 1 |
-| `ln(x)` | Natural logarithm (base e) | 1 |
-| `log10(x)` | Base-10 logarithm | 1 |
-| `log2(x)` | Base-2 logarithm | 1 |
-| `log_ab(a, b)` | Logarithm of `b` with base `a` (log(b)/log(a)) | 2 |
-| `ceil(x)` | Round up | 1 |
-| `floor(x)` | Round down | 1 |
-| `round(x)` | Round to nearest integer | 1 |
-| `abs(x)` | Absolute value | 1 |
-| `fmod(x, y)` | Floating-point remainder | 2 |
-| `random(min=0, max=1)` | Returns a random floating-point number in the range **[min, max)**. Default range is **[0, 1)** | 0 or 2 |
+| Function                 | Description                                                                                         | Number of Arguments |
+| ------------------------ | --------------------------------------------------------------------------------------------------- | ------------------- |
+| `sin(x)`               | Sine                                                                                                | 1                   |
+| `cos(x)`               | Cosine                                                                                              | 1                   |
+| `tan(x)`               | Tangent                                                                                             | 1                   |
+| `asin(x)`              | Arc sine                                                                                            | 1                   |
+| `acos(x)`              | Arc cosine                                                                                          | 1                   |
+| `atan(x)`              | Arc tangent                                                                                         | 1                   |
+| `atan2(y, x)`          | Arc tangent (two arguments)                                                                         | 2                   |
+| `sqrt(x)`              | Square root                                                                                         | 1                   |
+| `cbrt(x)`              | Cube root                                                                                           | 1                   |
+| `pow(x, y)`            | Power (x^y)                                                                                         | 2                   |
+| `exp(x)`               | Exponential (e^x)                                                                                   | 1                   |
+| `log(x)`               | Natural logarithm (base e)                                                                          | 1                   |
+| `ln(x)`                | Natural logarithm (base e)                                                                          | 1                   |
+| `log10(x)`             | Base-10 logarithm                                                                                   | 1                   |
+| `log2(x)`              | Base-2 logarithm                                                                                    | 1                   |
+| `log_ab(a, b)`         | Logarithm of`b` with base `a` (log(b)/log(a))                                                   | 2                   |
+| `ceil(x)`              | Round up                                                                                            | 1                   |
+| `floor(x)`             | Round down                                                                                          | 1                   |
+| `round(x)`             | Round to nearest integer                                                                            | 1                   |
+| `abs(x)`               | Absolute value                                                                                      | 1                   |
+| `fmod(x, y)`           | Floating-point remainder                                                                            | 2                   |
+| `random(min=0, max=1)` | Returns a random floating-point number in the range**[min, max)**. Default range is**[0, 1)** | 0 or 2              |
+
 ---
 
 ### Mathematical Constants
 
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `m_pi` | 3.141592653589793 | π (Pi) |
-| `m_e`  | 2.718281828459045 | e (Euler's number) |
-| `m_max`| 1.79769e+308 | The Maximum Number |
-| `m_inf`| inf | The Infinity |
+| Constant  | Value             | Description        |
+| --------- | ----------------- | ------------------ |
+| `m_pi`  | 3.141592653589793 | π (Pi)            |
+| `m_e`   | 2.718281828459045 | e (Euler's number) |
+| `m_max` | 1.79769e+308      | The Maximum Number |
+| `m_inf` | inf               | The Infinity       |
 
 > **Note:** Trigonometric functions use radians by default.
-    For degrees use this formula: `argument*m_pi/180`. E.g. `sin(60*m_pi/180)`.
+> For degrees use this formula: `argument*m_pi/180`. E.g. `sin(60*m_pi/180)`.
+
 ---
 
 ### Control Flow
+
 ```vhg
 void function main() {
     variable x = input("x= ");
@@ -524,6 +552,7 @@ void function main() {
 ```
 
 ### Functions
+
 ```vhg
 # # non-void function requires "return"
 function add(a, b) {
@@ -545,6 +574,7 @@ void function main() {
 - Functions can be called before they are defined (forward declaration via bytecode patching).
 
 ### Program entry (`main`)
+
 Every complete program must define exactly one entry function:
 
 ```vhg
@@ -554,6 +584,7 @@ void function main() {
 ```
 
 Rules:
+
 - `main` must be defined at **top level** (not nested inside another function).
 - `main` must take **no parameters**.
 - Only one `main` is allowed per program (after `import` merging).
@@ -563,6 +594,7 @@ Rules:
 <!-- > **Note:** VHG doesn't support recursive functions yet. Please use loop-iterative versions instead of recursion. -->
 
 ### Switch/case
+
 ```
 x = 2;
 switch(x) {
@@ -579,16 +611,21 @@ switch(x) {
         print("Other\n");
 }
 ```
+
 ### Built‑in I/O
+
 - `input(prompt)` - User Input.
-    | Input | Type | Description |
-    |-------|------|-------------|
-    | `"123"` or `'123'` | `string` | Will return `123` as string|
-    | `123` | `number` | Will return `123` as number|
-    |Empty input| `none` | Will return `none` (std::monostate) |
-    | `Hello World`, `"Hello World"` or `'Hello World'`| `string` | Will return `Hello World`|
-    
-    >The `input` function automatically determines the type of the entered value and removes any quotation marks (`""` or `''`) if they were included.
+
+  | Input                                                   | Type       | Description                          |
+  | ------------------------------------------------------- | ---------- | ------------------------------------ |
+  | `"123"` or `'123'`                                  | `string` | Will return`123` as string         |
+  | `123`                                                 | `number` | Will return`123` as number         |
+  | Empty input                                             | `none`   | Will return`none` (std::monostate) |
+  | `Hello World`, `"Hello World"` or `'Hello World'` | `string` | Will return`Hello World`           |
+
+
+  > The `input` function automatically determines the type of the entered value and removes any quotation marks (`""` or `''`) if they were included.
+  >
 - `print(expr1, expr2, ...)` – prints each argument; automatically appends a newline **if only one argument is given** (otherwise you must include `"\n"` explicitly).
 - `length(string)` - returns the size of given string.
 - `type(argument)` - Returns the type of given argument (`string`, `number` or `none`).
@@ -598,42 +635,48 @@ switch(x) {
 - `oct(integer)` - Return the octal representation of an integer.
 - `hex(integer)` - Return the hexadecimal representation of an integer.
 - `dec(string)` - Returns the decimal representation of given argment (if possible).
+
 ---
 
 ### The syntax of number types.
 
-|   Syntax  |   Example   | Will understand as           |
-| ----------| ------------|------------------------------|
-|   `0b`, `0B`    |   `0b1100`   | BIN                   |
-|   `0o`, `0O`    |   `0o45`    | OCT                    |
-|   `0x`, `0X`     |   `0xff`    | HEX                   |
-| `_` separator  |  `1_000_000`  | `1000000` |
-| `e±N` `E±N` | `2e+3`, `3E-4` |  `2000`, `0.0003`  |
+| Syntax            | Example            | Will understand as   |
+| ----------------- | ------------------ | -------------------- |
+| `0b`, `0B`    | `0b1100`         | BIN                  |
+| `0o`, `0O`    | `0o45`           | OCT                  |
+| `0x`, `0X`    | `0xff`           | HEX                  |
+| `_` separator   | `1_000_000`      | `1000000`          |
+| `e±N` `E±N` | `2e+3`, `3E-4` | `2000`, `0.0003` |
 
->**Note** Implicit multiplication (`3x` as `3*x`) won't work for variables 
-named `e` or `E`, as `3e4` will always be parsed as `3×10⁴ = 30000`.
+> **Note** Implicit multiplication (`3x` as `3*x`) won't work for variables
+> named `e` or `E`, as `3e4` will always be parsed as `3×10⁴ = 30000`.
 
->**Note** `_` is stripped silently as a visual separator. `e`/`E` are 
-processed as scientific notation. Unlike `0b`/`0o`/`0x`, none of these 
-require quotes in string context.
+> **Note** `_` is stripped silently as a visual separator. `e`/`E` are
+> processed as scientific notation. Unlike `0b`/`0o`/`0x`, none of these
+> require quotes in string context.
 
->**Note:** Negative numbers are written with a leading `-`, e.g. `"-0b1100"` is `-12`.
->**Note:** type of `binary`, `octal` or `hexadecimal` numbers is `string`. So don't forget `""` or `''`.
+> **Note:** Negative numbers are written with a leading `-`, e.g. `"-0b1100"` is `-12`.
+> **Note:** type of `binary`, `octal` or `hexadecimal` numbers is `string`. So don't forget `""` or `''`.
 
->**Note:** For `num < 0` case, `bin(num)`, `oct(num)` and `hex(num)` return the two's complement of `num` (32-bit).
+> **Note:** For `num < 0` case, `bin(num)`, `oct(num)` and `hex(num)` return the two's complement of `num` (32-bit).
 
 ### Import preprocessing
+
 `import "path_to_file"`
+
 - This allows to import functions and variables (global) from other files.
->**Note:** `import "file.vhg"` works as a text-level include (equivalent to `#include` in C++). For projects with multiple independently compiled files, use `compile-obj` + `link` instead — see [Linker](#linker).
+
+> **Note:** `import "file.vhg"` works as a text-level include (equivalent to `#include` in C++). For projects with multiple independently compiled files, use `compile-obj` + `link` instead — see [Linker](#linker).
 
 ## Architecture Deep Dive
 
 ### Lexer & Tokenizer
+
 - `Lexer` provides a stream interface with `peek()` and `advance()`.
 - `Tokenizer` groups characters into tokens, skipping whitespace and comments (`# ...` and `#* ... *#`).
 
 ### Parser
+
 - Recursive descent for statements (`if`, `while`, `for`, `function`, `return`, blocks).
 - **Shunting‑Yard algorithm** for expressions, respecting operator precedence and associativity.
 - Implicit multiplication (e.g., `2x` or `(a+b)(c+d)`) is handled by injecting a `*` token when appropriate.
@@ -641,6 +684,7 @@ require quotes in string context.
 - **String subscripts** — postfix `[expr]` builds `SubscriptReadNode`; `name[idx] = value` builds `SubscriptWriteNode` (variable base only).
 
 ### Symbol Table
+
 - Manages nested block scopes via a stack of `ScopeLevel` objects.
 - Global variables are stored in a flat address space.
 - Local variables receive negative offsets relative to the **frame pointer** (`FP` / `x8`).
@@ -648,9 +692,11 @@ require quotes in string context.
 - **Implicit declarations** (plain assignment) reuse existing slots or create new ones on-the-fly.
 - Function definitions push a fresh scope stack, preserving outer scopes for later restoration.
 - Declared but unassigned variables store `none` by default.
+
 ---
 
 ### Compiler
+
 - Traverses the AST in post‑order, generating a linear sequence of `Instruction`s.
 - Allocates virtual registers on‑the‑fly (except `x2` = SP, `x8` = FP).
 - Emits function prologues/epilogues that adjust SP and FP.
@@ -658,9 +704,11 @@ require quotes in string context.
 - **Constant folding** is re‑applied during optimization (redundant constants are merged).
 - Outputs a `ByteCode` structure containing instructions, constant pool (numbers), and string pool.
 - Emits **`LOAD_STR_IDX`** (read character) and **`STORE_STR_IDX`** (write character, then store string back to the variable slot).
+
 ---
 
 ### Linker
+
 - Accepts multiple `ByteCode` units produced by `compile-obj` (each compiled with `allowUnresolvedCalls = true`).
 - Computes a **base offset** for each unit in the merged instruction stream and rebases all jump/call addresses accordingly.
 - **Deduplicates constant and string pools** — identical `double` values and string literals across units are merged into one entry; `LOAD_CONST` / `LOAD_STR` / `PRINT_STR` indices are remapped.
@@ -669,22 +717,24 @@ require quotes in string context.
 - Validates that exactly one `main` is defined and emits the final `CALL main` epilogue.
 - Throws a descriptive `std::runtime_error` for duplicate function definitions, unresolved calls, missing `main`, or global slot overflow (> 255).
 
-| Step | What happens |
-|------|-------------|
-| Address rebasing | Each unit's `JMP`/`JZ`/`JNZ`/`CALL` targets are shifted by the unit's instruction base offset |
-| Constant pool merge | Identical `double` constants deduplicated; `LOAD_CONST` indices remapped |
-| String pool merge | Identical string literals deduplicated; `LOAD_STR`/`PRINT_STR` indices remapped |
-| Global slot merge | Globals unified by name; `LOAD_VAR`/`STORE_VAR` addresses remapped |
-| Call resolution | Unresolved cross-unit calls patched with target's absolute address |
-| `main` epilogue | `CALL main` appended after all units, same as single-file `compile` |
+| Step                | What happens                                                                                         |
+| ------------------- | ---------------------------------------------------------------------------------------------------- |
+| Address rebasing    | Each unit's`JMP`/`JZ`/`JNZ`/`CALL` targets are shifted by the unit's instruction base offset |
+| Constant pool merge | Identical`double` constants deduplicated; `LOAD_CONST` indices remapped                          |
+| String pool merge   | Identical string literals deduplicated;`LOAD_STR`/`PRINT_STR` indices remapped                   |
+| Global slot merge   | Globals unified by name;`LOAD_VAR`/`STORE_VAR` addresses remapped                                |
+| Call resolution     | Unresolved cross-unit calls patched with target's absolute address                                   |
+| `main` epilogue   | `CALL main` appended after all units, same as single-file `compile`                              |
 
 ---
 
 ### Bytecode Format (`.vhb`)
+
 The `.vhb` (VH Binary) file is a platform-independent binary representation of the compiled program.
 It contains all inforamtion needed to execute the program without re-parsing the source code.
 
 #### File Structure
+
 ```
 +--------------------------------------------------+
 | HEADER |
@@ -723,16 +773,19 @@ It contains all inforamtion needed to execute the program without re-parsing the
 ```
 
 #### Header Fields
-| Offset | Field | Size | Description |
-|--------|-------|------|-------------|
-| 0 | Magic | 4 bytes | File identifier: `'V'` `'H'` `'B'` `'1'` |
-| 4 | Instruction Count | 4 bytes | Number of bytecode instructions (M) |
-| 8 | Constant Count | 4 bytes | Number of floating‑point constants (C) |
-| 12 | String Count | 4 bytes | Number of string literals (S) |
-| 16 | Line Numbers Count | 4 bytes | Number of line number entries (must equal M) |
+
+| Offset | Field              | Size    | Description                                     |
+| ------ | ------------------ | ------- | ----------------------------------------------- |
+| 0      | Magic              | 4 bytes | File identifier:`'V'` `'H'` `'B'` `'1'` |
+| 4      | Instruction Count  | 4 bytes | Number of bytecode instructions (M)             |
+| 8      | Constant Count     | 4 bytes | Number of floating‑point constants (C)         |
+| 12     | String Count       | 4 bytes | Number of string literals (S)                   |
+| 16     | Line Numbers Count | 4 bytes | Number of line number entries (must equal M)    |
 
 #### Line Numbers Table
+
 Contains the source line number for each instruction (used for error reporting).
+
 ```text
 [Line0] [Line1] [Line2] ... [LineM-1]
 ```
@@ -740,6 +793,7 @@ Contains the source line number for each instruction (used for error reporting).
 Each entry is a 4-byte (32-bit) unsigned integer.
 
 #### Instruction Format
+
 Each instruction is exactly **4 bytes** with the following layout:
 Byte 0: Opcode (8 bits)
 Byte 1: Destination Register (8 bits)
@@ -747,6 +801,7 @@ Byte 2: Left Operand / Address low byte (8 bits)
 Byte 3: Right Operand / Address high byte (8 bits)
 
 **C++ representation:**
+
 ```c++
 struct Instruction {
     uint32_t op : 8; // Operation code
@@ -757,17 +812,20 @@ struct Instruction {
 ```
 
 #### Address decoding for jump/call instructions:
+
 ```c++
     uint16_t address = (inst.right << 8) | inst.left;  
 ```
 
 #### Address encoding:
+
 ```c++
     inst.left = address & 0xFF;
     inst.right = (address >> 8) & 0xFF;
 ```
 
 #### Constants Table:
+
 Stores floating-point constant values (IEEE-754 double precision, 8 bytes each).
 
 ```text
@@ -775,6 +833,7 @@ Stores floating-point constant values (IEEE-754 double precision, 8 bytes each).
 ```
 
 #### Strings Table
+
 Each string is stored as a length-prefixed UTF-8 sequence:
 
 ```text
@@ -788,7 +847,9 @@ Example:
 `Hello` -> 0x05 0x00 0x00 'H' 'e' 'l' 'l' 'o'
 
 #### Globals Metadata
+
 Stores global variable names for runtime error messages (detecting reads for uninitialized globals).
+
 ```text
 Global Slot Count (G) = number of global variable slots
 
@@ -799,9 +860,11 @@ For slot = 0 to G-1:
 ```
 
 #### VHB File Size Calculation
+
 ```math
     Size = 24 + 8×M + 8×C + ∑(4 + |s|) + ∑(4 + |n|) bytes
 ```
+
 **Where:**
 
 `M` = number of instructions
@@ -814,8 +877,8 @@ For slot = 0 to G-1:
 
 `∑` over all strings and global names
 
-
 #### Complete Example
+
 ```vhg
     void function main() {
         global var x = 10;
@@ -838,6 +901,7 @@ C = 1 (only `10`);
 ```
 
 #### Parsing the file:
+
 * Offset 0-3: Magic `"VHB1"`
 * Offset 4-7: Instruction count=2
 * Offset 8-11: Constant count=1
@@ -851,7 +915,9 @@ C = 1 (only `10`);
 * Offset 57-61: Global name length=1, name = "x"
 
 #### Loading Process
+
 When the VM loads a `.vhb` file, it performs these steps:
+
 1. **Read and validate header** - Check magic number
 2. **Read line numbers** - Store the error reporting
 3. **Read instructions** - Copy into `current_program` vector
@@ -861,6 +927,7 @@ When the VM loads a `.vhb` file, it performs these steps:
 7. **Initialize registers and memory** - Set SP, FP, allocate memory.
 
 ### Virtual Machine
+
 - **Register file** – 256+ registers (indexed by `uint8_t`), with `x2` as stack pointer and `x8` as frame pointer.
 - **Memory** – linear array of `Value` (variant of double and string).
 - **Call stack** – saves return address, caller’s SP/FP, and argument buffer.
@@ -868,6 +935,7 @@ When the VM loads a `.vhb` file, it performs these steps:
 - Debug mode (`VirtualMachine(true)`) prints the AST and a disassembly of the generated bytecode.
 
 ## Example Program
+
 ```vhg
 # Loop and local scoping
 sum = 0;
@@ -882,6 +950,7 @@ void function main() {
 ```
 
 Run it:
+
 ```bash
 ./vhg compile fact.vhg
 ./vhg run fact.vhb
@@ -904,9 +973,11 @@ void function main() {
 ```
 
 ---
+
 ### Debug Mode
 
 To run your program step by step with the built-in debugger:
+
 ```bash
 ./vhg compile app.vhg
 ./vhg run app.vhb --debug
@@ -916,40 +987,44 @@ The debugger provides interactive control over program execution with the follow
 
 #### Debugger Commands
 
-| Command | Aliases | Description |
-|---------|---------|-------------|
-| `Enter` / `step` | `si` | Execute next instruction (step into) |
-| `over` | `so` | Step over function calls |
-| `out` | `su` | Step out of current function |
-| `go` / `c` | `continue` | Continue execution until next breakpoint |
-| `br.add <addr>` | | Set breakpoint at instruction address |
-| `br.rem <addr>` | | Remove breakpoint at address |
-| `br` | `br.list` | List all breakpoints |
-| `r<n>` | `reg <n>` | Show register value (e.g., `r0`, `r3`) |
-| `m<addr>` | `mem <addr>` | Show memory value (e.g., `m100`, `m10000`) |
-| `h` | `help` | Open Commands Menu | 
-| `q` | `quit`, `exit` | Quit debugger |
+| Command              | Aliases            | Description                                   |
+| -------------------- | ------------------ | --------------------------------------------- |
+| `Enter` / `step` | `si`             | Execute next instruction (step into)          |
+| `over`             | `so`             | Step over function calls                      |
+| `out`              | `su`             | Step out of current function                  |
+| `go` / `c`       | `continue`       | Continue execution until next breakpoint      |
+| `br.add <addr>`    |                    | Set breakpoint at instruction address         |
+| `br.rem <addr>`    |                    | Remove breakpoint at address                  |
+| `br`               | `br.list`        | List all breakpoints                          |
+| `r<n>`             | `reg <n>`        | Show register value (e.g.,`r0`, `r3`)     |
+| `m<addr>`          | `mem <addr>`     | Show memory value (e.g.,`m100`, `m10000`) |
+| `h`                | `help`           | Open Commands Menu                            |
+| `q`                | `quit`, `exit` | Quit debugger                                 |
 
 #### Debugger Features
 
 **Breakpoints:**
+
 - Set breakpoints at specific instruction addresses
 - Multiple breakpoints supported
 - List all active breakpoints
 - Remove individual breakpoints
 
 **Step Control:**
+
 - **Step Into**: Execute one instruction, entering function calls
 - **Step Over**: Execute until returning to current call depth
 - **Step Out**: Execute until returning from current function
 
 **State Inspection:**
+
 - View register values (non-zero registers displayed automatically)
 - Inspect memory at specific addresses
 - See call stack depth
 - Source line numbers shown when available
 
 **Examples:**
+
 ```bash
 # Set breakpoint at instruction 10
 (dbg) br.add 10
@@ -971,12 +1046,14 @@ The debugger provides interactive control over program execution with the follow
 #### Debugger Display
 
 The debugger shows:
+
 1. **Current instruction address** and source line number
 2. **Next instruction** to be executed
 3. **Call stack depth** (if inside functions)
 4. **Active registers** (non-zero values only)
 
 Example output:
+
 ```
 === DEBUG @ 15  (line 5) ===
   next: LOAD_CONST r3 <- const[0]
@@ -997,6 +1074,7 @@ Example output:
 ────────────────────────────────────────────────────
 (dbg)
 ```
+
 ---
 
 ### Line Numbers in Errors
@@ -1017,7 +1095,9 @@ The VHG toolchain now reports **source line numbers** for both parse‑time and 
 x = none;     # # line 1
 print(x + 4); # # line 2
 ```
+
 **This is runtime error**
+
 ```shell
 Error: Line 2: Cannot add with None
 ```
@@ -1027,8 +1107,11 @@ x = 5;
 print(x ** 5);
 break; # # line 3
 ```
+
 **This is parse-time error**
+
 ```shell
 Error: Line 3: break statement outside of loop or switch
 ```
+
 ---

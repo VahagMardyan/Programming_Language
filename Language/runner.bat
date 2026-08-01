@@ -1,7 +1,14 @@
 @echo off
+
+@REM Find Visual Studio installation automatically
+for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do (
+    set VS_PATH=%%i
+)
+call "%VS_PATH%\VC\Auxiliary\Build\vcvarsall.bat" x64
+
 setlocal enabledelayedexpansion
 
-set SOURCES=AST\ast.cpp Compiler\compiler.cpp Lexer\lexer.cpp Parser\parser.cpp Runner\main.cpp Tokenizer\tokenizer.cpp VirtualMachine\vm.cpp VirtualMachine\debugger.cpp VirtualMachine\printer.cpp Linker\linker.cpp
+set SOURCES=..\Language\AST\ast.cpp ..\Language\Compiler\compiler.cpp ..\Language\Lexer\lexer.cpp ..\Language\Parser\parser.cpp ..\Language\Runner\main.cpp ..\Language\Tokenizer\tokenizer.cpp ..\Language\VirtualMachine\vm.cpp ..\Language\VirtualMachine\debugger.cpp ..\Language\VirtualMachine\printer.cpp ..\Language\Linker\linker.cpp
 
 set CXX=cl
 set CXXFLAGS=/EHsc /O2 /std:c++20 /W3
