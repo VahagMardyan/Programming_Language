@@ -182,7 +182,7 @@ function even_odd(n) {
 }
 
 # # Greatest common divisor
-function gcd(a,b) {
+function gcd(a, b) {
     while (b != 0) {
         variable temp = b;
         b = a % b;
@@ -191,10 +191,36 @@ function gcd(a,b) {
     return a;
 }
 
+function gcd_u(*nums) {
+    if(not nums) {
+        return 0;
+    }
+    var result = nums[0];
+    for(var i = 1; i < length(nums); i += 1) {
+        result = gcd(result, nums[i]);
+        if(result == 1) {
+            return 1;
+        }
+    }
+    return result;
+}
+
 # # Least common multiple
 function lcm(a, b) {
     if(a == 0 or b == 0) return 0;
     return abs(a * b) / gcd(a, b);
+}
+
+function lcm_u(*nums) {
+    if(not nums) {
+        return 0;
+    }
+    var result = nums[0];
+    for(var i = 1; i < length(nums); i += 1) {
+        if(nums[i] == 0 or result == 0) return 0;
+        result = lcm(result, nums[i]);
+    }
+    return result;
 }
 
 # Sum of numbers
@@ -240,3 +266,4 @@ function max(*nums) {
     }
     return max_value;
 }
+
