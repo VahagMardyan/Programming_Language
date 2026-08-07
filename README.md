@@ -28,6 +28,8 @@
   - [Mathematical Constants](#mathematical-constants)
   - [Control Flow](#control-flow)
   - [Functions](#functions)
+    - [Default arguments](#default-arguments)
+    - [Variadic parameters (`*args`)](#variadic-parameters-args)
   - [Program entry (`main function`)](#program-entry-main)
   - [Switch/case](#switchcase)
   - [Built‑in I/O](#builtin-io)
@@ -70,7 +72,7 @@
 ## Highlights
 
 - **Full compiler pipeline** – Lexer → Tokenizer → Parser → AST → Compiler → Bytecode → VM.
-- **Rich language features** – variables (global/local), block scoping, `if`/`else`, `while`, `for` loops, functions with parameters and return values.
+- **Rich language features** – variables (global/local), block scoping, `if`/`else`, `while`, `for` loops, functions with parameters, default argument values, variadic (`*args`) parameters, and return values.
 - **Strong typing for numbers and strings** – arithmetic, bitwise, logical, and comparison operators; string concatenation; **mutable string indexing** (`s[i]` read/write).
 - **Arrays** – ordered, heterogeneous, reference‑typed collections with literal syntax (including matrices/nested arrays), indexing, and mutating helpers (`array_push`, `array_pop`, `array_insert`, `array_remove`).
 - **Optimizations** – constant folding, implicit multiplication, post‑order code generation.
@@ -630,18 +632,22 @@ void function main() {
 
 ### Operators
 
-| Category               | Operators                                                                                                                                                                                                                |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Arithmetic             | `+` `-` `*` `/` `%` `//` (floor) `%/` (fractional) `**`                                                                                                                                                  |
-| Bitwise                | `&` `\|` `^` `<<` `>>` `~`                                                                                                                                                                                    |
-| Logical                | `and` `or` `not`                                                                                                                                                                                                   |
-| Comparison             | `==` `!=` `<` `>` `<=` `>=`                                                                                                                                                                                  |
-| Assignment             | `=` `+=` `-=` `*=` `/=` `%=` `^=`                                                                                                                                                                          |
-| String                 | `+` `+=` (concatenation), `length(s)` → size, `*` → repetition, `s[i]` read, `s[i] = c` write                                                                                                              |
-| Array                  | `arr[i]` read, `arr[i] = x` write (including chained, e.g.`matrix[i][j] = x`), `length(arr)` → size, `+` → concatenation (new array), `*` → repetition (new array), `+=` → reassigns to`arr + other` |
-| Ternary                | `condition ? trueBranch : falseBranch` (e.g `x = 5 > 6 ? 7 : 8;`)                                                                                                                                                    |
-| Loop operators         | `break;` -> exit loop earlier, `continue;` -> skip next iteration                                                                                                                                                    |
-| **Declarations** | `variable`, `var`, `local`, `global`                                                                                                                                                                             |
+| Category               | Operators                                                                                                                                                                                                                                                            |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Arithmetic             | `+` `-` `*` `/` `%` `//` (floor) `%/` (fractional) `**`                                                                                                                                                                                              |
+| Bitwise                | `&` `\|` `^` `<<` `>>` `~`                                                                                                                                                                                                                                |
+| Logical                | `and` `or` `not`                                                                                                                                                                                                                                               |
+| Comparison             | `==` `!=` `<` `>` `<=` `>=`                                                                                                                                                                                                                              |
+| Assignment             | `=` `+=` `-=` `*=` `/=` `%=` `^=` (including on subscripts, e.g.`arr[i] += 1;`)                                                                                                                                                                      |
+| String                 | `+` `+=` (concatenation), `length(s)` → size, `*` → repetition, `s[i]` read, `s[i] = c` write                                                                                                                                                          |
+| Array                  | `arr[i]` read, `arr[i] = x` write (including chained, e.g.`matrix[i][j] = x`), compound assignment (e.g.`arr[i] += 1;`), `length(arr)` → size, `+` → concatenation (new array), `*` → repetition (new array), `+=` → reassigns to`arr + other` |
+| Ternary                | `condition ? trueBranch : falseBranch` (e.g `x = 5 > 6 ? 7 : 8;`)                                                                                                                                                                                                |
+| Loop operators         | `break;` -> exit loop earlier, `continue;` -> skip next iteration                                                                                                                                                                                                |
+| **Declarations** | `variable`, `var`, `local`, `global`                                                                                                                                                                                                                         |
+
+> **Note:** `and` / `or` **short-circuit**, like most languages. In `left and right`, `right` is only evaluated when `left` is truthy; in `left or right`, `right` is only evaluated when `left` is falsy. This matters for guarded expressions such as `i >= 0 and arr[i] > 0` — when `i` is `-1`, `arr[i]` is never touched. Both operators always evaluate to `1.0` or `0.0` (not the operand's own value, unlike Python's `and`/`or`).
+
+> **Note:** Compound assignment (`+=`, `-=`, `*=`, `/=`, `%=`, `^=`) works on subscript targets too, not just plain variables: `arr[i] += 1;` reads `arr[i]`, applies the operator, and writes the result back to `arr[i]` — equivalent to `arr[i] = arr[i] + 1;`.
 
 ### Mathematical Functions
 
@@ -730,6 +736,136 @@ void function main() {
 
 - Parameters are passed by value. Arrays are, themselves, reference values (see [Arrays](#arrays)) — passing an array parameter copies the reference, not the elements, so mutations inside the function are visible to the caller.
 - Functions can be called before they are defined (forward declaration via bytecode patching).
+- Functions can call themselves (recursion) — each call gets its own frame on the call stack.
+
+#### Default arguments
+
+A parameter can declare a default value with `name = expr`. Callers may omit any trailing argument that has a default; the default expression is evaluated (fresh, every call) when the caller didn't supply that argument.
+
+```vhg
+function greet(name = "World") {
+    print("Hello, "); print(name); print("!\n");
+}
+
+function add(a, b = 10) {
+    return a + b;
+}
+
+void function main() {
+    greet();          # Hello, World!
+    greet("Claude");  # Hello, Claude!
+
+    print(add(1, 2)); # 3
+    print(add(5));    # 15 - uses default b = 10
+}
+```
+
+Rules:
+
+- Once a parameter has a default, every parameter after it (aside from a trailing `*args`) must also have a default.
+- Calling with too few arguments (fewer than the required, non-default parameters) is a compile-time error; so is passing more arguments than the function declares (unless it takes `*args`, see below).
+- A default expression is compiled into the callee, not the caller, and evaluated in the callee's own scope — a bare name inside a default resolves as a **global**, not as another parameter. `function f(a, b = a)` will *not* make `b` default to `a`'s value.
+
+```vhg
+function add(a, b) {
+    return a + b;
+}
+
+void function main() {
+    print(add(1));
+}
+```
+
+```shell
+Error: Function 'add' requires at least 2 argument(s), but 1 provided
+```
+
+#### Variadic parameters (`*args`)
+
+A function's **last** parameter may be prefixed with `*` to collect any extra positional arguments into an ordinary array, similar to Python's `*args`:
+
+```vhg
+function sum_all(*nums) {
+    var total = 0;
+    var i = 0;
+    while (i < length(nums)) {
+        total = total + nums[i];
+        i = i + 1;
+    }
+    return total;
+}
+
+void function main() {
+    print(sum_all(1, 2, 3));        # 6
+    print(sum_all(10, 20, 30, 40)); # 100
+    print(sum_all());               # 0 - no args at all is fine, nums = []
+}
+```
+
+`*args` can be combined with regular (and defaulted) parameters, as long as it comes last:
+
+```vhg
+void function describe(label, *items) {
+    print(label); print(" got "); print(length(items)); print(" extra item(s): ");
+    print(items);
+    print("\n");
+}
+
+function foo(a = 3, *args) {
+    return a;
+}
+
+void function main() {
+    describe("scores", 90, 85, 77); # scores got 3 extra item(s): [90, 85, 77]
+    describe("empty");              # empty got 0 extra item(s): []
+
+    print(foo());        # 3 (default a, args = [])
+    print(foo(99, 1, 2)); # 99 (a = 99, args = [1, 2])
+}
+```
+
+Rules:
+
+- Only one `*args` parameter is allowed per function, and it must be the last parameter — nothing (named or defaulted) may follow it.
+- Inside the function, the variadic name is a normal local array variable: `length(...)`, indexing, and the array helpers (`array_push`, etc.) all work on it.
+- A call with `*args` present has no upper limit on argument count; it still must supply at least the function's non-default, non-variadic parameters.
+
+**Passing an existing array**
+
+If the caller passes exactly **one** argument into the variadic slot and that argument is itself an array, it's used **as-is** instead of being wrapped in another array — so a `*args` function can be called equally well with loose arguments or with an array you already have:
+
+```vhg
+function sum(*args) {
+    var total = 0;
+    var i = 0;
+    while (i < length(args)) {
+        total = total + args[i];
+        i = i + 1;
+    }
+    return total;
+}
+
+void function main() {
+    print(sum(1, 2, 3));     # 6  - three loose arguments
+    print(sum([1, 2, 3]));   # 6  - one array argument, used directly as args
+}
+```
+
+This unwrapping only happens when **exactly one** argument lands in the variadic slot. Passing two or more arguments (even if some of them are arrays) collects them into `args` normally, without unwrapping any of them:
+
+```vhg
+void function show(*args) {
+    print(args);
+}
+
+void function main() {
+    show([1, 2, 3]);     # [1, 2, 3]        - single array, unwrapped
+    show([1, 2], [3, 4]); # [[1, 2], [3, 4]] - two arguments, collected as-is
+    show();                # []               - no arguments
+}
+```
+
+> **Note:** This is a deliberate convenience rather than a literal port of Python's `*args` — in real Python, `f(*args)` called as `f([1,2,3])` gives `args = ([1,2,3],)` (still wrapped; you'd need the explicit `f(*[1,2,3])` spread to unpack it). VHG instead auto-unwraps the single-array case, so both calling styles "just work" for functions like `sum` above.
 
 ### Program entry (`main`)
 
@@ -744,12 +880,10 @@ void function main() {
 Rules:
 
 - `main` must be defined at **top level** (not nested inside another function).
-- `main` must take **no parameters**.
+- `main` must take **no parameters** (not even `*args` or defaulted ones).
 - Only one `main` is allowed per program (after `import` merging).
 - At top level you may declare **globals** and **other functions**; executable statements (`print`, `if`, loops, calls, etc.) belong inside `main` (or another function).
 - Global initializers (for example `counter = 0;`) still run before `main` is called, similar to C++.
-
-<!-- > **Note:** VHG doesn't support recursive functions yet. Please use loop-iterative versions instead of recursion. -->
 
 ### Switch/case
 
@@ -869,6 +1003,8 @@ switch(x) {
 - Outputs a `ByteCode` structure containing instructions, constant pool (numbers), and string pool.
 - Emits **`LOAD_STR_IDX`** (read character/element) and **`STORE_STR_IDX`** (write character/element) — these two opcodes are shared between strings and arrays and dispatch on the runtime type of the base value at execution time.
 - Emits **`ARRAY_NEW`** for `array(n)`, **`ARRAY_LIT`** + a sequence of **`ARRAY_PUSH`** for `[...]` literals (each element is appended to the new array immediately after it's evaluated, rather than staged through a shared buffer, so nested/matrix literals compile correctly), and **`ARRAY_PUSH`**/**`ARRAY_POP`**/**`ARRAY_INSERT`**/**`ARRAY_REMOVE`** for the corresponding builtin calls.
+- Validates every call's argument count against the callee's declared shape (required parameters, defaulted parameters, and whether it's variadic) with a dedicated `checkCallArgCount` check at compile time, raising a clear error immediately rather than letting a mismatched call silently misbehave at runtime.
+- Emits **`ARGC`** (how many arguments the caller actually passed) to decide, per defaulted parameter, whether to load it from the caller or evaluate its default expression; emits **`COLLECT_VARARGS`** to gather everything past the named parameters into the `*args` array, unwrapping a single array argument in place rather than double-wrapping it (see [Variadic parameters](#variadic-parameters-args)).
 
 ---
 
@@ -989,6 +1125,8 @@ Array instructions reuse this same 3‑operand shape:
 | `ARRAY_REMOVE`  | result register (removed value)   | array register                  | index register |
 | `LOAD_STR_IDX`  | result register                   | base register (string or array) | index register |
 | `STORE_STR_IDX` | value register                    | base register (string or array) | index register |
+| `ARGC`          | result register (argument count)  | —                               | —             |
+| `COLLECT_VARARGS` | result register (variadic args as array) | starting argument index (named param count) | —      |
 
 #### Address decoding for jump/call instructions:
 
@@ -1112,7 +1250,7 @@ When the VM loads a `.vhb` file, it performs these steps:
 - **Register file** – 256+ registers (indexed by `uint8_t`), with `x2` as stack pointer and `x8` as frame pointer.
 - **Memory** – linear array of `Value`, a variant of `monostate` (none), `double`, `std::string`, and `std::shared_ptr<ArrayObj>` (arrays). Arrays are the only reference type: copying a `Value` that holds an array copies the shared pointer, not the elements, which is what gives arrays their in‑place mutation semantics.
 - **Call stack** – saves return address, caller’s SP/FP, and argument buffer.
-- **Instruction set** – includes RISC‑V inspired arithmetic (`ADD`, `SUB`, `AND`, …), control flow (`JMP`, `JZ`, `CALL`, `RETURN`), memory access (`LOAD`/`STORE` relative to FP), string/array indexing (`LOAD_STR_IDX`, `STORE_STR_IDX`), and array construction/mutation (`ARRAY_NEW`, `ARRAY_LIT`, `ARRAY_PUSH`, `ARRAY_POP`, `ARRAY_INSERT`, `ARRAY_REMOVE`).
+- **Instruction set** – includes RISC‑V inspired arithmetic (`ADD`, `SUB`, `AND`, …), control flow (`JMP`, `JZ`, `CALL`, `RETURN`), memory access (`LOAD`/`STORE` relative to FP), string/array indexing (`LOAD_STR_IDX`, `STORE_STR_IDX`), array construction/mutation (`ARRAY_NEW`, `ARRAY_LIT`, `ARRAY_PUSH`, `ARRAY_POP`, `ARRAY_INSERT`, `ARRAY_REMOVE`), and default/variadic parameter support (`ARGC`, `COLLECT_VARARGS`).
 - Debug mode (`VirtualMachine(true)`) prints the AST and a disassembly of the generated bytecode.
 
 ## Example Program
@@ -1327,3 +1465,4 @@ Error: Line 3: Array index out of bounds
 ```
 
 ---
+

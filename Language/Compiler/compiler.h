@@ -26,7 +26,9 @@ inline void setAddress(Instruction& inst, uint16_t addr) {
 
 struct FunctionInfo {
     size_t address;
-    int paramCount;
+    int paramCount;      // kept for compatibility: total named params (no variadic)
+    int minParamCount;   // named params with no default - minimum args required
+    bool hasVariadic;    // true if the function has a trailing *args parameter
 };
 
 struct ByteCode {

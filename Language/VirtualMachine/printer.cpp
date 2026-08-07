@@ -76,6 +76,9 @@ void Debugger::printInstructionCompact(size_t pc) const {
         case OpCode::ARRAY_POP:    std::cout << "ARRAY_POP r" << inst.dst << " = pop(r" << inst.left << ")"; break;
         case OpCode::ARRAY_INSERT: std::cout << "ARRAY_INSERT r" << inst.left << "[r" << inst.right << "] insert r" << inst.dst; break;
         case OpCode::ARRAY_REMOVE: std::cout << "ARRAY_REMOVE r" << inst.dst << " = remove(r" << inst.left << ", r" << inst.right << ")"; break;
+
+        case OpCode::ARGC:            std::cout << "ARGC r" << inst.dst; break;
+        case OpCode::COLLECT_VARARGS: std::cout << "COLLECT_VARARGS r" << inst.dst << " = args[" << inst.left << ":]"; break;
         
         case OpCode::SIN:         std::cout << "SIN r" << inst.dst << " = sin(r" << inst.left << ")"; break;
         case OpCode::COS:         std::cout << "COS r" << inst.dst << " = cos(r" << inst.left << ")"; break;
@@ -541,6 +544,17 @@ void Debugger::visualize() const {
             opStr  = "ARRAY_REMOVE " + R(inst.dst) + " = remove(" + R(inst.left) + ", " + R(inst.right) + ")";
             lStr   = std::to_string(inst.left);
             rStr   = std::to_string(inst.right);
+            dstStr = std::to_string(inst.dst);
+            break;
+
+        case OpCode::ARGC:
+            opStr  = "ARGC " + R(inst.dst);
+            dstStr = std::to_string(inst.dst);
+            break;
+
+        case OpCode::COLLECT_VARARGS:
+            opStr  = "COLLECT_VARARGS " + R(inst.dst) + " = args[" + std::to_string(inst.left) + ":]";
+            lStr   = std::to_string(inst.left);
             dstStr = std::to_string(inst.dst);
             break;
 

@@ -807,6 +807,32 @@ size_t VirtualMachine::executeSingleInstruction() {
             case OpCode::PUSH_ARG:
                 argBuffer.push_back(registers[inst.dst]);
             break;
+            case OpCode::ARGC: {
+                double n = callStack.empty() ? 0.0 : static_cast<double>(callStack.back().args.size());
+                registers[inst.dst] = n;
+            }
+            break;
+            case OpCode::COLLECT_VARARGS: {
+                Value result;
+                if (!callStack.empty()) {
+                    const auto& args = callStack.back().args;
+                    size_t startIdx = static_cast<size_t>(inst.left);
+                    size_t variadicCount = (startIdx < args.size()) ? (args.size() - startIdx) : 0;
+                    if (variadicCount == 1 && isArray(args[startIdx])) {
+                        result = args[startIdx];
+                    } else {
+                        auto arr = std::make_shared<ArrayObj>();
+                        if (variadicCount > 0) {
+                            arr->items.assign(args.begin() + startIdx, args.end());
+                        }
+                        result = arr;
+                    }
+                } else {
+                    result = makeArray(0);
+                }
+                registers[inst.dst] = result;
+            }
+            break;
             case OpCode::LOAD_PARAM: {
                 if(!callStack.empty()) {
                     const auto& args = callStack.back().args;

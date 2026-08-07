@@ -67,6 +67,14 @@ enum class OpCode : uint8_t {
     ARRAY_POP,    // dst = removed last element of array reg[left]
     ARRAY_INSERT, // array reg[left].insert(idx=reg[right], value=reg[dst])
     ARRAY_REMOVE, // dst = removed element at idx=reg[right] from array reg[left]
+
+    // Default arguments / variadic (*args) support
+    ARGC,             // dst = number of args actually passed to the current call frame
+    COLLECT_VARARGS,  // dst = the variadic args as an array. Normally a new array
+                      // built from callFrame.args[left .. end); but if exactly one
+                      // variadic argument was passed and it is itself an array, that
+                      // array is used directly (unwrapped) - this is what makes
+                      // sum([1,2,3]) behave like sum(1,2,3) for a `*args` parameter.
 };
 
 class ASTNode {
@@ -290,20 +298,33 @@ class StringNode : public ASTNode {
         std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 
+// One function parameter: a name, and (for non-variadic params) an optional
+// default-value expression evaluated at call time when the caller didn't
+// supply that argument.
+struct ParamInfo {
+    std::string name;
+    std::shared_ptr<ASTNode> defaultValue; // nullptr => required, no default
+};
+
 // function definition
 class FunctionDefNode : public StatementNode {
     private:
         std::string name;
-        std::vector<std::string> params;
+        std::vector<ParamInfo> params;
+        std::string variadicName; // empty => no *args parameter; else its name
         std::shared_ptr<StatementNode> body;
         int localSlotCount;
         bool isVoid;
     public:
-        FunctionDefNode(const std::string& n, std::vector<std::string> p,
+        FunctionDefNode(const std::string& n, std::vector<ParamInfo> p,
+                        std::string variadic,
                         std::shared_ptr<StatementNode> b, int slots, bool v = false)
-        : name(n), params(std::move(p)), body(std::move(b)), localSlotCount(slots), isVoid(v) {}
+        : name(n), params(std::move(p)), variadicName(std::move(variadic)),
+          body(std::move(b)), localSlotCount(slots), isVoid(v) {}
         const std::string& getName() const { return name; }
-        const std::vector<std::string>& getParams() const { return params; }
+        const std::vector<ParamInfo>& getParams() const { return params; }
+        const std::string& getVariadicName() const { return variadicName; }
+        bool hasVariadic() const { return !variadicName.empty(); }
         std::shared_ptr<StatementNode> getBody() const { return body; }
         int getLocalSlotCount() const { return localSlotCount; }
         bool getIsVoid() const { return isVoid; }
@@ -375,3 +396,4 @@ public:
     std::shared_ptr<StatementNode> getDefaultBody() const { return defaultBody; }
     std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
+

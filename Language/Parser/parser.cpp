@@ -1314,13 +1314,42 @@ std::shared_ptr<StatementNode> Parser::parseFunction() {
     }
     nextToken(); // skip '('
 
-    std::vector<std::string> params;
+    std::vector<ParamInfo> params;
+    std::string variadicName;
+    bool sawDefault = false;
     while (currentToken.value != ")" && currentToken.type != TokenType::EndOfExpr) {
+        bool isVariadicParam = false;
+        if (currentToken.type == TokenType::Operator && currentToken.value == "*") {
+            isVariadicParam = true;
+            nextToken(); // skip '*'
+        }
+
         if (currentToken.type != TokenType::Name) {
             error("Expected parameter name");
         }
-        params.push_back(currentToken.value);
+        std::string paramName = currentToken.value;
         nextToken();
+
+        if (isVariadicParam) {
+            if (!variadicName.empty()) {
+                error("Function '" + name + "' cannot have more than one *args parameter");
+            }
+            variadicName = paramName;
+        } else {
+            if (!variadicName.empty()) {
+                error("Parameter '" + paramName + "' cannot follow the *args parameter");
+            }
+            std::shared_ptr<ASTNode> defaultExpr = nullptr;
+            if (currentToken.type == TokenType::Assign) {
+                nextToken(); // skip '='
+                defaultExpr = parseExpression();
+                sawDefault = true;
+            } else if (sawDefault) {
+                error("Parameter '" + paramName + "' without a default cannot follow a parameter with a default");
+            }
+            params.push_back({paramName, defaultExpr});
+        }
+
         if (currentToken.type == TokenType::Comma) {
             nextToken();
         }
@@ -1331,7 +1360,7 @@ std::shared_ptr<StatementNode> Parser::parseFunction() {
     }
     nextToken(); // skip ')'
 
-    if (name == "main" && !params.empty()) {
+    if (name == "main" && (!params.empty() || !variadicName.empty())) {
         error("function main() must not take parameters");
     }
 
@@ -1344,7 +1373,10 @@ std::shared_ptr<StatementNode> Parser::parseFunction() {
     symTable.enterFunctionScope();
 
     for (const auto& p : params) {
-        symTable.getLocalOffset(p);
+        symTable.getLocalOffset(p.name);
+    }
+    if (!variadicName.empty()) {
+        symTable.getLocalOffset(variadicName);
     }
 
     auto body = parseBlock();
@@ -1381,7 +1413,7 @@ std::shared_ptr<StatementNode> Parser::parseFunction() {
     symTable.exitFunctionScope();
     insideFunction = wasInsideFunction;
 
-    return std::make_shared<FunctionDefNode>(name, params, body, slotCount, isVoid);
+    return std::make_shared<FunctionDefNode>(name, params, variadicName, body, slotCount, isVoid);
 }
 
 std::shared_ptr<ASTNode> Parser::parseFunctionCall(const std::string& name) {

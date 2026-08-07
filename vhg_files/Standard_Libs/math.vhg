@@ -196,3 +196,47 @@ function lcm(a, b) {
     if(a == 0 or b == 0) return 0;
     return abs(a * b) / gcd(a, b);
 }
+
+# Sum of numbers
+function sum(*nums) {
+    var total = 0;
+    var n = length(nums);
+    for(var i = 0; i < n; i += 1) {
+        total += nums[i];
+    }
+    return total;
+}
+ 
+# Product of numbers
+function mul(*nums) {
+    var total = 1;
+    var n = length(nums);
+    for(variable i = 0; i < n; i += 1) {
+        total *= nums[i];
+    }
+    return total;
+}
+
+# Minimum value
+function min(*nums) {
+    var min_value = nums[0];
+    var n = length(nums);
+    for(variable i = 0; i < n; i += 1) {
+        if(nums[i] < min_value) {
+            min_value = nums[i];
+        }
+    }
+    return min_value;
+}
+
+# Maximum value
+function max(*nums) {
+    var max_value = nums[0];
+    var n = length(nums);
+    for(variable i = 0; i < n; i += 1) {
+        if(nums[i] > max_value) {
+            max_value = nums[i];
+        }
+    }
+    return max_value;
+}

@@ -15,6 +15,25 @@ static void rebaseJumpTargets(std::vector<Instruction>& instructions, uint16_t b
     }
 }
 
+// Validates a call's argument count against a function's declared shape:
+// at least minParamCount, and (unless variadic) at most paramCount.
+static void checkCallArgCount(const std::string& funcName, const FunctionInfo& info, size_t argCount) {
+    if (argCount < static_cast<size_t>(info.minParamCount)) {
+        throw std::runtime_error(
+            "Function '" + funcName + "' requires at least " +
+            std::to_string(info.minParamCount) + " argument(s), but " +
+            std::to_string(argCount) + " provided"
+        );
+    }
+    if (!info.hasVariadic && argCount > static_cast<size_t>(info.paramCount)) {
+        throw std::runtime_error(
+            "Function '" + funcName + "' accepts at most " +
+            std::to_string(info.paramCount) + " argument(s), but " +
+            std::to_string(argCount) + " provided"
+        );
+    }
+}
+
 void Compiler::emitMainPrologue(std::vector<Instruction>& code) {
     int slots = symTable.getProgramFrameSlotCount();
     if (slots < 1) slots = 1;
@@ -680,13 +699,7 @@ std::vector<Instruction> Compiler::generateByteCode(
             // Argument count check
             auto it = functionTable.find(callExpr->getName());
             if (it != functionTable.end()) {
-                if (callExpr->getArgs().size() != static_cast<size_t>(it->second.paramCount)) {
-                    throw std::runtime_error(
-                        "Function '" + callExpr->getName() + "' requires " +
-                        std::to_string(it->second.paramCount) + " argument(s), but " +
-                        std::to_string(callExpr->getArgs().size()) + " provided"
-                    );
-                }
+                checkCallArgCount(callExpr->getName(), it->second, callExpr->getArgs().size());
             }
 
             for(const auto& arg : callExpr->getArgs()) {
@@ -1059,7 +1072,13 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
         lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
         size_t funcAddr = code.size();
-        functionTable[funcName] = {funcAddr, (int)funcDef->getParams().size()};
+        const auto& funcParams = funcDef->getParams();
+        int namedCount = (int)funcParams.size();
+        int minRequired = 0;
+        for (const auto& p : funcParams) {
+            if (!p.defaultValue) minRequired++;
+        }
+        functionTable[funcName] = {funcAddr, namedCount, minRequired, funcDef->hasVariadic()};
 
         int slots = funcDef->getLocalSlotCount();
         if (slots < 1) slots = 1;
@@ -1069,10 +1088,80 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         code.push_back({(uint32_t)OpCode::ADDI, FP, SP, (uint32_t)frameSize});
         lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
 
-        for (int i = 0; i < (int)funcDef->getParams().size(); i++) {
+        for (int i = 0; i < namedCount; i++) {
             int32_t off = -4 * (i + 1);
+            const ParamInfo& p = funcParams[i];
+
+            if (!p.defaultValue) {
+                // Required parameter - call sites already guarantee it's present.
+                int reg = allocateTempRegister();
+                code.push_back({(uint32_t)OpCode::LOAD_PARAM, (uint32_t)reg, (uint32_t)i, 0});
+                lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
+                code.push_back({(uint32_t)OpCode::STORE, (uint32_t)reg, (uint32_t)FP, (uint32_t)off});
+                lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
+                freeTempRegister(reg);
+                continue;
+            }
+
+            // Optional parameter: if the caller actually passed this many
+            // args, use it; otherwise evaluate the default expression.
+            int argcReg = allocateTempRegister();
+            code.push_back({(uint32_t)OpCode::ARGC, (uint32_t)argcReg, 0, 0});
+            lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
+
+            int idxReg = allocateTempRegister();
+            int idxConstIdx;
+            auto cit = constMap.find((double)i);
+            if (cit != constMap.end()) idxConstIdx = cit->second;
+            else {
+                idxConstIdx = (int)constantPool.size();
+                constantPool.push_back((double)i);
+                constMap[(double)i] = idxConstIdx;
+            }
+            code.push_back({(uint32_t)OpCode::LOAD_CONST, (uint32_t)idxReg, (uint32_t)idxConstIdx, 0});
+            lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
+
+            int hasArgReg = allocateTempRegister();
+            code.push_back({(uint32_t)OpCode::CMP_LT, (uint32_t)hasArgReg, (uint32_t)idxReg, (uint32_t)argcReg});
+            lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
+            freeTempRegister(idxReg);
+            freeTempRegister(argcReg);
+
+            size_t jzIdx = code.size();
+            code.push_back({(uint32_t)OpCode::JZ, (uint32_t)hasArgReg, 0, 0});
+            lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
+            freeTempRegister(hasArgReg);
+
+            // Caller passed this arg -> take it via LOAD_PARAM.
             int reg = allocateTempRegister();
             code.push_back({(uint32_t)OpCode::LOAD_PARAM, (uint32_t)reg, (uint32_t)i, 0});
+            lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
+            code.push_back({(uint32_t)OpCode::STORE, (uint32_t)reg, (uint32_t)FP, (uint32_t)off});
+            lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
+            freeTempRegister(reg);
+
+            size_t jmpIdx = code.size();
+            code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
+            lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
+            setAddress(code[jzIdx], (uint16_t)code.size());
+
+            // Caller omitted this arg -> evaluate the default expression.
+            auto defCode = generateByteCode(postOrderTraverse(p.defaultValue), code.size());
+            rebaseJumpTargets(defCode, static_cast<uint16_t>(code.size()));
+            code.insert(code.end(), defCode.begin(), defCode.end());
+            addLineNumbers(stmt ? stmt -> lineNumber : 0, defCode.size());
+            int defReg = defCode.empty() ? 0 : defCode.back().dst;
+            code.push_back({(uint32_t)OpCode::STORE, (uint32_t)defReg, (uint32_t)FP, (uint32_t)off});
+            lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
+            freeTempRegister(defReg);
+
+            setAddress(code[jmpIdx], (uint16_t)code.size());
+        }
+
+        if (funcDef->hasVariadic()) {
+            int32_t off = -4 * (namedCount + 1);
+            int reg = allocateTempRegister();
+            code.push_back({(uint32_t)OpCode::COLLECT_VARARGS, (uint32_t)reg, (uint32_t)namedCount, 0});
             lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
             code.push_back({(uint32_t)OpCode::STORE, (uint32_t)reg, (uint32_t)FP, (uint32_t)off});
             lineNumbers.push_back(stmt ? stmt -> lineNumber : 0);
@@ -1099,13 +1188,7 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         // Argument count check
         auto it = functionTable.find(call -> getName());
         if(it != functionTable.end()) {
-            if(call -> getArgs().size() != static_cast<size_t>(it -> second.paramCount)) {
-                throw std::runtime_error(
-                    "Function '" + call->getName() + "' requires " +
-                    std::to_string(it->second.paramCount) + " argument(s), but " +
-                    std::to_string(call->getArgs().size()) + " provided"
-                );
-            }
+            checkCallArgCount(call->getName(), it->second, call->getArgs().size());
         }
 
         for(const auto& arg : call->getArgs()) {
