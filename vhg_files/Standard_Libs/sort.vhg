@@ -239,3 +239,40 @@ function count_sort(arr) {
     }
     return ans;
 }
+
+# Radix sort
+void function count_sort_for_radix(arr, e) {
+    var n = length(arr);
+    var output = [0] * n;
+    var count = [0] * 10;
+    for(variable i = 0; i < n; i += 1) {
+        var index = (arr[i] // e) % 10;
+        count[index] += 1;
+    }
+    for(var i = 1; i < 10; i += 1) {
+        count[i] += count[i - 1];
+    }
+    for(var i = n - 1; i > -1; i -= 1) {
+        var index = (arr[i] // e) % 10;
+        output[count[index] - 1] = arr[i];
+        count[index] -= 1;
+    }
+    for(var i = 0; i < n; i += 1) {
+        arr[i] = output[i];
+    }
+}
+
+function radix_sort(arr) {
+    if(not arr) {
+        return arr;
+    }
+
+    var max_val = max(arr);
+
+    var e = 1;
+    while(max_val // e > 0) {
+        count_sort_for_radix(arr, e);
+        e *= 10;
+    }
+    return arr;
+}
