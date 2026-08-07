@@ -1,0 +1,294 @@
+# Tic-Tac-Toe Game implementation
+
+# Initialize the board as a 3x3 grid filled with spaces
+function create_board() {
+    var board = [];
+    var i = 0;
+    while (i < 3) {
+        var row = [];
+        var j = 0;
+        while (j < 3) {
+            array_push(row, " ");
+            j = j + 1;
+        }
+        array_push(board, row);
+        i = i + 1;
+    }
+    return board;
+}
+
+# Print the current board state
+void function print_board(board) {
+    print("  0   1   2");
+    var i = 0;
+    while (i < 3) {
+        print(i, " ", board[i][0], " | ", board[i][1], " | ", board[i][2]);
+        if (i < 2) {
+            print("  -----------");
+        }
+        i = i + 1;
+    }
+}
+
+# Check if a player has won
+function check_win(board, player) {
+    # Check rows
+    var i = 0;
+    while (i < 3) {
+        if (board[i][0] == player and board[i][1] == player and board[i][2] == player) {
+            return true;
+        }
+        i = i + 1;
+    }
+    
+    # Check columns
+    var j = 0;
+    while (j < 3) {
+        if (board[0][j] == player and board[1][j] == player and board[2][j] == player) {
+            return true;
+        }
+        j = j + 1;
+    }
+    
+    # Check diagonals
+    if (board[0][0] == player and board[1][1] == player and board[2][2] == player) {
+        return true;
+    }
+    if (board[0][2] == player and board[1][1] == player and board[2][0] == player) {
+        return true;
+    }
+    
+    return false;
+}
+
+# Check if the board is full (tie game)
+function is_board_full(board) {
+    var i = 0;
+    while (i < 3) {
+        var j = 0;
+        while (j < 3) {
+            if (board[i][j] == " ") {
+                return false;
+            }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+# Get player's move
+function get_player_move(board, player) {
+    var valid_move = false;
+    var row = 0;
+    var col = 0;
+    
+    while (not valid_move) {
+        print("Player ", player, ", enter your move (row col): ");
+        row = input();
+        col = input();
+        
+        # Check if input is valid
+        if (row >= 0 and row < 3 and col >= 0 and col < 3) {
+            if (board[row][col] == " ") {
+                valid_move = true;
+            } else {
+                print("That cell is already taken! Try again.");
+            }
+        } else {
+            print("Invalid input! Row and column must be between 0 and 2.");
+        }
+    }
+    
+    return [row, col];
+}
+
+# Simple AI move
+function get_ai_move(board, player) {
+    var row = 0;
+    var col = 0;
+    var valid_move = false;
+    
+    # First, try to win
+    var i = 0;
+    while (i < 3 and not valid_move) {
+        var j = 0;
+        while (j < 3 and not valid_move) {
+            if (board[i][j] == " ") {
+                board[i][j] = player;
+                if (check_win(board, player)) {
+                    board[i][j] = " ";  # Undo
+                    row = i;
+                    col = j;
+                    valid_move = true;
+                } else {
+                    board[i][j] = " ";  # Undo
+                }
+            }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    
+    # If no winning move, try to block opponent
+    if (not valid_move) {
+        var opponent = "O";
+        if (player == "O") {
+            opponent = "X";
+        }
+        i = 0;
+        while (i < 3 and not valid_move) {
+            var j = 0;
+            while (j < 3 and not valid_move) {
+                if (board[i][j] == " ") {
+                    board[i][j] = opponent;
+                    if (check_win(board, opponent)) {
+                        board[i][j] = " ";  # Undo
+                        row = i;
+                        col = j;
+                        valid_move = true;
+                    } else {
+                        board[i][j] = " ";  # Undo
+                    }
+                }
+                j = j + 1;
+            }
+            i = i + 1;
+        }
+    }
+    
+    # If still no move, pick center if available
+    if (not valid_move and board[1][1] == " ") {
+        row = 1;
+        col = 1;
+        valid_move = true;
+    }
+    
+    # Then corners
+    if (not valid_move) {
+        var corners = [0, 0, 0, 2, 2, 0, 2, 2];  # Flattened array of corners
+        var idx = 0;
+        var found = false;
+        while (idx < 4 and not found) {
+            var r = corners[idx * 2];
+            var c = corners[idx * 2 + 1];
+            if (board[r][c] == " ") {
+                row = r;
+                col = c;
+                found = true;
+                valid_move = true;
+            }
+            idx = idx + 1;
+        }
+    }
+    
+    # If all else fails, pick first empty cell
+    if (not valid_move) {
+        i = 0;
+        while (i < 3 and not valid_move) {
+            var j = 0;
+            while (j < 3 and not valid_move) {
+                if (board[i][j] == " ") {
+                    row = i;
+                    col = j;
+                    valid_move = true;
+                }
+                j = j + 1;
+            }
+            i = i + 1;
+        }
+    }
+    
+    return [row, col];
+}
+
+# Main game loop
+void function play_tic_tac_toe(ai_mode) {
+    print("Welcome to Tic-Tac-Toe!");
+    
+    var board = create_board();
+    var current_player = "X";
+    var game_over = false;
+    
+    while (not game_over) {
+        print("");
+        print_board(board);
+        print("");
+        
+        var move;
+        var row;
+        var col;
+        
+        # AI mode: computer plays as O
+        if (ai_mode and current_player == "O") {
+            print("Computer (O) is thinking...");
+            move = get_ai_move(board, current_player);
+            row = move[0];
+            col = move[1];
+            board[row][col] = current_player;
+            print("Computer places O at (", row, ", ", col, ")");
+        } else {
+            move = get_player_move(board, current_player);
+            row = move[0];
+            col = move[1];
+            board[row][col] = current_player;
+        }
+        
+        # Check for win or tie
+        if (check_win(board, current_player)) {
+            print("");
+            print_board(board);
+            print("");
+            print("Player ", current_player, " wins!");
+            game_over = true;
+        } else {
+            if (is_board_full(board)) {
+                print("");
+                print_board(board);
+                print("");
+                print("It's a tie!");
+                game_over = true;
+            } else {
+                # Switch player
+                if (current_player == "X") {
+                    current_player = "O";
+                } else {
+                    current_player = "X";
+                }
+            }
+        }
+    }
+}
+
+# Main function
+void function main() {
+    print("Welcome to Tic-Tac-Toe!");
+    print("");
+    print("Choose game mode:");
+    print("1. Two players (human vs human)");
+    print("2. Play vs Computer (AI)");
+    print("");
+    
+    var mode = 0;
+    while (mode != 1 and mode != 2) {
+        print("Enter 1 or 2: ");
+        mode = input();
+    }
+    
+    if (mode == 1) {
+        play_tic_tac_toe(false);
+    } else {
+        play_tic_tac_toe(true);
+    }
+    
+    # Ask to play again
+    print("");
+    print("Play again? (yes/no): ");
+    var again = input();
+    if (again == "yes" or again == "y") {
+        print("");
+        main();
+    } else {
+        print("Thanks for playing! Goodbye!");
+    }
+}

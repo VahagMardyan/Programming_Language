@@ -362,12 +362,18 @@ size_t VirtualMachine::executeSingleInstruction() {
                 if(isNone(registers[inst.left]) || isNone(registers[inst.right])) {
                     throw std::runtime_error("Cannot compare None with <");
                 }
+                if(!isNumber(registers[inst.left]) || !isNumber(registers[inst.right])) {
+                    throw std::runtime_error("Cannot compare non-number values with <");
+                }
                 registers[inst.dst] = asNumber(registers[inst.left]) < asNumber(registers[inst.right]) ? 1.0 : 0.0;
             }
             break;
             case OpCode::CMP_GT: {
                 if(isNone(registers[inst.left]) || isNone(registers[inst.right])) {
                     throw std::runtime_error("Cannot compare None with >");
+                }
+                if(!isNumber(registers[inst.left]) || !isNumber(registers[inst.right])) {
+                    throw std::runtime_error("Cannot compare non-number values with >");
                 }
                 registers[inst.dst] = asNumber(registers[inst.left]) >  asNumber(registers[inst.right]) ? 1.0 : 0.0; 
             }
@@ -376,12 +382,18 @@ size_t VirtualMachine::executeSingleInstruction() {
                 if(isNone(registers[inst.left]) || isNone(registers[inst.right])) {
                     throw std::runtime_error("Cannot compare None with >=");
                 }
+                if(!isNumber(registers[inst.left]) || !isNumber(registers[inst.right])) {
+                    throw std::runtime_error("Cannot compare non-number values with >=");
+                }
                 registers[inst.dst] = asNumber(registers[inst.left]) >= asNumber(registers[inst.right]) ? 1.0 : 0.0;
             }
             break;
             case OpCode::CMP_LET: {
                 if(isNone(registers[inst.left]) || isNone(registers[inst.right])) {
                     throw std::runtime_error("Cannot compare None with <=");
+                }
+                if(!isNumber(registers[inst.left]) || !isNumber(registers[inst.right])) {
+                    throw std::runtime_error("Cannot compare non-number values with <=");
                 }
                 registers[inst.dst] = asNumber(registers[inst.left]) <= asNumber(registers[inst.right]) ? 1.0 : 0.0; break;
             }

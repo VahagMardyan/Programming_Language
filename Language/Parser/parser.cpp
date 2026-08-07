@@ -415,7 +415,7 @@ std::shared_ptr<StatementNode> Parser::parseStatement() {
 
 std::shared_ptr<StatementNode> Parser::parseSwitch() {
     nextToken(); // skip 'switch'
-    if(currentToken.value != "(") {
+    if(currentToken.type != TokenType::OpenParen) {
         error("Expected '(' after switch");
     }
     nextToken(); // skip '('
@@ -424,7 +424,7 @@ std::shared_ptr<StatementNode> Parser::parseSwitch() {
         state = ParserState::Error; 
         return nullptr;
     }
-    if(currentToken.value != ")") { 
+    if(currentToken.type != TokenType::CloseParen) { 
         error("Expected ')' after switch expression");
     }
     nextToken(); // skip ')'
@@ -503,10 +503,10 @@ std::shared_ptr<StatementNode> Parser::parseSwitch() {
 
 std::shared_ptr<StatementNode> Parser::parseIf() {
     nextToken(); // skip 'if'
-    if(currentToken.value != "(") { state = ParserState::Error; return nullptr; }
+    if(currentToken.type != TokenType::OpenParen) { state = ParserState::Error; return nullptr; }
     nextToken();
     auto cond = parseExpression();
-    if(currentToken.value != ")") { state = ParserState::Error; return nullptr; }
+    if(currentToken.type != TokenType::CloseParen) { state = ParserState::Error; return nullptr; }
     nextToken();
     
     // Enter new scope for 'then' branch
@@ -527,10 +527,10 @@ std::shared_ptr<StatementNode> Parser::parseIf() {
 
 std::shared_ptr<StatementNode> Parser::parseWhile() {
     nextToken(); // skip 'while'
-    if(currentToken.value != "(") { state = ParserState::Error; return nullptr; }
+    if(currentToken.type != TokenType::OpenParen) { state = ParserState::Error; return nullptr; }
     nextToken();
     auto cond = parseExpression();
-    if(currentToken.value != ")") { state = ParserState::Error; return nullptr; }
+    if(currentToken.type != TokenType::CloseParen) { state = ParserState::Error; return nullptr; }
     nextToken();
     
     // Enter new scope for while body
@@ -923,16 +923,16 @@ std::shared_ptr<StatementNode> Parser::parseAssignment(bool explicitDeclare) {
 
 std::shared_ptr<StatementNode> Parser::parsePrint() {
     nextToken(); // skip 'print'
-    if(currentToken.value != "(") { state = ParserState::Error; return nullptr; }
+    if(currentToken.type != TokenType::OpenParen) { state = ParserState::Error; return nullptr; }
     nextToken(); // skip '('
 
     std::vector<std::shared_ptr<ASTNode>> exprs;
-    while(currentToken.value != ")" && currentToken.type != TokenType::EndOfExpr) {
+    while(currentToken.type != TokenType::CloseParen && currentToken.type != TokenType::EndOfExpr) {
         exprs.push_back(parseExpression());
         if(currentToken.type == TokenType::Comma) nextToken();
     }
 
-    if(currentToken.value != ")") { state = ParserState::Error; return nullptr; }
+    if(currentToken.type != TokenType::CloseParen) { state = ParserState::Error; return nullptr; }
     nextToken(); // skip ')'
 
     if(exprs.size() <= 1) {
@@ -1201,7 +1201,7 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
 
 std::shared_ptr<StatementNode> Parser::parseFor() {
     nextToken(); // skip 'for'
-    if(currentToken.value != "(") { state = ParserState::Error; return nullptr; }
+    if(currentToken.type != TokenType::OpenParen) { state = ParserState::Error; return nullptr; }
     nextToken(); // skip '('
 
     // Enter new scope for the entire for loop.
@@ -1260,7 +1260,7 @@ std::shared_ptr<StatementNode> Parser::parseFor() {
     // i += 1;
     auto update = parseAssignment();
 
-    if(currentToken.value != ")") {
+    if(currentToken.type != TokenType::CloseParen) {
         state = ParserState::Error;
         symTable.exitBlockScope();
         return nullptr;
@@ -1309,7 +1309,7 @@ std::shared_ptr<StatementNode> Parser::parseFunction() {
         programHasMain = true;
     }
 
-    if (currentToken.value != "(") {
+    if (currentToken.type != TokenType::OpenParen) {
         error("Expected '(' after function name");
     }
     nextToken(); // skip '('
@@ -1317,7 +1317,7 @@ std::shared_ptr<StatementNode> Parser::parseFunction() {
     std::vector<ParamInfo> params;
     std::string variadicName;
     bool sawDefault = false;
-    while (currentToken.value != ")" && currentToken.type != TokenType::EndOfExpr) {
+    while (currentToken.type != TokenType::CloseParen && currentToken.type != TokenType::EndOfExpr) {
         bool isVariadicParam = false;
         if (currentToken.type == TokenType::Operator && currentToken.value == "*") {
             isVariadicParam = true;
@@ -1355,7 +1355,7 @@ std::shared_ptr<StatementNode> Parser::parseFunction() {
         }
     }
 
-    if (currentToken.value != ")") {
+    if (currentToken.type != TokenType::CloseParen) {
         error("Expected ')' after parameters");
     }
     nextToken(); // skip ')'
@@ -1422,7 +1422,7 @@ std::shared_ptr<ASTNode> Parser::parseFunctionCall(const std::string& name) {
     auto savedOps = ops;
     auto savedNodes = nodes;
     auto savedState = state;
-    while(currentToken.value != ")" && currentToken.type != TokenType::EndOfExpr) {
+    while(currentToken.type != TokenType::CloseParen && currentToken.type != TokenType::EndOfExpr) {
         auto arg = parseExpression();
         if (state == ParserState::Error || !arg) {
             return nullptr;
@@ -1433,7 +1433,7 @@ std::shared_ptr<ASTNode> Parser::parseFunctionCall(const std::string& name) {
         state = savedState;
         if(currentToken.type == TokenType::Comma) nextToken();
     }
-    if(currentToken.value != ")") {
+    if(currentToken.type != TokenType::CloseParen) {
         state = ParserState::Error;
         return nullptr;
     }
