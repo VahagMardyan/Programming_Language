@@ -54,8 +54,19 @@ enum class OpCode : uint8_t {
     LOAD_OUTER, // dst = mem[enclosingCallerFp(hops) + int8_offset]
     STORE_OUTER, // mem[enclosingCallerFp(hops) + int8_offset] = dstReg
     RANDOM, // random(min=0, max=1)
-    LOAD_STR_IDX, // dst = str[left][right] (single-char string)
-    STORE_STR_IDX, // str[left][right] = dst (mutates string in register left)
+    LOAD_STR_IDX, // dst = base[left][right] - generic subscript-read; base may be a
+                  // string (single-char result) or an array (element result)
+    STORE_STR_IDX, // base[left][right] = dst - generic subscript-write; base may be a
+                   // string (mutates local copy, caller re-stores it) or an array
+                   // (mutates the shared underlying storage in place)
+    // Arrays
+    ARRAY_NEW,    // dst = new array of size asNumber(reg[left]), filled with none
+    ARRAY_LIT,    // dst = new empty array (elements are appended one at a time
+                  // via ARRAY_PUSH right after this, in source order)
+    ARRAY_PUSH,   // dst = new length; appends reg[right] to array reg[left]
+    ARRAY_POP,    // dst = removed last element of array reg[left]
+    ARRAY_INSERT, // array reg[left].insert(idx=reg[right], value=reg[dst])
+    ARRAY_REMOVE, // dst = removed element at idx=reg[right] from array reg[left]
 };
 
 class ASTNode {
@@ -143,6 +154,19 @@ class TernaryOpNode : public ASTNode {
 
 class NoneNode : public ASTNode {
     public:
+    std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
+};
+
+// Array literal: [e1, e2, ...] (elements may themselves be array literals,
+// giving matrices / nested arrays). Elements are intentionally NOT exposed
+// via getChildren() (mirroring FunctionCallNode) - the compiler walks
+// getElements() itself so it can stage each value through PUSH_ARG before
+// emitting ARRAY_LIT, the same mechanism used for function-call arguments.
+class ArrayLiteralNode : public ASTNode {
+    std::vector<std::shared_ptr<ASTNode>> elements;
+public:
+    ArrayLiteralNode(std::vector<std::shared_ptr<ASTNode>> elems) : elements(std::move(elems)) {}
+    const std::vector<std::shared_ptr<ASTNode>>& getElements() const { return elements; }
     std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 

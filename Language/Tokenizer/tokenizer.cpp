@@ -31,6 +31,7 @@ namespace {
         "input", // user-input
         "ord", "chr", "type",
         "bin", "oct", "hex", "dec", "random",
+        "array", "array_push", "array_pop", "array_insert", "array_remove",
     };
 }
 

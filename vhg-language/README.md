@@ -3,35 +3,40 @@
 This setup allows VS Code to recognize `.vhg` files as a formal language, enabling **perfect "Ctrl + /" comment toggling**, auto-closing brackets, and custom syntax highlighting without any buggy snippets.
 
 ## Table of Contents
+
 - [Step 1: Create the Extension Folder](#step-1-create-the-extension-folder)
 - [Step 2: Create the Configuration Files](#step-2-create-the-configuration-files)
-    - [1. `package.json`](#1-packagejson)
-    - [2. `language-configuration.json`](#2-language-configurationjson)
-    - [3. `syntaxes/vhg.tmLangguage.json`](#3-syntaxesvhgtmlangguagejson)
-    - [4. `snippets/vhg.json`](#4-snippetsvhgjson)
+  - [1. `package.json`](#1-packagejson)
+  - [2. `language-configuration.json`](#2-language-configurationjson)
+  - [3. `syntaxes/vhg.tmLangguage.json`](#3-syntaxesvhgtmlangguagejson)
+  - [4. `snippets/vhg.json`](#4-snippetsvhgjson)
 - [Step 3: Update VS Code Global Settings](#step-3-update-vs-code-global-settings)
 - [Step 4: Custom Syntax Highlighting (Colors)](#step-4-custom-syntax-highlighting-colors)
 - [Step 5: Finalize](#step-5-finalize)
 - [Key Features of this Setup:](#key-features-of-this-setup)
 
 ### Step 1: Create the Extension Folder
+
 1. Open your File Explorer.
 2. Navigate to the VS Code extensions folder. You can do this by pasting this path into your address bar:
    `%USERPROFILE%\.vscode\extensions` (on Windows).
    `~/.vscode/extensions` (on Linux).
    `~/.vscode/extensions` (on macOS).
-
 3. Create a new folder named `vhg-lang`.
 
-* Or you can just simply copy and paste this folder into `EXTENSION_PATH` (based on OS you're using). Rename this folder to: 
-    `vahagn-mardyan.vhg-language-0.0.1`
+* Or you can just simply copy and paste this folder into `EXTENSION_PATH` (based on OS you're using). Rename this folder to:
+  `vahagn-mardyan.vhg-language-0.0.1`
+
 ---
 
 ### Step 2: Create the Configuration Files
+
 Inside the `vhg-lang` folder, create the following two files:
 
 #### 1. `package.json`
+
 This file registers the language ID and connects the `.vhg` extension.
+
 ```json
 {
     "name": "vhg-language",
@@ -62,7 +67,9 @@ This file registers the language ID and connects the `.vhg` extension.
 ```
 
 #### 2. `language-configuration.json`
+
 This file defines the behavior of the editor (comments and brackets).
+
 ```json
 {
     "comments": {
@@ -88,6 +95,7 @@ This file defines the behavior of the editor (comments and brackets).
 ```
 
 #### 3. `syntaxes/vhg.tmLangguage.json`
+
 ```json
 {
     "name": "VHG",
@@ -159,7 +167,7 @@ This file defines the behavior of the editor (comments and brackets).
             "name": "constant.numeric.vhg"
         },
         "builtIn": {
-            "match": "(?i)\\b(input|length|void|m_e|m_pi|m_inf|m_max|ord|chr|bin|oct|dec|hex|type)\\b",
+            "match": "(?i)\\b(input|length|void|m_e|m_pi|m_inf|m_max|ord|chr|bin|oct|dec|hex|type|array|array_push|array_pop|array_insert|array_remove)\\b",
             "name": "support.function.vhg"
         },
         "math_functions": {
@@ -189,7 +197,9 @@ This file defines the behavior of the editor (comments and brackets).
     }
 }
 ```
+
 #### 4. `snippets/vhg.json`
+
 ```json
 {
     "sin function": {
@@ -299,13 +309,54 @@ This file defines the behavior of the editor (comments and brackets).
     },
     "length function": {
         "prefix": "length",
-        "body": "length(${1:string})",
-        "description": "length(arg) -> number - String length"
+        "body": "length(${1:array_or_string})",
+        "description": "length(arg) -> number - Returns the size of a string or array"
     },
     "type function": {
         "prefix": "type",
         "body": "type(${1:argument})",
-        "description": "type(arg) -> string - Returns the type of argument (string, number or none)"
+        "description": "type(arg) -> string - Returns the type of argument (string, number, array or none)"
+    },
+    "array function": {
+        "prefix": "array",
+        "body": "array(${1:size})",
+        "description": "array(size) -> array - Creates a new array of `size` elements, each initialized to none"
+    },
+    "array literal": {
+        "prefix": "arrlit",
+        "body": "[${1:1, 2, 3}]",
+        "description": "[e1, e2, ...] - Array literal (elements may be any type, including nested arrays)"
+    },
+    "array_push function": {
+        "prefix": "array_push",
+        "body": "array_push(${1:array}, ${2:value});",
+        "description": "array_push(arr, value) - Appends value to arr in place; returns the new length"
+    },
+    "array_pop function": {
+        "prefix": "array_pop",
+        "body": "array_pop(${1:array})",
+        "description": "array_pop(arr) -> value - Removes and returns the last element of arr in place"
+    },
+    "array_insert function": {
+        "prefix": "array_insert",
+        "body": "array_insert(${1:array}, ${2:index}, ${3:value});",
+        "description": "array_insert(arr, index, value) - Inserts value at index in arr in place; returns the inserted value"
+    },
+    "array_remove function": {
+        "prefix": "array_remove",
+        "body": "array_remove(${1:array}, ${2:index})",
+        "description": "array_remove(arr, index) -> value - Removes and returns the element at index from arr in place"
+    },
+    "array iteration": {
+        "prefix": "forarr",
+        "body": [
+            "var ${2:i} = 0;",
+            "while (${2:i} < length(${1:array})) {",
+            "    ${0}",
+            "    ${2:i} += 1;",
+            "}"
+        ],
+        "description": "Iterate over every element of an array by index"
     },
     "ord function": {
         "prefix": "ord",
@@ -566,10 +617,13 @@ This file defines the behavior of the editor (comments and brackets).
     }
 }
 ```
+
 ---
 
 ### Step 3: Update VS Code Global Settings
-Now, tell VS Code to use this new "vhg" language for your files. 
+
+Now, tell VS Code to use this new "vhg" language for your files.
+
 1. Open VS Code.
 2. Press `Ctrl + Shift + P`, type **"Open User Settings (JSON)"**, and press Enter.
 3. Find or add the `files.associations` section and set it like this:
@@ -585,7 +639,9 @@ Now, tell VS Code to use this new "vhg" language for your files.
 ---
 
 ### Step 4: Custom Syntax Highlighting (Colors)
+
 To apply colors to your language, add the following block to your `settings.json` under the `highlight.regexes` section. This ensures keywords, numbers, and comments are colored specifically for the `vhg` language:
+
 ```json
 "editor.tokenColorCustomizations": {
     "textMateRules": [
@@ -608,10 +664,12 @@ To apply colors to your language, add the following block to your `settings.json
 ```
 
 ### Step 5: Finalize
+
 1. **Remove old shortcuts:** Delete any `ctrl + /` bindings in `keybindings.json`.
 2. **Restart VS Code:** This is required for the new extension to load.
 
 ### Key Features of this Setup:
+
 * Native Toggle: `Ctrl + /` now works instantly using the `#` symbol.
 * Auto-Close: Typing `#*`, `(`, `[` or `{` will automatically generate the closing pair.
 * Semantic Colors: Your code is now visually organized and easy to read.

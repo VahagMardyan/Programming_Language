@@ -98,6 +98,64 @@ bool Compiler::tryEmitMathBuiltinCall(
 
     if(name == "length") return emitUnary(OpCode::LENGTH);
 
+    if(name == "array") {
+        // array(n) -> new array of size n, filled with none
+        if(args.size() != 1) return false;
+        int sizeReg = emitArg(args[0]);
+        resultReg = allocateTempRegister();
+        code.push_back({(uint32_t)OpCode::ARRAY_NEW, (uint32_t)resultReg, (uint32_t)sizeReg, 0});
+        freeTempRegister(sizeReg);
+        return true;
+    }
+
+    if(name == "array_push") {
+        // array_push(arr, value) -> mutates arr in place, returns new length
+        if(args.size() != 2) return false;
+        int arrReg = emitArg(args[0]);
+        int valReg = emitArg(args[1]);
+        resultReg = allocateTempRegister();
+        code.push_back({(uint32_t)OpCode::ARRAY_PUSH, (uint32_t)resultReg, (uint32_t)arrReg, (uint32_t)valReg});
+        freeTempRegister(arrReg);
+        freeTempRegister(valReg);
+        return true;
+    }
+
+    if(name == "array_pop") {
+        // array_pop(arr) -> mutates arr in place, returns removed last element
+        if(args.size() != 1) return false;
+        int arrReg = emitArg(args[0]);
+        resultReg = allocateTempRegister();
+        code.push_back({(uint32_t)OpCode::ARRAY_POP, (uint32_t)resultReg, (uint32_t)arrReg, 0});
+        freeTempRegister(arrReg);
+        return true;
+    }
+
+    if(name == "array_insert") {
+        // array_insert(arr, idx, value) -> mutates arr in place
+        if(args.size() != 3) return false;
+        int arrReg = emitArg(args[0]);
+        int idxReg = emitArg(args[1]);
+        int valReg = emitArg(args[2]);
+        // Mirrors STORE_STR_IDX's operand layout: dst=value, left=array, right=index.
+        code.push_back({(uint32_t)OpCode::ARRAY_INSERT, (uint32_t)valReg, (uint32_t)arrReg, (uint32_t)idxReg});
+        freeTempRegister(arrReg);
+        freeTempRegister(idxReg);
+        resultReg = valReg; // expression value = the inserted value (already in valReg)
+        return true;
+    }
+
+    if(name == "array_remove") {
+        // array_remove(arr, idx) -> mutates arr in place, returns removed element
+        if(args.size() != 2) return false;
+        int arrReg = emitArg(args[0]);
+        int idxReg = emitArg(args[1]);
+        resultReg = allocateTempRegister();
+        code.push_back({(uint32_t)OpCode::ARRAY_REMOVE, (uint32_t)resultReg, (uint32_t)arrReg, (uint32_t)idxReg});
+        freeTempRegister(arrReg);
+        freeTempRegister(idxReg);
+        return true;
+    }
+
     if(name == "input") {
         if(args.size() > 1) return false; // input can have 0 or 1 argument
         resultReg = allocateTempRegister();
@@ -197,6 +255,12 @@ std::vector<std::shared_ptr<ASTNode>> Compiler::postOrderTraverse(std::shared_pt
         auto node = s1.top(); s1.pop(); s2.push(node);
         if(std::dynamic_pointer_cast<TernaryOpNode>(node)) {
             continue;
+        }
+        if(auto binShortCircuit = std::dynamic_pointer_cast<BinaryOpNode>(node)) {
+            const std::string& opStr = binShortCircuit->getOp();
+            if(opStr == "and" || opStr == "or") {
+                continue; // compiled specially in generateByteCode with jumps
+            }
         }
         for(auto& child : node->getChildren()) s1.push(child);
     }
@@ -349,6 +413,11 @@ std::shared_ptr<ASTNode> Compiler::optimize(std::shared_ptr<ASTNode> node) {
         n->lineNumber = subWrite->lineNumber;
         return n;
     }
+    if(auto arrLit = std::dynamic_pointer_cast<ArrayLiteralNode>(node)) {
+        std::vector<std::shared_ptr<ASTNode>> elems;
+        for(const auto& e : arrLit->getElements()) elems.push_back(optimize(e));
+        return std::make_shared<ArrayLiteralNode>(std::move(elems));
+    }
     return node;
 }
 
@@ -488,6 +557,80 @@ std::vector<Instruction> Compiler::generateByteCode(
             }
             storage.push(rd);
         }
+        else if(auto bin = std::dynamic_pointer_cast<BinaryOpNode>(node);
+                bin && (bin->getOp() == "and" || bin->getOp() == "or")) {
+            // Short-circuit and/or: the right operand's bytecode must only
+            // run when the left side didn't already decide the result.
+            // Its children were skipped by postOrderTraverse (see above),
+            // so we generate+splice each side's code ourselves, the same
+            // way the ternary operator does, using JZ + JMP for branching.
+            bool isAnd = (bin->getOp() == "and");
+            int resultReg = allocateTempRegister();
+
+            auto leftCode = generateByteCode(postOrderTraverse(bin->getLeft()), pcBase + code.size());
+            rebaseJumpTargets(leftCode, static_cast<uint16_t>(code.size()));
+            code.insert(code.end(), leftCode.begin(), leftCode.end());
+            int leftReg = leftCode.empty() ? 0 : leftCode.back().dst;
+
+            size_t jzIdx = code.size();
+            code.push_back({(uint32_t)OpCode::JZ, (uint32_t)leftReg, 0, 0});
+
+            if(isAnd) {
+                // left truthy -> fall through and evaluate right, coercing
+                // it to a canonical 0.0/1.0 via a double LOGICAL_NOT.
+                auto rightCode = generateByteCode(postOrderTraverse(bin->getRight()), pcBase + code.size());
+                rebaseJumpTargets(rightCode, static_cast<uint16_t>(code.size()));
+                code.insert(code.end(), rightCode.begin(), rightCode.end());
+                int rightReg = rightCode.empty() ? 0 : rightCode.back().dst;
+
+                int tmp = allocateTempRegister();
+                code.push_back({(uint32_t)OpCode::LOGICAL_NOT, (uint32_t)tmp, (uint32_t)rightReg, 0});
+                code.push_back({(uint32_t)OpCode::LOGICAL_NOT, (uint32_t)resultReg, (uint32_t)tmp, 0});
+                freeTempRegister(tmp);
+                freeTempRegister(rightReg);
+
+                size_t jmpIdx = code.size();
+                code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
+                setAddress(code[jzIdx], (uint16_t)code.size());
+
+                // left falsy -> result is false, right never evaluated
+                int zeroIdx;
+                auto zit = constMap.find(0.0);
+                if(zit != constMap.end()) zeroIdx = zit->second;
+                else { zeroIdx = (int)constantPool.size(); constantPool.push_back(0.0); constMap[0.0] = zeroIdx; }
+                code.push_back({(uint32_t)OpCode::LOAD_CONST, (uint32_t)resultReg, (uint32_t)zeroIdx, 0});
+
+                setAddress(code[jmpIdx], (uint16_t)code.size());
+            } else {
+                // left truthy -> result is true, right never evaluated
+                int oneIdx;
+                auto oit = constMap.find(1.0);
+                if(oit != constMap.end()) oneIdx = oit->second;
+                else { oneIdx = (int)constantPool.size(); constantPool.push_back(1.0); constMap[1.0] = oneIdx; }
+                code.push_back({(uint32_t)OpCode::LOAD_CONST, (uint32_t)resultReg, (uint32_t)oneIdx, 0});
+
+                size_t jmpIdx = code.size();
+                code.push_back({(uint32_t)OpCode::JMP, 0, 0, 0});
+                setAddress(code[jzIdx], (uint16_t)code.size());
+
+                // left falsy -> evaluate right, coercing to canonical 0.0/1.0
+                auto rightCode = generateByteCode(postOrderTraverse(bin->getRight()), pcBase + code.size());
+                rebaseJumpTargets(rightCode, static_cast<uint16_t>(code.size()));
+                code.insert(code.end(), rightCode.begin(), rightCode.end());
+                int rightReg = rightCode.empty() ? 0 : rightCode.back().dst;
+
+                int tmp = allocateTempRegister();
+                code.push_back({(uint32_t)OpCode::LOGICAL_NOT, (uint32_t)tmp, (uint32_t)rightReg, 0});
+                code.push_back({(uint32_t)OpCode::LOGICAL_NOT, (uint32_t)resultReg, (uint32_t)tmp, 0});
+                freeTempRegister(tmp);
+                freeTempRegister(rightReg);
+
+                setAddress(code[jmpIdx], (uint16_t)code.size());
+            }
+
+            freeTempRegister(leftReg);
+            storage.push(resultReg);
+        }
         else if(auto bin = std::dynamic_pointer_cast<BinaryOpNode>(node)) {
             int r = storage.top(); storage.pop();
             int l = storage.top(); storage.pop();
@@ -532,6 +675,18 @@ std::vector<Instruction> Compiler::generateByteCode(
             if(tryEmitMathBuiltinCall(callExpr->getName(), callExpr->getArgs(), code, builtinResultReg, pcBase)) {
                 storage.push(builtinResultReg);
                 continue;
+            }
+
+            // Argument count check
+            auto it = functionTable.find(callExpr->getName());
+            if (it != functionTable.end()) {
+                if (callExpr->getArgs().size() != static_cast<size_t>(it->second.paramCount)) {
+                    throw std::runtime_error(
+                        "Function '" + callExpr->getName() + "' requires " +
+                        std::to_string(it->second.paramCount) + " argument(s), but " +
+                        std::to_string(callExpr->getArgs().size()) + " provided"
+                    );
+                }
             }
 
             for(const auto& arg : callExpr->getArgs()) {
@@ -602,6 +757,10 @@ std::vector<Instruction> Compiler::generateByteCode(
             storage.push(reg);
         }
         else if(auto sub = std::dynamic_pointer_cast<SubscriptReadNode>(node)) {
+            // Generic subscript-read: LOAD_STR_IDX dispatches on the runtime
+            // type of the base value (string -> char, array -> element), so
+            // this same path handles both string indexing and array
+            // indexing/chained indexing (e.g. matrix[i][j]).
             int idxReg = storage.top(); storage.pop();
             int strReg = storage.top(); storage.pop();
             int dst = allocateTempRegister();
@@ -609,6 +768,33 @@ std::vector<Instruction> Compiler::generateByteCode(
             freeTempRegister(strReg);
             freeTempRegister(idxReg);
             storage.push(dst);
+        }
+        else if(auto arrLit = std::dynamic_pointer_cast<ArrayLiteralNode>(node)) {
+            // Create the (empty) array first, then append each element
+            // immediately after it is computed. Deliberately NOT routed
+            // through the shared PUSH_ARG/argBuffer mechanism used for call
+            // arguments: a nested array literal element (matrix rows) would
+            // itself need that same buffer while it's still "in flight" for
+            // the outer literal, corrupting it. Pushing straight into this
+            // array's own storage as we go avoids any shared, global state.
+            int arrReg = allocateTempRegister();
+            code.push_back({(uint32_t)OpCode::ARRAY_LIT, (uint32_t)arrReg, 0, 0});
+            for(const auto& elem : arrLit->getElements()) {
+                auto elemCode = generateByteCode(postOrderTraverse(elem), pcBase + code.size());
+                rebaseJumpTargets(elemCode, static_cast<uint16_t>(code.size()));
+                code.insert(code.end(), elemCode.begin(), elemCode.end());
+                int elemReg = elemCode.empty() ? 0 : elemCode.back().dst;
+                // dst==right is safe: the pushed value is read before the
+                // (discarded) new-length result overwrites the same slot.
+                code.push_back({(uint32_t)OpCode::ARRAY_PUSH, (uint32_t)elemReg, (uint32_t)arrReg, (uint32_t)elemReg});
+                freeTempRegister(elemReg);
+            }
+            // Callers rely on the convention that the LAST emitted
+            // instruction's `dst` field names the register holding this
+            // expression's result; ARRAY_PUSH's dst is a scratch/discarded
+            // slot, so restore that invariant with a harmless self-MOV.
+            code.push_back({(uint32_t)OpCode::MOV, (uint32_t)arrReg, (uint32_t)arrReg, 0});
+            storage.push(arrReg);
         }
     }
     return code;
@@ -637,9 +823,6 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
 
     if (auto subWrite = std::dynamic_pointer_cast<SubscriptWriteNode>(stmt)) {
         auto var = std::dynamic_pointer_cast<VariableNode>(subWrite->getObject());
-        if (!var) {
-            throw std::runtime_error("String subscript assignment requires a variable base");
-        }
 
         auto valueCode = generateByteCode(postOrderTraverse(subWrite->getValue()), code.size());
         rebaseJumpTargets(valueCode, static_cast<uint16_t>(code.size()));
@@ -651,26 +834,37 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
         code.insert(code.end(), indexCode.begin(), indexCode.end());
         int idxReg = indexCode.empty() ? 0 : indexCode.back().dst;
 
-        int strReg = allocateTempRegister();
-        if (var->getIsLocal()) {
-            int32_t off = var->getLocalOffset();
-            if (var->getOuterHops() > 0) {
-                code.push_back({(uint32_t)OpCode::LOAD_OUTER, (uint32_t)strReg, (uint32_t)var->getOuterHops(),
-                    (uint32_t)(uint8_t)(int8_t)off});
+        int baseReg;
+        if (var) {
+            baseReg = allocateTempRegister();
+            if (var->getIsLocal()) {
+                int32_t off = var->getLocalOffset();
+                if (var->getOuterHops() > 0) {
+                    code.push_back({(uint32_t)OpCode::LOAD_OUTER, (uint32_t)baseReg, (uint32_t)var->getOuterHops(),
+                        (uint32_t)(uint8_t)(int8_t)off});
+                } else {
+                    code.push_back({(uint32_t)OpCode::LOAD, (uint32_t)baseReg, (uint32_t)FP, (uint32_t)off});
+                }
             } else {
-                code.push_back({(uint32_t)OpCode::LOAD, (uint32_t)strReg, (uint32_t)FP, (uint32_t)off});
+                code.push_back({(uint32_t)OpCode::LOAD_VAR, (uint32_t)baseReg, (uint32_t)var->getGlobalAddr(), 0});
             }
         } else {
-            code.push_back({(uint32_t)OpCode::LOAD_VAR, (uint32_t)strReg, (uint32_t)var->getGlobalAddr(), 0});
+            auto baseCode = generateByteCode(postOrderTraverse(subWrite->getObject()), code.size());
+            rebaseJumpTargets(baseCode, static_cast<uint16_t>(code.size()));
+            code.insert(code.end(), baseCode.begin(), baseCode.end());
+            baseReg = baseCode.empty() ? 0 : baseCode.back().dst;
         }
 
-        code.push_back({(uint32_t)OpCode::STORE_STR_IDX, (uint32_t)valReg, (uint32_t)strReg, (uint32_t)idxReg});
-        emitStoreVariable(var, strReg, code);
+        code.push_back({(uint32_t)OpCode::STORE_STR_IDX, (uint32_t)valReg, (uint32_t)baseReg, (uint32_t)idxReg});
         addLineNumbers(stmt->lineNumber, 1);
+        if (var) {
+            // Harmless (a no-op copy) for arrays; required for strings.
+            emitStoreVariable(var, baseReg, code);
+        }
 
         freeTempRegister(valReg);
         freeTempRegister(idxReg);
-        freeTempRegister(strReg);
+        freeTempRegister(baseReg);
         return;
     }
     
@@ -901,6 +1095,19 @@ void Compiler::compileStatement(std::shared_ptr<StatementNode> stmt, std::vector
             freeTempRegister(builtinResultReg);
             return;
         }
+        
+        // Argument count check
+        auto it = functionTable.find(call -> getName());
+        if(it != functionTable.end()) {
+            if(call -> getArgs().size() != static_cast<size_t>(it -> second.paramCount)) {
+                throw std::runtime_error(
+                    "Function '" + call->getName() + "' requires " +
+                    std::to_string(it->second.paramCount) + " argument(s), but " +
+                    std::to_string(call->getArgs().size()) + " provided"
+                );
+            }
+        }
+
         for(const auto& arg : call->getArgs()) {
             auto exprCode = generateByteCode(postOrderTraverse(arg), code.size());
             rebaseJumpTargets(exprCode, static_cast<uint16_t>(code.size()));

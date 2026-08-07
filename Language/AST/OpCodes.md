@@ -1,6 +1,7 @@
 ## Created for my convenience.
 
 # RV32I arithmetic and logic (0 - 20)
+
 0: ADD, 1: MOV, 2: SUB, 3: AND, 4: OR, 5: XOR, 6: NOT
 7: SLL, 8: SRL, 9: SRA
 10: SLT, 11: SLTU
@@ -9,13 +10,16 @@
 19: LUI, 20: AUIPC
 
 # RV32I control flow (21 - 28)
+
 21: JAL, 22: JALR
 23: BEQ, 24: BNE, 25: BLT, 26: BGE, 27: BLTU, 28: BGEU
 
 # RV32I memory (29 - 30)
+
 29: LW, 30: SW
 
 # Existing VM extensions (31 - 92)
+
 31: MUL, 32: DIV, 33: MODULO, 34: POW, 35: FLOOR_DIV, 36: FRAC_DIV
 37: UNARY, 38: LOAD_CONST, 39: LOAD_VAR, 40: LOAD_STR, 41: LOAD_NONE
 42: UNDEFINED
@@ -30,6 +34,7 @@
 65: LENGTH
 
 # Math functions
+
 66: SIN, 67: COS, 68: TAN
 69: ASIN, 70: ACOS, 71: ATAN, 72: ATAN2
 73: SQRT, 74: EXP, 75: LOG, 76: LOG10
@@ -37,11 +42,15 @@
 81: FMOD, 82: CBRT, 83: MATH_POW, 84: LOG2, 85: LOG_AB
 
 # Math constants
+
 86: CONST_PI, 87: CONST_E, 88: CONST_INF, 89: CONST_MAX
 
 # Conversions & Scope
+
 90: ORD, 91: CHR, 92: BIN, 93: OCT, 94: DEC, 95: HEX
 96: TYPE
 97: LOAD_OUTER, 98: STORE_OUTER,
 99: RANDOM,
 100: LOAD_STR_IDX, 101: STORE_STR_IDX
+102: ARRAY_NEW, 103: ARRA	Y_LIT, 104: ARRAY_PUSH
+105: ARRAY_POP, 106: ARRAY_INSERT, 107: ARRAY_REMOVE

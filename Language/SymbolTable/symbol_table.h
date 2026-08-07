@@ -6,19 +6,40 @@
 #include <iostream>
 #include <stack>
 #include <algorithm>
+#include <memory>
 
-using Value = std::variant<std::monostate, double, std::string>;
+// Forward declaration to allow Value to hold a reference-counted array of
+// itself (arrays are reference types: assigning / passing an array copies
+// the shared_ptr, not the underlying elements - matching array_push etc.
+// mutating the "same" array seen elsewhere).
+struct ArrayObj;
+
+using Value = std::variant<std::monostate, double, std::string, std::shared_ptr<ArrayObj>>;
+
+struct ArrayObj {
+    std::vector<Value> items;
+};
+
+using ArrayRef = std::shared_ptr<ArrayObj>;
 
 inline bool isNone(const Value& v) { return std::holds_alternative<std::monostate>(v); }
 inline bool isNumber(const Value& v) { return std::holds_alternative<double>(v); }
 inline bool isString(const Value& v) { return std::holds_alternative<std::string>(v); }
+inline bool isArray(const Value& v) { return std::holds_alternative<ArrayRef>(v); }
 inline double asNumber(const Value& v) { return std::get<double>(v); }
 inline const std::string& asString(const Value& v) { return std::get<std::string>(v); }
+inline const ArrayRef& asArray(const Value& v) { return std::get<ArrayRef>(v); }
+inline ArrayRef makeArray(size_t size = 0) {
+    auto arr = std::make_shared<ArrayObj>();
+    arr->items.assign(size, Value(std::monostate{}));
+    return arr;
+}
 
 inline bool isFalsy(const Value& v) {
     if(isNone(v)) return true;
     if (std::holds_alternative<double>(v)) return std::get<double>(v) == 0.0;
     if (std::holds_alternative<std::string>(v)) return std::get<std::string>(v).empty();
+    if (isArray(v)) return asArray(v)->items.empty();
     return true;
 }
 inline bool isTruthy(const Value& v) { return !isFalsy(v); }
@@ -34,6 +55,19 @@ inline std::string valueToString(const Value& v) {
         s.erase(s.find_last_not_of('0') + 1);
         if (s.back() == '.') s.pop_back();
         return s;
+    } else if (isArray(v)) {
+        const auto& items = asArray(v)->items;
+        std::string out = "[";
+        for (size_t i = 0; i < items.size(); ++i) {
+            if (i) out += ", ";
+            if (isString(items[i])) {
+                out += "'" + valueToString(items[i]) + "'";
+            } else {
+                out += valueToString(items[i]);
+            }
+        }
+        out += "]";
+        return out;
     }
     return "";
 }

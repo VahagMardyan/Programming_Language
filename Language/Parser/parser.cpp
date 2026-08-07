@@ -822,14 +822,34 @@ std::shared_ptr<StatementNode> Parser::parseAssignment(bool explicitDeclare) {
 
     if (lhs) {
         auto subLhs = std::dynamic_pointer_cast<SubscriptReadNode>(lhs);
-        if (!subLhs) {
+        if(!subLhs) {
             error("Invalid subscript assignment target");
+            return nullptr;
         }
         if (assignOp != "=") {
-            error("Compound assignment is not supported on string subscript");
+            auto readNode = std::make_shared<SubscriptReadNode>(
+                subLhs -> getObject(), subLhs -> getIndex()  
+            );
+            std::string mathOp;
+            if (assignOp == "+=") mathOp = "+";
+            else if (assignOp == "-=") mathOp = "-";
+            else if (assignOp == "*=") mathOp = "*";
+            else if (assignOp == "/=") mathOp = "/";
+            else if (assignOp == "%=") mathOp = "%";
+            else if (assignOp == "^=") mathOp = "^";
+            else {
+                error("Unsupported compound assignment operator for subscript");
+                return nullptr;
+            }
+            auto newValueExpr = std::make_shared<BinaryOpNode>(mathOp, readNode, valueExpr);
+            return std::make_shared<SubscriptWriteNode>(
+                subLhs -> getObject(), subLhs -> getIndex(), newValueExpr
+            );
+        } else {
+            return std::make_shared<SubscriptWriteNode>(
+                subLhs->getObject(), subLhs->getIndex(), valueExpr
+            );
         }
-        return std::make_shared<SubscriptWriteNode>(
-            subLhs->getObject(), subLhs->getIndex(), valueExpr);
     }
 
     if(assignOp != "=") {
@@ -924,6 +944,36 @@ std::shared_ptr<StatementNode> Parser::parsePrint() {
     }
 
     return std::make_shared<PrintNode>(std::move(exprs));
+}
+
+std::shared_ptr<ASTNode> Parser::parseArrayLiteral() {
+    nextToken(); // skip '['
+    std::vector<std::shared_ptr<ASTNode>> elements;
+    auto savedOps = ops;
+    auto savedNodes = nodes;
+    auto savedState = state;
+    while(currentToken.type != TokenType::CloseBracket && currentToken.type != TokenType::EndOfExpr) {
+        auto elem = parseExpression();
+        if(state == ParserState::Error || !elem) {
+            state = ParserState::Error;
+            return nullptr;
+        }
+        elements.push_back(elem);
+        ops = savedOps;
+        nodes = savedNodes;
+        state = savedState;
+        if(currentToken.type == TokenType::Comma) {
+            nextToken();
+        }
+    }
+    if(currentToken.type != TokenType::CloseBracket) {
+        error("Expected ']' to close array literal");
+    }
+    ops = savedOps;
+    nodes = savedNodes;
+    state = savedState;
+    nextToken(); // skip ']'
+    return std::make_shared<ArrayLiteralNode>(std::move(elements));
 }
 
 std::shared_ptr<ASTNode> Parser::applySubscriptChain(std::shared_ptr<ASTNode> base) {
@@ -1024,6 +1074,11 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                     nodes.push(std::make_shared<NoneNode>());
                     state = ParserState::ExpectOperator;
                     nextToken();
+                } else if(token.type == TokenType::OpenBracket) {
+                    auto arr = parseArrayLiteral();
+                    if(!arr) { state = ParserState::Error; return nullptr; }
+                    nodes.push(applySubscriptChain(arr));
+                    state = ParserState::ExpectOperator;
                 } else {
                     state = ParserState::Error;
                 }

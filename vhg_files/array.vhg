@@ -1,0 +1,41 @@
+import "./Standard_Libs/sort.vhg"
+
+# Array declaration and usage
+void function main() {
+    # Array declaration
+    
+    variable arr = array(5); # Creates array with size 5 with default 'none' values
+    print(arr); # [none, none, none, none, none]
+    
+    arr[2] = "Hello World"; # Writing
+    print(arr); # [none, none, 'Hello World', none, none]
+    
+    var x = arr[2]; # Reading
+    print(x); # "Hello World"
+
+    array_push(arr, 34); # push value at the end
+    print(arr); # [none, none, 'Hello World', none, none, 34]
+
+    array_insert(arr, 1, [12, 24, 36]); # insert value at index 1
+    print(arr);
+
+    var y = array_pop(arr); # removes the last element from array and returns it
+    print(arr, ", y= ", y, '\n'); # [none, [12, 24, 36], none, 'Hello World', none, none], y= 34
+
+    array_remove(arr, 0); # removes element at the specific index
+    print(arr); # [[12, 24, 36], none, 'Hello World', none, none]
+
+    # Arrays concatenation
+    arr1 = arr + ['a','b','c'];
+    print(arr1);
+
+    arr1 += [[2]];
+    print(arr1);
+
+    # Array repetition
+    arr2 = [1,2,3] * 3;
+    print(arr2);
+
+    arr2 *= 2;
+    print(arr2);
+}

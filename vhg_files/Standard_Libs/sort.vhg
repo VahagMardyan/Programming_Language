@@ -1,0 +1,241 @@
+#*
+    Array sorting algorithms implementation with VHG.
+*#
+
+# Bubble Sort
+
+void function bubble_sort(arr) {
+    variable n = length(arr);
+    for (variable i = 0; i < n; i += 1) {
+        variable swapped = false;
+        for(variable j = 0; j < n - i - 1; j += 1) {
+            if(arr[j] > arr[j + 1]) {
+                var tmp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = tmp;
+                swapped = true;
+            }
+        }
+        if (not swapped) {
+            break;
+        }
+    }
+}
+
+# Merge Sort
+
+void function merge(arr, left, mid, right) {
+    var n1 = mid - left + 1;
+    var n2 = right - mid;
+    L = [0] * n1;
+    R = [0] * n2;
+
+    for(var i = 0; i < n1; i += 1) {
+        L[i] = arr[left + i]; 
+    }
+
+    for(var j = 0; j < n2; j += 1) {
+        R[j] = arr[mid + 1 + j];
+    }
+
+    var i = 0;
+    var j = 0;
+    var k = left;
+
+    while(i < n1 and j < n2) {
+        if(L[i] <= R[j]) {
+            arr[k] = L[i];
+            i += 1;
+        } else {
+            arr[k] = R[j];
+            j += 1;
+        }
+        k += 1;
+    }
+
+    while(i < n1) {
+        arr[k] = L[i];
+        i += 1;
+        k += 1;
+    } 
+
+    while(j < n2) {
+        arr[k] = R[j];
+        j += 1;
+        k += 1;
+    }
+}
+
+void function merge_sort(arr, left, right) {
+    if (left < right) {
+        mid = (left + right) // 2;
+        merge_sort(arr, left, mid);
+        merge_sort(arr, mid + 1, right);
+        merge(arr, left, mid, right);
+    }
+}
+
+# Quick Sort
+function partition(arr, low, high) {
+    var pivot = arr[high];
+    var i = low - 1;
+    var j = low;
+
+    while(j < high) {
+        if(arr[j] <= pivot) {
+            i += 1;
+            # Swap arr[i] and arr[j]
+            var temp = arr[i];
+            arr[i] = arr[j];
+            arr[j] = temp;
+        }
+        j += 1;
+    }
+    # Swap arr[i+1] and arr[high]
+    variable temp = arr[i + 1];
+    arr[i + 1] = arr[high];
+    arr[high] = temp;
+    return i + 1;
+}
+
+void function quick_sort(arr, low, high) {
+    if(low < high) {
+        var pi = partition(arr, low, high);
+        quick_sort(arr, low, pi - 1);
+        quick_sort(arr, pi, high);
+    }
+}
+
+# Selection sort
+
+void function selection_sort(arr) {
+    variable n = length(arr);
+    var i = 0;
+    while(i < n - 1) {
+        var min_idx = i;
+        var j = i + 1;
+        while (j < n) {
+            if (arr[j] < arr[min_idx]) {
+                min_idx = j;
+            }
+            j = j + 1;
+        }
+        if(min_idx != i) {
+            var temp = arr[i];
+            arr[i] = arr[min_idx];
+            arr[min_idx] = temp;
+        }
+        i += 1;
+    }
+}
+
+# Insertion sort
+void function insertion_sort(arr) {
+    var n = length(arr);
+    var i = 1;
+    while (i < n) {
+        var key = arr[i];
+        var j = i - 1;
+        
+        while(j >= 0 and arr[j] > key) {
+            arr[j + 1] = arr[j];
+            j = j - 1;
+        }
+        arr[j + 1] = key;
+        i = i + 1;
+    }
+}
+
+# Heap sort
+void function max_heapify(arr, index, heap_size) {
+    var l = 2*index + 1;
+    var r = 2*index + 2;
+    var largest = index;
+
+    if(l < heap_size and arr[l] > arr[largest]) {
+        largest = l;
+    }
+
+    if(r < heap_size and arr[r] > arr[largest]) {
+        largest = r;
+    }
+
+    if(largest != index) {
+        var temp = arr[largest];
+        arr[largest] = arr[index];
+        arr[index] = temp;
+        max_heapify(arr, largest, heap_size);
+    }    
+}
+
+void function build_max_heap(arr) {
+    var heap_size = length(arr);
+    for(var i = heap_size // 2 - 1; i > -1; i -= 1) {
+        max_heapify(arr, i, heap_size);
+    }
+}
+
+void function heap_sort(arr) {
+    var heap_size = length(arr);
+    build_max_heap(arr);
+    for(var i = heap_size - 1; i > 0; i -= 1) {
+        var temp = arr[i];
+        arr[i] = arr[0];
+        arr[0] = temp;
+        max_heapify(arr, 0, i);
+    }
+}
+
+# Counting sort
+function min(arr) {
+    var n = length(arr);
+    var min_val = arr[0];
+    for(var i = 1; i < n; i += 1) {
+        if(arr[i] < min_val) {
+            min_val = arr[i];
+        }
+    }
+    return min_val;
+}
+
+function max(arr) {
+    var n = length(arr);
+    var max_val = arr[0];
+    for(var i = 1; i < n; i += 1) {
+        if(arr[i] > max_val) {
+            max_val = arr[i];
+        }
+    }
+    return max_val;
+}
+
+function count_sort(arr) {
+    if(not arr) {
+        return [];
+    }
+
+    var n = length(arr);
+    var min_val = min(arr);
+    var max_val = max(arr);
+    var range_of_elements = max_val - min_val + 1;
+    var cnt_arr = [0] * range_of_elements;
+
+    for(var i = 0; i < n; i += 1) {
+        var v = arr[i];
+        cnt_arr[v - min_val] += 1;
+    }
+
+    for(var i = 1; i < range_of_elements; i += 1) {
+        cnt_arr[i] += cnt_arr[i - 1];
+    }
+
+    var ans = [0] * n;
+
+    for(var i = n - 1; i > -1; i -= 1) {
+        var v = arr[i];
+        var index = v - min_val;
+        ans[cnt_arr[index] - 1] = v;
+        cnt_arr[index] -= 1;
+    }
+    return ans;
+}

@@ -24,11 +24,11 @@ namespace {
 
     int32_t stringIndexFromValue(const Value& idxVal) {
         if (!isNumber(idxVal)) {
-            throw std::runtime_error("String index must be a number");
+            throw std::runtime_error("Index must be a number");
         }
         double d = asNumber(idxVal);
         if (d != std::floor(d)) {
-            throw std::runtime_error("String index must be an integer");
+            throw std::runtime_error("Index must be an integer");
         }
         return static_cast<int32_t>(d);
     }
@@ -36,6 +36,12 @@ namespace {
     void checkStringBounds(const std::string& s, int32_t idx) {
         if (idx < 0 || static_cast<size_t>(idx) >= s.size()) {
             throw std::runtime_error("String index out of bounds");
+        }
+    }
+
+    void checkArrayBounds(const std::vector<Value>& items, int32_t idx) {
+        if (idx < 0 || static_cast<size_t>(idx) >= items.size()) {
+            throw std::runtime_error("Array index out of bounds");
         }
     }
 
@@ -149,7 +155,17 @@ size_t VirtualMachine::executeSingleInstruction() {
                     if(isNone(registers[inst.left]) || isNone(registers[inst.right])) {
                         throw std::runtime_error("Cannot add with None");
                     }
-                    if(isString(registers[inst.left]) || isString(registers[inst.right])) {
+                    if(isArray(registers[inst.left]) && isArray(registers[inst.right])) {
+                        auto result = std::make_shared<ArrayObj>();
+                        const auto& l = asArray(registers[inst.left])->items;
+                        const auto& r = asArray(registers[inst.right])->items;
+                        result->items.reserve(l.size() + r.size());
+                        result->items.insert(result->items.end(), l.begin(), l.end());
+                        result->items.insert(result->items.end(), r.begin(), r.end());
+                        registers[inst.dst] = result;
+                    } else if(isArray(registers[inst.left]) || isArray(registers[inst.right])) {
+                        throw std::runtime_error("Cannot add an array and a non-array (use array_push to append a single element)");
+                    } else if(isString(registers[inst.left]) || isString(registers[inst.right])) {
                         registers[inst.dst] = valueToString(registers[inst.left]) + valueToString(registers[inst.right]);
                     } else {
                         registers[inst.dst] = asNumber(registers[inst.left]) + asNumber(registers[inst.right]);
@@ -191,6 +207,34 @@ size_t VirtualMachine::executeSingleInstruction() {
                         result += str;
                     }
                     registers[inst.dst] = result;
+                } else if(isArray(registers[inst.left]) && isNumber(registers[inst.right])) {
+                    const auto& items = asArray(registers[inst.left])->items;
+                    double count = asNumber(registers[inst.right]);
+                    int intCount = static_cast<int>(count);
+                    if(intCount < 0) {
+                        throw std::runtime_error("Cannot multiply array by negative number");
+                    }
+                    auto result = std::make_shared<ArrayObj>();
+                    result->items.reserve(items.size() * static_cast<size_t>(intCount));
+                    for(int i = 0; i < intCount; ++i) {
+                        result->items.insert(result->items.end(), items.begin(), items.end());
+                    }
+                    registers[inst.dst] = result;
+                } else if(isNumber(registers[inst.left]) && isArray(registers[inst.right])) {
+                    const auto& items = asArray(registers[inst.right])->items;
+                    double count = asNumber(registers[inst.left]);
+                    int intCount = static_cast<int>(count);
+                    if(intCount < 0) {
+                        throw std::runtime_error("Cannot multiply array by negative number");
+                    }
+                    auto result = std::make_shared<ArrayObj>();
+                    result->items.reserve(items.size() * static_cast<size_t>(intCount));
+                    for(int i = 0; i < intCount; ++i) {
+                        result->items.insert(result->items.end(), items.begin(), items.end());
+                    }
+                    registers[inst.dst] = result;
+                } else if(isArray(registers[inst.left]) || isArray(registers[inst.right])) {
+                    throw std::runtime_error("Arrays can only be multiplied by a number (repetition)");
                 } else {
                     registers[inst.dst] = asNumber(registers[inst.left]) * asNumber(registers[inst.right]);
                 }
@@ -391,36 +435,123 @@ size_t VirtualMachine::executeSingleInstruction() {
                 const Value& val = registers[inst.left];
                 if(isString(val)) {
                     registers[inst.dst] = static_cast<double>(asString(val).size());
+                } else if(isArray(val)) {
+                    registers[inst.dst] = static_cast<double>(asArray(val)->items.size());
                 } else {
-                    throw std::runtime_error("length() excepts a string argument");
+                    throw std::runtime_error("length() expects a string or array argument");
                 }
             }
             break;
 
+            // Generic subscript-read: dispatches on the runtime type of the
+            // base value. Works for plain string/array indexing as well as
+            // chained array indexing (matrix[i][j]).
             case OpCode::LOAD_STR_IDX: {
-                const Value& strVal = registers[inst.left];
+                const Value& baseVal = registers[inst.left];
                 const Value& idxVal = registers[inst.right];
-                if (!isString(strVal)) {
-                    throw std::runtime_error("String subscript requires a string");
+                if (isArray(baseVal)) {
+                    auto& items = asArray(baseVal)->items;
+                    int32_t idx = stringIndexFromValue(idxVal);
+                    checkArrayBounds(items, idx);
+                    registers[inst.dst] = items[static_cast<size_t>(idx)];
+                } else if (isString(baseVal)) {
+                    const std::string& str = asString(baseVal);
+                    int32_t idx = stringIndexFromValue(idxVal);
+                    checkStringBounds(str, idx);
+                    registers[inst.dst] = std::string(1, str[static_cast<size_t>(idx)]);
+                } else {
+                    throw std::runtime_error("Subscript requires a string or array");
                 }
-                const std::string& str = asString(strVal);
-                int32_t idx = stringIndexFromValue(idxVal);
-                checkStringBounds(str, idx);
-                registers[inst.dst] = std::string(1, str[static_cast<size_t>(idx)]);
             }
             break;
 
+            // Generic subscript-write. Arrays are reference types, so the
+            // mutation below is visible through every other reference to
+            // the same array automatically. Strings are value types; the
+            // compiler re-stores the mutated register back into its home
+            // variable when the base was a plain variable (see compiler.cpp).
             case OpCode::STORE_STR_IDX: {
-                Value& strVal = registers[inst.left];
+                Value& baseVal = registers[inst.left];
                 const Value& idxVal = registers[inst.right];
-                if (!isString(strVal)) {
-                    throw std::runtime_error("String subscript assignment requires a string");
+                if (isArray(baseVal)) {
+                    auto& items = asArray(baseVal)->items;
+                    int32_t idx = stringIndexFromValue(idxVal);
+                    checkArrayBounds(items, idx);
+                    items[static_cast<size_t>(idx)] = registers[inst.dst];
+                } else if (isString(baseVal)) {
+                    char ch = singleCharFromValue(registers[inst.dst]);
+                    int32_t idx = stringIndexFromValue(idxVal);
+                    std::string& str = std::get<std::string>(baseVal);
+                    checkStringBounds(str, idx);
+                    str[static_cast<size_t>(idx)] = ch;
+                } else {
+                    throw std::runtime_error("Subscript assignment requires a string or array");
                 }
-                char ch = singleCharFromValue(registers[inst.dst]);
-                int32_t idx = stringIndexFromValue(idxVal);
-                std::string& str = std::get<std::string>(strVal);
-                checkStringBounds(str, idx);
-                str[static_cast<size_t>(idx)] = ch;
+            }
+            break;
+
+            case OpCode::ARRAY_NEW: {
+                if (!isNumber(registers[inst.left])) {
+                    throw std::runtime_error("array() expects a number argument");
+                }
+                double sizeD = asNumber(registers[inst.left]);
+                if (sizeD < 0 || sizeD != std::floor(sizeD)) {
+                    throw std::runtime_error("array() size must be a non-negative integer");
+                }
+                registers[inst.dst] = makeArray(static_cast<size_t>(sizeD));
+            }
+            break;
+
+            case OpCode::ARRAY_LIT: {
+                registers[inst.dst] = std::make_shared<ArrayObj>();
+            }
+            break;
+
+            case OpCode::ARRAY_PUSH: {
+                if (!isArray(registers[inst.left])) {
+                    throw std::runtime_error("array_push() expects an array argument");
+                }
+                auto& items = asArray(registers[inst.left])->items;
+                items.push_back(registers[inst.right]);
+                registers[inst.dst] = static_cast<double>(items.size());
+            }
+            break;
+
+            case OpCode::ARRAY_POP: {
+                if (!isArray(registers[inst.left])) {
+                    throw std::runtime_error("array_pop() expects an array argument");
+                }
+                auto& items = asArray(registers[inst.left])->items;
+                if (items.empty()) {
+                    throw std::runtime_error("array_pop() called on an empty array");
+                }
+                registers[inst.dst] = items.back();
+                items.pop_back();
+            }
+            break;
+
+            case OpCode::ARRAY_INSERT: {
+                if (!isArray(registers[inst.left])) {
+                    throw std::runtime_error("array_insert() expects an array argument");
+                }
+                auto& items = asArray(registers[inst.left])->items;
+                int32_t idx = stringIndexFromValue(registers[inst.right]);
+                if (idx < 0 || static_cast<size_t>(idx) > items.size()) {
+                    throw std::runtime_error("array_insert() index out of bounds");
+                }
+                items.insert(items.begin() + idx, registers[inst.dst]);
+            }
+            break;
+
+            case OpCode::ARRAY_REMOVE: {
+                if (!isArray(registers[inst.left])) {
+                    throw std::runtime_error("array_remove() expects an array argument");
+                }
+                auto& items = asArray(registers[inst.left])->items;
+                int32_t idx = stringIndexFromValue(registers[inst.right]);
+                checkArrayBounds(items, idx);
+                registers[inst.dst] = items[static_cast<size_t>(idx)];
+                items.erase(items.begin() + idx);
             }
             break;
     
@@ -432,6 +563,8 @@ size_t VirtualMachine::executeSingleInstruction() {
                     registers[inst.dst] = std::string("number");
                 } else if(isNone(val)) {
                     registers[inst.dst] = std::string("none");
+                } else if(isArray(val)) {
+                    registers[inst.dst] = std::string("array");
                 } else {
                     registers[inst.dst] = std::string("unknown");
                 }
@@ -790,3 +923,4 @@ double VirtualMachine::run() {
         );
     }
 }
+

@@ -106,13 +106,54 @@
     },
     "length function": {
         "prefix": "length",
-        "body": "length(${1:string})",
-        "description": "length(arg) -> number - String length"
+        "body": "length(${1:array_or_string})",
+        "description": "length(arg) -> number - Returns the size of a string or array"
     },
     "type function": {
         "prefix": "type",
         "body": "type(${1:argument})",
-        "description": "type(arg) -> string - Returns the type of argument (string, number or none)"
+        "description": "type(arg) -> string - Returns the type of argument (string, number, array or none)"
+    },
+    "array function": {
+        "prefix": "array",
+        "body": "array(${1:size})",
+        "description": "array(size) -> array - Creates a new array of `size` elements, each initialized to none"
+    },
+    "array literal": {
+        "prefix": "arrlit",
+        "body": "[${1:1, 2, 3}]",
+        "description": "[e1, e2, ...] - Array literal (elements may be any type, including nested arrays)"
+    },
+    "array_push function": {
+        "prefix": "array_push",
+        "body": "array_push(${1:array}, ${2:value});",
+        "description": "array_push(arr, value) - Appends value to arr in place; returns the new length"
+    },
+    "array_pop function": {
+        "prefix": "array_pop",
+        "body": "array_pop(${1:array})",
+        "description": "array_pop(arr) -> value - Removes and returns the last element of arr in place"
+    },
+    "array_insert function": {
+        "prefix": "array_insert",
+        "body": "array_insert(${1:array}, ${2:index}, ${3:value});",
+        "description": "array_insert(arr, index, value) - Inserts value at index in arr in place; returns the inserted value"
+    },
+    "array_remove function": {
+        "prefix": "array_remove",
+        "body": "array_remove(${1:array}, ${2:index})",
+        "description": "array_remove(arr, index) -> value - Removes and returns the element at index from arr in place"
+    },
+    "array iteration": {
+        "prefix": "forarr",
+        "body": [
+            "var ${2:i} = 0;",
+            "while (${2:i} < length(${1:array})) {",
+            "    ${0}",
+            "    ${2:i} += 1;",
+            "}"
+        ],
+        "description": "Iterate over every element of an array by index"
     },
     "ord function": {
         "prefix": "ord",

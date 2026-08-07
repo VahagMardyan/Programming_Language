@@ -22,6 +22,7 @@
   - [It is desirable to know](#it-is-desirable-to-know)
   - [Data Types](#data-types)
   - [String Indexing](#string-indexing)
+  - [Arrays](#arrays)
   - [Operators](#operators)
   - [Mathematical Functions](#mathematical-functions)
   - [Mathematical Constants](#mathematical-constants)
@@ -71,6 +72,7 @@
 - **Full compiler pipeline** – Lexer → Tokenizer → Parser → AST → Compiler → Bytecode → VM.
 - **Rich language features** – variables (global/local), block scoping, `if`/`else`, `while`, `for` loops, functions with parameters and return values.
 - **Strong typing for numbers and strings** – arithmetic, bitwise, logical, and comparison operators; string concatenation; **mutable string indexing** (`s[i]` read/write).
+- **Arrays** – ordered, heterogeneous, reference‑typed collections with literal syntax (including matrices/nested arrays), indexing, and mutating helpers (`array_push`, `array_pop`, `array_insert`, `array_remove`).
 - **Optimizations** – constant folding, implicit multiplication, post‑order code generation.
 - **Standalone bytecode** – binary `.vhb` files with a `VHB1` magic header, loadable and executable by the VM without re‑parsing.
 - **Clean, modular C++20** – extensive use of standard library, smart pointers, and RAII.
@@ -409,6 +411,8 @@ for(variable global i = 0;i<4;i+=1) { #* ... *# }
 - **Numbers** – double‑precision floating point (internally `double`).
 - **Strings** – double‑ or single‑quoted literals; supports escape sequences `\n`, `\t`, `\"`, `\\`. Strings are **mutable**: characters can be read and written by index (see [String Indexing](#string-indexing)).
 - **Booleans** – `true` and `false` are stored as `1.0` and `0.0`.
+- **Arrays** – ordered, heterogeneous, **reference‑typed** collections created with `[...]` literals or `array(n)`. See [Arrays](#arrays).
+- **None** – `none` represents the absence of a value (`std::monostate`).
 
 ### String Indexing
 
@@ -469,21 +473,175 @@ void function main() {
 | Compiler  | `LOAD_STR_IDX`, `STORE_STR_IDX`                 |
 | VM        | Bounds and type checks; in‑place mutation on write |
 
-Opcodes **100** (`LOAD_STR_IDX`) and **101** (`STORE_STR_IDX`) — see `Language/AST/OpCodes.md`.
+Opcodes **100** (`LOAD_STR_IDX`) and **101** (`STORE_STR_IDX`) — see `Language/AST/OpCodes.md`. These two opcodes are shared with array indexing (see [Arrays](#arrays)): the VM dispatches on the runtime type of the base value, so the same instructions handle `str[i]` and `arr[i]`.
+
+### Arrays
+
+VHG arrays are ordered, heterogeneous, **reference‑typed** collections. Assigning an array to another variable, passing it to a function, or nesting it inside another array all share the **same underlying storage** — mutating it through any one of those references is visible everywhere else that reference is held (the same model used by arrays/lists in most scripting languages, and unlike VHG's value‑typed strings).
+
+**Creating arrays**
+
+```vhg
+var arr = array(5);        # a new array of size 5, every slot is `none`
+var numbers = [1, 2, 3, 4, 5];
+var mixed = [10, 'hello', 3.14, none];   # elements may be any mix of types
+```
+
+**Matrices / nested arrays**
+
+Array literals can themselves contain array literals, giving matrices or arbitrarily nested arrays:
+
+```vhg
+var matrix = [
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9]
+];
+print(matrix[1][2]);   # 6
+matrix[0][1] = 99;      # mutates that row in place
+```
+
+**Reading and writing elements**
+
+Indices are **0‑based** and use the same `[]` syntax as strings:
+
+```vhg
+var a = [10, 20, 30];
+a[1] = 99;          # updating -> a = [10, 99, 30]
+var x = a[0];       # reading  -> x = 10
+print(a[2]);         # 30
+```
+
+Unlike string assignment, the base of an array assignment doesn't have to be a plain variable — chained subscripts work too, which is what makes `matrix[i][j] = x;` possible.
+
+**Size	**
+
+`length()` works on arrays the same way it works on strings:
+
+```vhg
+var len = length(a);   # 3
+```
+
+**Mutating helpers**
+
+All four helpers mutate the array **in place**; you never need to reassign the result back to the variable.
+
+| Function                            | Effect                                                        | Returns             |
+| ----------------------------------- | ------------------------------------------------------------- | ------------------- |
+| `array_push(arr, value)`          | Appends`value` to the end of `arr`                        | The new length      |
+| `array_pop(arr)`                  | Removes and returns the last element of`arr`                | The removed element |
+| `array_insert(arr, index, value)` | Inserts`value` at `index`, shifting later elements right  | The inserted value  |
+| `array_remove(arr, index)`        | Removes the element at`index`, shifting later elements left | The removed element |
+
+```vhg
+var a = [10, 20, 30];
+array_push(a, 40);          # a = [10, 20, 30, 40]
+var last = array_pop(a);    # last = 40, a = [10, 20, 30]
+array_insert(a, 1, 50);     # a = [10, 50, 20, 30]
+array_remove(a, 2);         # a = [10, 50, 30]
+```
+
+Because arrays are reference types, functions can mutate an array passed to them without returning anything:
+
+```vhg
+void function fill(target) {
+    array_push(target, 1);
+    array_push(target, 2);
+}
+
+void function main() {
+    var a = [];
+    fill(a);
+    print(a);   # [1, 2]
+}
+```
+
+**Concatenation and repetition**
+
+Arrays also support the same `+` (concatenation) and `*` (repetition) operators as strings — both build a **brand‑new array** and leave the operands untouched, unlike the in‑place mutating helpers above:
+
+```vhg
+var a = [1, 2, 3];
+var b = [4, 5];
+print(a + b);        # [1, 2, 3, 4, 5]
+print(a);             # [1, 2, 3]  (unchanged)
+
+print([1, 2] * 3);    # [1, 2, 1, 2, 1, 2]
+print(3 * [1, 2]);    # [1, 2, 1, 2, 1, 2]  (either operand order works)
+```
+
+Since `arr += other` desugars to `arr = arr + other` (the same rule VHG already uses for numbers and strings), `+=` works too — it just reassigns `arr` to the newly concatenated array rather than mutating the original in place:
+
+```vhg
+var d = [1, 2];
+d += [3, 4];
+print(d);   # [1, 2, 3, 4]
+```
+
+`+` requires **both** operands to be arrays (an array plus a non‑array is a runtime error — use `array_push` to append a single element instead). `*` requires one operand to be an array and the other a non‑negative number.
+
+**Rules**
+
+| Rule              | Behavior                                                                 |
+| ----------------- | ------------------------------------------------------------------------ |
+| Index type        | Must be a number; non‑integers are a runtime error                      |
+| Bounds            | `0 <= index < length(arr)`; out of range → runtime error              |
+| `array(n)` size | Must be a non‑negative integer                                          |
+| Equality (`==`) | Compares by reference (same underlying array), not element‑by‑element  |
+| Truthiness        | An empty array is falsy; a non‑empty array is truthy                    |
+| `type(arr)`     | Returns`"array"`                                                       |
+| `+`             | Array + array → new concatenated array. Array + non‑array is an error. |
+| `*`             | Array\* non‑negative number (either order) → new repeated array.       |
+| `*=`            | Same as the`arr = arr * number`                                        |
+| `+=`            | Same as`arr = arr + other`; reassigns rather than mutating in place    |
+
+**Example program** (`vhg_files/arrays.vhg`):
+
+```vhg
+void function main() {
+    var a = [10, 20, 30];
+    a[1] = 99;
+    print(a);              # [10, 99, 30]
+
+    array_push(a, 40);
+    print(a);              # [10, 99, 30, 40]
+
+    var last = array_pop(a);
+    print(last);            # 40
+    print(a);              # [10, 99, 30]
+
+    array_insert(a, 1, 50);
+    print(a);              # [10, 50, 99, 30]
+
+    array_remove(a, 2);
+    print(a);              # [10, 50, 30]
+}
+```
+
+**Implementation (pipeline):**
+
+| Stage     | Role                                                                                                                                                                                                                                                                                                                                      |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tokenizer | `[` `]` tokens;`array`, `array_push`, `array_pop`, `array_insert`, `array_remove` recognized as builtin names                                                                                                                                                                                                               |
+| AST       | `ArrayLiteralNode`;`SubscriptReadNode` / `SubscriptWriteNode` are shared with string indexing                                                                                                                                                                                                                                       |
+| Parser    | `[e1, e2, ...]` as a primary expression (including nested/matrix literals);`x[y] = z` where the base may be a chained subscript                                                                                                                                                                                                       |
+| Compiler  | `ARRAY_NEW`, `ARRAY_LIT`, `ARRAY_PUSH`, `ARRAY_POP`, `ARRAY_INSERT`, `ARRAY_REMOVE`; `LOAD_STR_IDX`/`STORE_STR_IDX` generalized to dispatch on runtime type; `ADD`/`MUL` generalized for `+` (concatenation) and `*` (repetition) — no new opcodes needed since `+=` already desugars to `arr = arr + other` |
+| VM        | `Value` gains a`shared_ptr<ArrayObj>` alternative (reference semantics); bounds and type checks on every array operation                                                                                                                                                                                                              |
 
 ### Operators
 
-| Category               | Operators                                                                                                   |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Arithmetic             | `+` `-` `*` `/` `%` `//` (floor) `%/` (fractional) `**`                                     |
-| Bitwise                | `&` `\|` `^` `<<` `>>` `~`                                                                       |
-| Logical                | `and` `or` `not`                                                                                      |
-| Comparison             | `==` `!=` `<` `>` `<=` `>=`                                                                     |
-| Assignment             | `=` `+=` `-=` `*=` `/=` `%=` `^=`                                                             |
-| String                 | `+` `+=` (concatenation), `length(s)` → size, `*` → repetition, `s[i]` read, `s[i] = c` write |
-| Ternary                | `condition ? trueBranch : falseBranch` (e.g `x = 5 > 6 ? 7 : 8;`)                                       |
-| Loop operators         | `break;` -> exit loop earlier, `continue;` -> skip next iteration                                       |
-| **Declarations** | `variable`, `var`, `local`, `global`                                                                |
+| Category               | Operators                                                                                                                                                                                                                |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Arithmetic             | `+` `-` `*` `/` `%` `//` (floor) `%/` (fractional) `**`                                                                                                                                                  |
+| Bitwise                | `&` `\|` `^` `<<` `>>` `~`                                                                                                                                                                                    |
+| Logical                | `and` `or` `not`                                                                                                                                                                                                   |
+| Comparison             | `==` `!=` `<` `>` `<=` `>=`                                                                                                                                                                                  |
+| Assignment             | `=` `+=` `-=` `*=` `/=` `%=` `^=`                                                                                                                                                                          |
+| String                 | `+` `+=` (concatenation), `length(s)` → size, `*` → repetition, `s[i]` read, `s[i] = c` write                                                                                                              |
+| Array                  | `arr[i]` read, `arr[i] = x` write (including chained, e.g.`matrix[i][j] = x`), `length(arr)` → size, `+` → concatenation (new array), `*` → repetition (new array), `+=` → reassigns to`arr + other` |
+| Ternary                | `condition ? trueBranch : falseBranch` (e.g `x = 5 > 6 ? 7 : 8;`)                                                                                                                                                    |
+| Loop operators         | `break;` -> exit loop earlier, `continue;` -> skip next iteration                                                                                                                                                    |
+| **Declarations** | `variable`, `var`, `local`, `global`                                                                                                                                                                             |
 
 ### Mathematical Functions
 
@@ -570,7 +728,7 @@ void function main() {
 }
 ```
 
-- Parameters are passed by value.
+- Parameters are passed by value. Arrays are, themselves, reference values (see [Arrays](#arrays)) — passing an array parameter copies the reference, not the elements, so mutations inside the function are visible to the caller.
 - Functions can be called before they are defined (forward declaration via bytecode patching).
 
 ### Program entry (`main`)
@@ -626,15 +784,20 @@ switch(x) {
 
   > The `input` function automatically determines the type of the entered value and removes any quotation marks (`""` or `''`) if they were included.
   >
-- `print(expr1, expr2, ...)` – prints each argument; automatically appends a newline **if only one argument is given** (otherwise you must include `"\n"` explicitly).
-- `length(string)` - returns the size of given string.
-- `type(argument)` - Returns the type of given argument (`string`, `number` or `none`).
+- `print(expr1, expr2, ...)` – prints each argument; automatically appends a newline **if only one argument is given** (otherwise you must include `"\n"` explicitly). Arrays print as `[e1, e2, ...]`, with nested arrays and quoted strings rendered recursively.
+- `length(string | array)` - returns the size of a given string or array.
+- `type(argument)` - Returns the type of given argument (`string`, `number`, `array` or `none`).
 - `chr(number)` - Returns a Unicode string of one character with code point i; `0 <= i <= 0x10FFFF`.
 - `ord(string)` - Returns the Unicode code point for the first character of a string.
 - `bin(integer)` - Return the binary representation of an integer.
 - `oct(integer)` - Return the octal representation of an integer.
 - `hex(integer)` - Return the hexadecimal representation of an integer.
 - `dec(string)` - Returns the decimal representation of given argment (if possible).
+- `array(size)` - Returns a new array of `size` elements, each initialized to `none`. See [Arrays](#arrays).
+- `array_push(arr, value)` - Appends `value` to `arr` in place; returns the new length.
+- `array_pop(arr)` - Removes and returns the last element of `arr` in place.
+- `array_insert(arr, index, value)` - Inserts `value` at `index` in `arr` in place; returns the inserted value.
+- `array_remove(arr, index)` - Removes and returns the element at `index` from `arr` in place.
 
 ---
 
@@ -673,7 +836,7 @@ switch(x) {
 ### Lexer & Tokenizer
 
 - `Lexer` provides a stream interface with `peek()` and `advance()`.
-- `Tokenizer` groups characters into tokens, skipping whitespace and comments (`# ...` and `#* ... *#`).
+- `Tokenizer` groups characters into tokens, skipping whitespace and comments (`# ...` and `#* ... *#`). Builtin function names (including `array`, `array_push`, `array_pop`, `array_insert`, `array_remove`) are matched case‑insensitively, the same as the math builtins.
 
 ### Parser
 
@@ -682,6 +845,7 @@ switch(x) {
 - Implicit multiplication (e.g., `2x` or `(a+b)(c+d)`) is handled by injecting a `*` token when appropriate.
 - **Constant folding** is performed *during parsing* to simplify the AST immediately.
 - **String subscripts** — postfix `[expr]` builds `SubscriptReadNode`; `name[idx] = value` builds `SubscriptWriteNode` (variable base only).
+- **Array literals** — a leading `[` in expression position parses an `ArrayLiteralNode` (`[e1, e2, ...]`), including nested literals for matrices. Array subscripts reuse `SubscriptReadNode`/`SubscriptWriteNode`, but assignment bases may be a chained subscript expression (e.g. `matrix[i][j] = x;`), not just a plain variable.
 
 ### Symbol Table
 
@@ -703,7 +867,8 @@ switch(x) {
 - Patches forward function calls after all code is generated.
 - **Constant folding** is re‑applied during optimization (redundant constants are merged).
 - Outputs a `ByteCode` structure containing instructions, constant pool (numbers), and string pool.
-- Emits **`LOAD_STR_IDX`** (read character) and **`STORE_STR_IDX`** (write character, then store string back to the variable slot).
+- Emits **`LOAD_STR_IDX`** (read character/element) and **`STORE_STR_IDX`** (write character/element) — these two opcodes are shared between strings and arrays and dispatch on the runtime type of the base value at execution time.
+- Emits **`ARRAY_NEW`** for `array(n)`, **`ARRAY_LIT`** + a sequence of **`ARRAY_PUSH`** for `[...]` literals (each element is appended to the new array immediately after it's evaluated, rather than staged through a shared buffer, so nested/matrix literals compile correctly), and **`ARRAY_PUSH`**/**`ARRAY_POP`**/**`ARRAY_INSERT`**/**`ARRAY_REMOVE`** for the corresponding builtin calls.
 
 ---
 
@@ -716,6 +881,7 @@ switch(x) {
 - **Resolves cross-unit calls** recorded in `ByteCode::unresolvedCalls` by patching the absolute address of each target function after all units are merged.
 - Validates that exactly one `main` is defined and emits the final `CALL main` epilogue.
 - Throws a descriptive `std::runtime_error` for duplicate function definitions, unresolved calls, missing `main`, or global slot overflow (> 255).
+- Array opcodes (`ARRAY_NEW`, `ARRAY_LIT`, `ARRAY_PUSH`, `ARRAY_POP`, `ARRAY_INSERT`, `ARRAY_REMOVE`) carry only register operands — they don't reference the constant, string, or global pools — so linking requires no special handling for them.
 
 | Step                | What happens                                                                                         |
 | ------------------- | ---------------------------------------------------------------------------------------------------- |
@@ -811,6 +977,19 @@ struct Instruction {
 };
 ```
 
+Array instructions reuse this same 3‑operand shape:
+
+| Opcode            | `dst`                           | `left`                        | `right`      |
+| ----------------- | --------------------------------- | ------------------------------- | -------------- |
+| `ARRAY_NEW`     | result register (new array)       | size register                   | —             |
+| `ARRAY_LIT`     | result register (new empty array) | —                              | —             |
+| `ARRAY_PUSH`    | result register (new length)      | array register                  | value register |
+| `ARRAY_POP`     | result register (removed value)   | array register                  | —             |
+| `ARRAY_INSERT`  | value register                    | array register                  | index register |
+| `ARRAY_REMOVE`  | result register (removed value)   | array register                  | index register |
+| `LOAD_STR_IDX`  | result register                   | base register (string or array) | index register |
+| `STORE_STR_IDX` | value register                    | base register (string or array) | index register |
+
 #### Address decoding for jump/call instructions:
 
 ```c++
@@ -858,6 +1037,8 @@ For slot = 0 to G-1:
     write(nameLength)
     write(globalNames[slot], nameLength)
 ```
+
+> **Note:** Arrays are always built at runtime by `ARRAY_NEW`/`ARRAY_LIT`/`ARRAY_PUSH` instructions — there is no array literal pool in the `.vhb` format, so the file layout above is unaffected by array support.
 
 #### VHB File Size Calculation
 
@@ -929,9 +1110,9 @@ When the VM loads a `.vhb` file, it performs these steps:
 ### Virtual Machine
 
 - **Register file** – 256+ registers (indexed by `uint8_t`), with `x2` as stack pointer and `x8` as frame pointer.
-- **Memory** – linear array of `Value` (variant of double and string).
+- **Memory** – linear array of `Value`, a variant of `monostate` (none), `double`, `std::string`, and `std::shared_ptr<ArrayObj>` (arrays). Arrays are the only reference type: copying a `Value` that holds an array copies the shared pointer, not the elements, which is what gives arrays their in‑place mutation semantics.
 - **Call stack** – saves return address, caller’s SP/FP, and argument buffer.
-- **Instruction set** – includes RISC‑V inspired arithmetic (`ADD`, `SUB`, `AND`, …), control flow (`JMP`, `JZ`, `CALL`, `RETURN`), memory access (`LOAD`/`STORE` relative to FP), and string indexing (`LOAD_STR_IDX`, `STORE_STR_IDX`).
+- **Instruction set** – includes RISC‑V inspired arithmetic (`ADD`, `SUB`, `AND`, …), control flow (`JMP`, `JZ`, `CALL`, `RETURN`), memory access (`LOAD`/`STORE` relative to FP), string/array indexing (`LOAD_STR_IDX`, `STORE_STR_IDX`), and array construction/mutation (`ARRAY_NEW`, `ARRAY_LIT`, `ARRAY_PUSH`, `ARRAY_POP`, `ARRAY_INSERT`, `ARRAY_REMOVE`).
 - Debug mode (`VirtualMachine(true)`) prints the AST and a disassembly of the generated bytecode.
 
 ## Example Program
@@ -969,6 +1150,24 @@ void function main() {
         count += 1;
     }
     print("Count: ", count, ", Total: ", total, "\n");
+}
+```
+
+```vhg
+# Building a small multiplication table with arrays
+void function main() {
+    var table = array(5);
+    var i = 0;
+    while (i < length(table)) {
+        table[i] = [];
+        var j = 0;
+        while (j < 5) {
+            array_push(table[i], (i + 1) * (j + 1));
+            j += 1;
+        }
+        i += 1;
+    }
+    print(table);
 }
 ```
 
@@ -1018,7 +1217,7 @@ The debugger provides interactive control over program execution with the follow
 
 **State Inspection:**
 
-- View register values (non-zero registers displayed automatically)
+- View register values (non-zero registers displayed automatically) — array‑valued registers display as `[e1, e2, ...]`
 - Inspect memory at specific addresses
 - See call stack depth
 - Source line numbers shown when available
@@ -1112,6 +1311,19 @@ break; # # line 3
 
 ```shell
 Error: Line 3: break statement outside of loop or switch
+```
+
+Array errors follow the same convention:
+
+```vhg
+void function main() {
+    var a = [1, 2, 3];
+    print(a[5]);   # line 3
+}
+```
+
+```shell
+Error: Line 3: Array index out of bounds
 ```
 
 ---

@@ -70,6 +70,12 @@ void Debugger::printInstructionCompact(size_t pc) const {
         case OpCode::LENGTH:      std::cout << "LENGTH r" << inst.dst << " = len(r" << inst.left << ")"; break;
         case OpCode::LOAD_STR_IDX: std::cout << "LOAD_STR_IDX r" << inst.dst << " = r" << inst.left << "[r" << inst.right << "]"; break;
         case OpCode::STORE_STR_IDX: std::cout << "STORE_STR_IDX r" << inst.left << "[r" << inst.right << "] = r" << inst.dst; break;
+        case OpCode::ARRAY_NEW:    std::cout << "ARRAY_NEW r" << inst.dst << " = array(r" << inst.left << ")"; break;
+        case OpCode::ARRAY_LIT:    std::cout << "ARRAY_LIT r" << inst.dst << " = []"; break;
+        case OpCode::ARRAY_PUSH:   std::cout << "ARRAY_PUSH r" << inst.dst << " = push(r" << inst.left << ", r" << inst.right << ")"; break;
+        case OpCode::ARRAY_POP:    std::cout << "ARRAY_POP r" << inst.dst << " = pop(r" << inst.left << ")"; break;
+        case OpCode::ARRAY_INSERT: std::cout << "ARRAY_INSERT r" << inst.left << "[r" << inst.right << "] insert r" << inst.dst; break;
+        case OpCode::ARRAY_REMOVE: std::cout << "ARRAY_REMOVE r" << inst.dst << " = remove(r" << inst.left << ", r" << inst.right << ")"; break;
         
         case OpCode::SIN:         std::cout << "SIN r" << inst.dst << " = sin(r" << inst.left << ")"; break;
         case OpCode::COS:         std::cout << "COS r" << inst.dst << " = cos(r" << inst.left << ")"; break;
@@ -498,6 +504,44 @@ void Debugger::visualize() const {
         case OpCode::STORE_STR_IDX:
             opStr  = "STORE_STR_IDX " + R(inst.left) + " " + R(inst.right) + " " + R(inst.dst);
             lStr = std::to_string(inst.left); rStr = std::to_string(inst.right); dstStr = std::to_string(inst.dst);
+            break;
+
+        case OpCode::ARRAY_NEW:
+            opStr  = "ARRAY_NEW " + R(inst.dst) + " = array(" + R(inst.left) + ")";
+            lStr   = std::to_string(inst.left);
+            dstStr = std::to_string(inst.dst);
+            break;
+
+        case OpCode::ARRAY_LIT:
+            opStr  = "ARRAY_LIT " + R(inst.dst) + " = []";
+            dstStr = std::to_string(inst.dst);
+            break;
+
+        case OpCode::ARRAY_PUSH:
+            opStr  = "ARRAY_PUSH " + R(inst.dst) + " = push(" + R(inst.left) + ", " + R(inst.right) + ")";
+            lStr   = std::to_string(inst.left);
+            rStr   = std::to_string(inst.right);
+            dstStr = std::to_string(inst.dst);
+            break;
+
+        case OpCode::ARRAY_POP:
+            opStr  = "ARRAY_POP " + R(inst.dst) + " = pop(" + R(inst.left) + ")";
+            lStr   = std::to_string(inst.left);
+            dstStr = std::to_string(inst.dst);
+            break;
+
+        case OpCode::ARRAY_INSERT:
+            opStr  = "ARRAY_INSERT " + R(inst.left) + "[" + R(inst.right) + "] = " + R(inst.dst);
+            lStr   = std::to_string(inst.left);
+            rStr   = std::to_string(inst.right);
+            dstStr = std::to_string(inst.dst);
+            break;
+
+        case OpCode::ARRAY_REMOVE:
+            opStr  = "ARRAY_REMOVE " + R(inst.dst) + " = remove(" + R(inst.left) + ", " + R(inst.right) + ")";
+            lStr   = std::to_string(inst.left);
+            rStr   = std::to_string(inst.right);
+            dstStr = std::to_string(inst.dst);
             break;
 
         case OpCode::JMP: {
