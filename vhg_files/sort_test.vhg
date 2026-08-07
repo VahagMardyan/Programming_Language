@@ -1,0 +1,30 @@
+import "./Standard_Libs/sort.vhg";
+
+void function main() {
+    var data = [64, 34, 25, 12, 22, 11, 90];
+    print("Original array: ", data, "\n");
+    # Test each algorithm with both orders
+    var a1 = data; bubble_sort(a1); print("Bubble ascending: ", a1,"\n");
+    var a2 = data; bubble_sort(a2, true); print("Bubble descending: ", a2,"\n");
+    
+    var b1 = data; merge_sort(b1, 0, length(b1)-1); print("Merge ascending: ", b1,"\n");
+    var b2 = data; merge_sort(b2, 0, length(b2)-1, true); print("Merge descending: ", b2,"\n");
+    
+    var c1 = data; quick_sort(c1, 0, length(c1)-1); print("Quick ascending: ", c1,"\n");
+    var c2 = data; quick_sort(c2, 0, length(c2)-1, true); print("Quick descending: ", c2,"\n");
+    
+    var d1 = data; selection_sort(d1); print("Selection ascending: ", d1,"\n");
+    var d2 = data; selection_sort(d2, true); print("Selection descending: ", d2,"\n");
+    
+    var e1 = data; insertion_sort(e1); print("Insertion ascending: ", e1,"\n");
+    var e2 = data; insertion_sort(e2, true); print("Insertion descending: ", e2,"\n");
+    
+    var f1 = data; heap_sort(f1); print("Heap ascending: ", f1,"\n");
+    var f2 = data; heap_sort(f2, true); print("Heap descending: ", f2,"\n");
+    
+    var g1 = data; print("Counting ascending: ", count_sort(g1),"\n");
+    var g2 = data; print("Counting descending: ", count_sort(g2, true),"\n");
+    
+    var h1 = data; print("Radix ascending: ", radix_sort(h1),"\n");
+    var h2 = data; print("Radix descending: ", radix_sort(h2, true),"\n");
+}
