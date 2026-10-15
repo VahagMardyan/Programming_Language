@@ -1,10 +1,15 @@
 @echo off
 
-@REM Find Visual Studio installation automatically
-for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do (
-    set VS_PATH=%%i
-)
-call "%VS_PATH%\VC\Auxiliary\Build\vcvarsall.bat" x64
+@REM Clear all stale Visual Studio environment variables
+set "VSINSTALLDIR="
+set "VCINSTALLDIR="
+set "VCToolsVersion="
+set "VCToolsRedistVersion="
+set "VSCMD_ARG_VCVARS_VER="
+set "VSCMD_VER="
+
+@REM Call Build Tools environment directly
+call "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
 
 setlocal enabledelayedexpansion
 
@@ -22,11 +27,11 @@ if %errorlevel% equ 0 (
     echo [OK] Build successful!
     echo.
     echo Usage:
-    echo "./vhg.exe <file.vhg>                               Build and run source directly"
-    echo "./vhg.exe comple <in.vhg> [out.vhb]                Compile to bytecode"
-    echo "./vhg.exe compile-obj <in.vhg> [out.vhb]           Compile to linkable object"
+    echo "./vhg.exe <file.vhg>                             Build and run source directly"
+    echo "./vhg.exe compile <in.vhg> [out.vhb]             Compile to bytecode"
+    echo "./vhg.exe compile-obj <in.vhg> [out.vhb]         Compile to linkable object"
     echo "./vhg.exe link <a.vhb> [b.vhb ...] -o out.vhb      Link objects"
-    echo "./vhg.exe run <in.vhb> [--debug]                   Run bytecode"
+    echo "./vhg.exe run <in.vhb> [--debug]                  Run bytecode"
 ) else (
     echo.
     echo [ERROR] Build failed!
