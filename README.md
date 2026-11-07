@@ -216,8 +216,7 @@ endlocal
 ./runner.bat
 ```
 
-> **Note:** The project does not depend on any external libraries beyond the C++ standard library.
-> **Note:** If you are using Windows 10/11 (64-bit), just use `vhg.exe`.
+> **Note:** The project does not depend on any external libraries beyond the C++ standard library. If you are using Windows 10/11 (64-bit), just use `vhg.exe`.
 
 ---
 
