@@ -85,13 +85,14 @@
 
 ## Project Structure
 
-| Directory / File    | Purpose                                                                   |
-| ------------------- | ------------------------------------------------------------------------- |
-| `main.cpp`        | CLI entry point – compile, run, or directly execute`.vhg` files.       |
+
+| Directory / File  | Purpose                                                                   |
+| ------------------- | --------------------------------------------------------------------------- |
+| `main.cpp`        | CLI entry point – compile, run, or directly execute`.vhg` files.         |
 | `Lexer/`          | Character‑by‑character input stream handling.                           |
 | `Tokenizer/`      | Converts characters into tokens (keywords, operators, literals).          |
 | `SymbolTable/`    | Manages variable scopes, stack offsets, and global addresses.             |
-| `AST/`            | AST node definitions and the`OpCode` enumeration.                       |
+| `AST/`            | AST node definitions and the`OpCode` enumeration.                         |
 | `Parser/`         | Recursive‑descent parser with shunting‑yard expression handling.        |
 | `Compiler/`       | Transforms AST into bytecode; performs constant folding.                  |
 | `VirtualMachine/` | Executes bytecode; includes register file, memory, and call stack.        |
@@ -216,6 +217,7 @@ endlocal
 ```
 
 > **Note:** The project does not depend on any external libraries beyond the C++ standard library.
+> **Note:** If you are using Windows 10/11 (64-bit), just use `vhg.exe`.
 
 ---
 
@@ -271,12 +273,13 @@ The linker combines multiple independently compiled object units (`.vhb` files) 
 
 ### When to use the linker vs. `import`
 
-|                          | `import "file.vhg"`            | Linker (`compile-obj` + `link`)           |
-| ------------------------ | -------------------------------- | --------------------------------------------- |
-| How it works             | Text substitution before parsing | Each file compiled independently, then merged |
-| Cross-file globals       | Shared (merged at source level)  | Shared by name across units                   |
-| Cross-file functions     | Inlined at compile time          | Resolved at link time                         |
-| Recompile on change      | Full recompile every time        | Only recompile the changed unit               |
+
+|                        | `import "file.vhg"`              | Linker (`compile-obj` + `link`)               |
+| ------------------------ | ---------------------------------- | ----------------------------------------------- |
+| How it works           | Text substitution before parsing | Each file compiled independently, then merged |
+| Cross-file globals     | Shared (merged at source level)  | Shared by name across units                   |
+| Cross-file functions   | Inlined at compile time          | Resolved at link time                         |
+| Recompile on change    | Full recompile every time        | Only recompile the changed unit               |
 | Multiple`main` allowed | No                               | No (exactly one across all units)             |
 
 > **Note:** The `import` statement still works as before. The linker is an optional separate pipeline for larger projects.
@@ -351,15 +354,16 @@ for (i = 0; i < 10; i += 1) {
 
 ### Variable Declaration Rules
 
-| Syntax                                   | Scope                                            | Notes                         |
-| ---------------------------------------- | ------------------------------------------------ | ----------------------------- |
-| `variable x = expr;`                   | Auto (local in blocks, global at top-level)      | Explicit declaration          |
+
+| Syntax                                 | Scope                                          | Notes                         |
+| ---------------------------------------- | ------------------------------------------------ | ------------------------------- |
+| `variable x = expr;`                   | Auto (local in blocks, global at top-level)    | Explicit declaration          |
 | `var x = expr;`                        | Auto (same as`variable`)                       | Short form alias              |
-| `local variable x = expr;`             | Local                                            | Forces local storage          |
-| `local var x = expr;`                  | Local                                            | Short form with local         |
-| `global variable x = expr;`            | Global                                           | Forces global storage         |
-| `global var x = expr;`                 | Global                                           | Short form with global        |
-| `x = expr;`                            | Auto (implicit declaration if new)               | Assignment/declaration        |
+| `local variable x = expr;`             | Local                                          | Forces local storage          |
+| `local var x = expr;`                  | Local                                          | Short form with local         |
+| `global variable x = expr;`            | Global                                         | Forces global storage         |
+| `global var x = expr;`                 | Global                                         | Short form with global        |
+| `x = expr;`                            | Auto (implicit declaration if new)             | Assignment/declaration        |
 | `x;`                                   | Auto (implicit declaration with`none`)         | Declaration-only              |
 | `global/local var a,b,c = 3,4,5`       | Equvalent to`var a=3; var b=4; var c=5;`       | Multiple variable declaration |
 | `global/local var a=5, b=4, c="Hello"` | Equvalent to`var a=5; var b=4; var c="Hello";` | Multiple variable declaration |
@@ -452,13 +456,14 @@ print(s[0][0], "\n");   # "a"
 
 **Assignment target** for writes must be a **variable** with a single index (e.g. `msg[i] = 'x'`). Chained assignment such as `msg[0][1] = 'a'` is not supported.
 
-| Rule           | Behavior                                                        |
-| -------------- | --------------------------------------------------------------- |
-| Index type     | Must be a number; non‑integers are a runtime error             |
-| Bounds         | `0 <= index < length(s)`; out of range → runtime error       |
-| Object         | Must be a string; otherwise → runtime error                    |
-| Assigned value | Must be a string of**length 1** (e.g. `'W'` or `"x"`) |
-| Empty string   | No valid index; any access is out of bounds                     |
+
+| Rule           | Behavior                                                |
+| ---------------- | --------------------------------------------------------- |
+| Index type     | Must be a number; non‑integers are a runtime error     |
+| Bounds         | `0 <= index < length(s)`; out of range → runtime error |
+| Object         | Must be a string; otherwise → runtime error            |
+| Assigned value | Must be a string of**length 1** (e.g. `'W'` or `"x"`)   |
+| Empty string   | No valid index; any access is out of bounds             |
 
 **Example program** (`vhg_files/string_index.vhg`):
 
@@ -474,12 +479,13 @@ void function main() {
 
 **Implementation (pipeline):**
 
+
 | Stage     | Role                                                |
-| --------- | --------------------------------------------------- |
-| Tokenizer | `[` `]` tokens                                  |
-| AST       | `SubscriptReadNode`, `SubscriptWriteNode`       |
-| Parser    | `x[y]` in expressions; `x[y] = z` as assignment |
-| Compiler  | `LOAD_STR_IDX`, `STORE_STR_IDX`                 |
+| ----------- | ----------------------------------------------------- |
+| Tokenizer | `[` `]` tokens                                      |
+| AST       | `SubscriptReadNode`, `SubscriptWriteNode`           |
+| Parser    | `x[y]` in expressions; `x[y] = z` as assignment     |
+| Compiler  | `LOAD_STR_IDX`, `STORE_STR_IDX`                     |
 | VM        | Bounds and type checks; in‑place mutation on write |
 
 Opcodes **100** (`LOAD_STR_IDX`) and **101** (`STORE_STR_IDX`) — see `Language/AST/OpCodes.md`. These two opcodes are shared with array indexing (see [Arrays](#arrays)): the VM dispatches on the runtime type of the base value, so the same instructions handle `str[i]` and `arr[i]`.
@@ -518,15 +524,16 @@ void function main() {
 
 Rules and gotchas:
 
-| Rule                   | Behavior                                                                                                                                                                                                                                                                                                                                                                                       |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Prefix                 | `f` must be immediately followed by `"` or `'` with no space — `f "x"` (with a space) is just a variable named `f` followed by a separate string, not an f-string                                                                                                                                                                                                                   |
-| Literal braces         | `{{` and `}}` produce a single literal `{` / `}`                                                                                                                                                                                                                                                                                                                                       |
-| Empty interpolation    | `{}` is a compile-time error                                                                                                                                                                                                                                                                                                                                                                 |
-| Unmatched`}`         | A bare`}` (not part of `}}`) outside an interpolation is a compile-time error                                                                                                                                                                                                                                                                                                              |
-| Unterminated`{`      | A`{` with no matching `}` before the string ends is a compile-time error                                                                                                                                                                                                                                                                                                                   |
+
+| Rule                 | Behavior                                                                                                                                                                                                                                                                                                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Prefix               | `f` must be immediately followed by `"` or `'` with no space — `f "x"` (with a space) is just a variable named `f` followed by a separate string, not an f-string                                                                                                                                                                                                                 |
+| Literal braces       | `{{` and `}}` produce a single literal `{` / `}`                                                                                                                                                                                                                                                                                                                                   |
+| Empty interpolation  | `{}` is a compile-time error                                                                                                                                                                                                                                                                                                                                                       |
+| Unmatched`}`         | A bare`}` (not part of `}}`) outside an interpolation is a compile-time error                                                                                                                                                                                                                                                                                                      |
+| Unterminated`{`      | A`{` with no matching `}` before the string ends is a compile-time error                                                                                                                                                                                                                                                                                                           |
 | Quotes inside`{...}` | An expression inside`{}` **cannot contain the same quote character used to open the f-string** — the tokenizer finds the f-string's closing quote with a simple scan before it ever looks inside `{}` for nested strings, the same limitation Python had before 3.12. If your interpolated expression needs a string literal, open the f-string with the *other* quote character. |
-| Newline in`print`    | `print(f"...")` with a trailing `\n` in the f-string and no other arguments still gets `print`'s automatic newline added on top (see [Built‑in I/O](#builtin-io)) — you'll get a blank line unless you either drop the `\n` from the f-string or pass a second argument to `print`                                                                                                  |
+| Newline in`print`    | `print(f"...")` with a trailing `\n` in the f-string and no other arguments still gets `print`'s automatic newline added on top (see [Built‑in I/O](#builtin-io)) — you'll get a blank line unless you either drop the `\n` from the f-string or pass a second argument to `print`                                                                                               |
 
 The quoting gotcha in practice:
 
@@ -543,12 +550,13 @@ void function main() {
 
 **Implementation (pipeline):**
 
-| Stage     | Role                                                                                                                                                                                                                                      |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tokenizer | Recognizes an`f`/`F` immediately followed by a quote and emits a single `FStringLiteral` token holding the raw (unparsed) body                                                                                                      |
-| Parser    | `parseFString` splits the raw body into literal segments and `{...}` expressions, parsing each expression with its own nested `Parser`/`Tokenizer`; builds an `FStringNode`                                                     |
+
+| Stage     | Role                                                                                                                                                                                                                              |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tokenizer | Recognizes an`f`/`F` immediately followed by a quote and emits a single `FStringLiteral` token holding the raw (unparsed) body                                                                                                    |
+| Parser    | `parseFString` splits the raw body into literal segments and `{...}` expressions, parsing each expression with its own nested `Parser`/`Tokenizer`; builds an `FStringNode`                                                       |
 | Compiler  | Desugars into a chain of`LOAD_STR` (literal segments) + `TO_STRING` (per interpolated expression) + `ADD` (string concatenation) — an f-string compiles to the same bytecode as writing the equivalent `+` concatenation by hand |
-| VM        | No dedicated opcode; runs entirely as`LOAD_STR`/`TO_STRING`/`ADD`                                                                                                                                                                   |
+| VM        | No dedicated opcode; runs entirely as`LOAD_STR`/`TO_STRING`/`ADD`                                                                                                                                                                 |
 
 ### Type Constructors (`number` / `string`)
 
@@ -567,14 +575,15 @@ void function main() {
 
 `number(x)` is stricter:
 
-| Input                                                                                   | Result                                                          |
+
+| Input                                                                                 | Result                                                        |
 | --------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| A number                                                                                | Returned unchanged                                              |
-| A numeric string (leading/trailing whitespace is fine, e.g.`" 42 "`)                  | Parsed to that number                                           |
+| A number                                                                              | Returned unchanged                                            |
+| A numeric string (leading/trailing whitespace is fine, e.g.`" 42 "`)                  | Parsed to that number                                         |
 | A non-numeric string, or a string with trailing junk after the number (e.g.`"42abc"`) | Runtime error:`number(): cannot convert '...' to a number`    |
 | A string representing a value too large to fit in a`double`                           | Runtime error:`number(): '...' is out of range for a number`  |
 | `none`                                                                                | Runtime error:`number(): cannot convert none to a number`     |
-| An array                                                                                | Runtime error:`number(): cannot convert an array to a number` |
+| An array                                                                              | Runtime error:`number(): cannot convert an array to a number` |
 
 ```vhg
 void function main() {
@@ -634,11 +643,12 @@ var len = length(a);   # 3
 
 All four helpers mutate the array **in place**; you never need to reassign the result back to the variable.
 
-| Function                            | Effect                                                        | Returns             |
-| ----------------------------------- | ------------------------------------------------------------- | ------------------- |
-| `array_push(arr, value)`          | Appends`value` to the end of `arr`                        | The new length      |
+
+| Function                          | Effect                                                      | Returns             |
+| ----------------------------------- | ------------------------------------------------------------- | --------------------- |
+| `array_push(arr, value)`          | Appends`value` to the end of `arr`                          | The new length      |
 | `array_pop(arr)`                  | Removes and returns the last element of`arr`                | The removed element |
-| `array_insert(arr, index, value)` | Inserts`value` at `index`, shifting later elements right  | The inserted value  |
+| `array_insert(arr, index, value)` | Inserts`value` at `index`, shifting later elements right    | The inserted value  |
 | `array_remove(arr, index)`        | Removes the element at`index`, shifting later elements left | The removed element |
 
 ```vhg
@@ -690,19 +700,20 @@ print(d);   # [1, 2, 3, 4]
 
 **Rules**
 
-| Rule                 | Behavior                                                                                                                                                                                                                              |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Index type           | Must be a number; non‑integers are a runtime error                                                                                                                                                                                   |
-| Bounds               | `0 <= index < length(arr)`; out of range → runtime error                                                                                                                                                                           |
-| `array(n)` size    | Must be a non‑negative integer                                                                                                                                                                                                       |
+
+| Rule               | Behavior                                                                                                                                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Index type         | Must be a number; non‑integers are a runtime error                                                                                                                                                   |
+| Bounds             | `0 <= index < length(arr)`; out of range → runtime error                                                                                                                                             |
+| `array(n)` size    | Must be a non‑negative integer                                                                                                                                                                       |
 | `array(...)` arity | A**single** argument means "size" (`array(5)` → 5 slots of `none`, **not** `[5]`); zero or **two-or-more** arguments build an array from those values (`array()` → `[]`, `array(5, 6)` → `[5, 6]`) |
-| Equality (`==`)    | Compares by reference (same underlying array), not element‑by‑element                                                                                                                                                               |
-| Truthiness           | An empty array is falsy; a non‑empty array is truthy                                                                                                                                                                                 |
-| `type(arr)`        | Returns`"array"`                                                                                                                                                                                                                    |
-| `+`                | Array + array → new concatenated array. Array + non‑array is an error.                                                                                                                                                              |
-| `*`                | Array\* non‑negative number (either order) → new repeated array.                                                                                                                                                                    |
-| `*=`               | Same as the`arr = arr * number`                                                                                                                                                                                                     |
-| `+=`               | Same as`arr = arr + other`; reassigns rather than mutating in place                                                                                                                                                                 |
+| Equality (`==`)    | Compares by reference (same underlying array), not element‑by‑element                                                                                                                               |
+| Truthiness         | An empty array is falsy; a non‑empty array is truthy                                                                                                                                                 |
+| `type(arr)`        | Returns`"array"`                                                                                                                                                                                      |
+| `+`                | Array + array → new concatenated array. Array + non‑array is an error.                                                                                                                              |
+| `*`                | Array\* non‑negative number (either order) → new repeated array.                                                                                                                                    |
+| `*=`               | Same as the`arr = arr * number`                                                                                                                                                                       |
+| `+=`               | Same as`arr = arr + other`; reassigns rather than mutating in place                                                                                                                                   |
 
 **Example program** (`vhg_files/arrays.vhg`):
 
@@ -729,28 +740,30 @@ void function main() {
 
 **Implementation (pipeline):**
 
-| Stage     | Role                                                                                                                                                                                                                                                                                                                                      |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tokenizer | `[` `]` tokens;`array`, `array_push`, `array_pop`, `array_insert`, `array_remove` recognized as builtin names                                                                                                                                                                                                               |
-| AST       | `ArrayLiteralNode`;`SubscriptReadNode` / `SubscriptWriteNode` are shared with string indexing                                                                                                                                                                                                                                       |
-| Parser    | `[e1, e2, ...]` as a primary expression (including nested/matrix literals);`x[y] = z` where the base may be a chained subscript                                                                                                                                                                                                       |
+
+| Stage     | Role                                                                                                                                                                                                                                                                                                          |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tokenizer | `[` `]` tokens;`array`, `array_push`, `array_pop`, `array_insert`, `array_remove` recognized as builtin names                                                                                                                                                                                                 |
+| AST       | `ArrayLiteralNode`;`SubscriptReadNode` / `SubscriptWriteNode` are shared with string indexing                                                                                                                                                                                                                 |
+| Parser    | `[e1, e2, ...]` as a primary expression (including nested/matrix literals);`x[y] = z` where the base may be a chained subscript                                                                                                                                                                               |
 | Compiler  | `ARRAY_NEW`, `ARRAY_LIT`, `ARRAY_PUSH`, `ARRAY_POP`, `ARRAY_INSERT`, `ARRAY_REMOVE`; `LOAD_STR_IDX`/`STORE_STR_IDX` generalized to dispatch on runtime type; `ADD`/`MUL` generalized for `+` (concatenation) and `*` (repetition) — no new opcodes needed since `+=` already desugars to `arr = arr + other` |
-| VM        | `Value` gains a`shared_ptr<ArrayObj>` alternative (reference semantics); bounds and type checks on every array operation                                                                                                                                                                                                              |
+| VM        | `Value` gains a`shared_ptr<ArrayObj>` alternative (reference semantics); bounds and type checks on every array operation                                                                                                                                                                                      |
 
 ### Operators
 
-| Category               | Operators                                                                                                                                                                                                                                                            |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Arithmetic             | `+` `-` `*` `/` `%` `//` (floor) `%/` (fractional) `**`                                                                                                                                                                                              |
-| Bitwise                | `&` `\|` `^` `<<` `>>` `~`                                                                                                                                                                                                                                |
-| Logical                | `and` `or` `not`                                                                                                                                                                                                                                               |
-| Comparison             | `==` `!=` `<` `>` `<=` `>=`                                                                                                                                                                                                                              |
-| Assignment             | `=` `:=` `+=` `-=` `*=` `/=` `%=` `^=` (including on subscripts, e.g.`arr[i] += 1;`)                                                                                                                                                               |
-| String                 | `+` `+=` (concatenation), `length(s)` → size, `*` → repetition, `s[i]` read, `s[i] = c` write                                                                                                                                                          |
-| Array                  | `arr[i]` read, `arr[i] = x` write (including chained, e.g.`matrix[i][j] = x`), compound assignment (e.g.`arr[i] += 1;`), `length(arr)` → size, `+` → concatenation (new array), `*` → repetition (new array), `+=` → reassigns to`arr + other` |
-| Ternary                | `condition ? trueBranch : falseBranch` (e.g `x = 5 > 6 ? 7 : 8;`)                                                                                                                                                                                                |
-| Loop operators         | `break;` -> exit loop earlier, `continue;` -> skip next iteration                                                                                                                                                                                                |
-| **Declarations** | `variable`, `var`, `local`, `global`                                                                                                                                                                                                                         |
+
+| Category         | Operators                                                                                                                                                                                                                                          |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Arithmetic       | `+` `-` `*` `/` `%` `//` (floor) `%/` (fractional) `**`                                                                                                                                                                                            |
+| Bitwise          | `&` `|` `^` `<<` `>>` `~`                                                                                                                                                                                                                          |
+| Logical          | `and` `or` `not`                                                                                                                                                                                                                                   |
+| Comparison       | `==` `!=` `<` `>` `<=` `>=`                                                                                                                                                                                                                        |
+| Assignment       | `=` `:=` `+=` `-=` `*=` `/=` `%=` `^=` (including on subscripts, e.g.`arr[i] += 1;`)                                                                                                                                                               |
+| String           | `+` `+=` (concatenation), `length(s)` → size, `*` → repetition, `s[i]` read, `s[i] = c` write                                                                                                                                                    |
+| Array            | `arr[i]` read, `arr[i] = x` write (including chained, e.g.`matrix[i][j] = x`), compound assignment (e.g.`arr[i] += 1;`), `length(arr)` → size, `+` → concatenation (new array), `*` → repetition (new array), `+=` → reassigns to`arr + other` |
+| Ternary          | `condition ? trueBranch : falseBranch` (e.g `x = 5 > 6 ? 7 : 8;`)                                                                                                                                                                                  |
+| Loop operators   | `break;` -> exit loop earlier, `continue;` -> skip next iteration                                                                                                                                                                                  |
+| **Declarations** | `variable`, `var`, `local`, `global`                                                                                                                                                                                                               |
 
 > **Note:** `and` / `or` **short-circuit**, like most languages. In `left and right`, `right` is only evaluated when `left` is truthy; in `left or right`, `right` is only evaluated when `left` is falsy. This matters for guarded expressions such as `i >= 0 and arr[i] > 0` — when `i` is `-1`, `arr[i]` is never touched. Both operators always evaluate to `1.0` or `0.0` (not the operand's own value, unlike Python's `and`/`or`).
 
@@ -780,41 +793,43 @@ b is: 4
 
 ### Mathematical Functions
 
-| Function                 | Description                                                                                          | Number of Arguments |
-| ------------------------ | ---------------------------------------------------------------------------------------------------- | ------------------- |
-| `sin(x)`               | Sine                                                                                                 | 1                   |
-| `cos(x)`               | Cosine                                                                                               | 1                   |
-| `tan(x)`               | Tangent                                                                                              | 1                   |
-| `asin(x)`              | Arc sine                                                                                             | 1                   |
-| `acos(x)`              | Arc cosine                                                                                           | 1                   |
-| `atan(x)`              | Arc tangent                                                                                          | 1                   |
-| `atan2(y, x)`          | Arc tangent (two arguments)                                                                          | 2                   |
-| `sqrt(x)`              | Square root                                                                                          | 1                   |
-| `cbrt(x)`              | Cube root                                                                                            | 1                   |
-| `pow(x, y)`            | Power (x^y)                                                                                          | 2                   |
-| `exp(x)`               | Exponential (e^x)                                                                                    | 1                   |
-| `log(x)`               | Natural logarithm (base e)                                                                           | 1                   |
-| `ln(x)`                | Natural logarithm (base e)                                                                           | 1                   |
-| `log10(x)`             | Base-10 logarithm                                                                                    | 1                   |
-| `log2(x)`              | Base-2 logarithm                                                                                     | 1                   |
-| `log_ab(a, b)`         | Logarithm of`b` with base `a` (log(b)/log(a))                                                    | 2                   |
-| `ceil(x)`              | Round up                                                                                             | 1                   |
-| `floor(x)`             | Round down                                                                                           | 1                   |
-| `round(x)`             | Round to nearest integer                                                                             | 1                   |
-| `abs(x)`               | Absolute value                                                                                       | 1                   |
-| `fmod(x, y)`           | Floating-point remainder                                                                             | 2                   |
+
+| Function               | Description                                                                                    | Number of Arguments |
+| ------------------------ | ------------------------------------------------------------------------------------------------ | --------------------- |
+| `sin(x)`               | Sine                                                                                           | 1                   |
+| `cos(x)`               | Cosine                                                                                         | 1                   |
+| `tan(x)`               | Tangent                                                                                        | 1                   |
+| `asin(x)`              | Arc sine                                                                                       | 1                   |
+| `acos(x)`              | Arc cosine                                                                                     | 1                   |
+| `atan(x)`              | Arc tangent                                                                                    | 1                   |
+| `atan2(y, x)`          | Arc tangent (two arguments)                                                                    | 2                   |
+| `sqrt(x)`              | Square root                                                                                    | 1                   |
+| `cbrt(x)`              | Cube root                                                                                      | 1                   |
+| `pow(x, y)`            | Power (x^y)                                                                                    | 2                   |
+| `exp(x)`               | Exponential (e^x)                                                                              | 1                   |
+| `log(x)`               | Natural logarithm (base e)                                                                     | 1                   |
+| `ln(x)`                | Natural logarithm (base e)                                                                     | 1                   |
+| `log10(x)`             | Base-10 logarithm                                                                              | 1                   |
+| `log2(x)`              | Base-2 logarithm                                                                               | 1                   |
+| `log_ab(a, b)`         | Logarithm of`b` with base `a` (log(b)/log(a))                                                  | 2                   |
+| `ceil(x)`              | Round up                                                                                       | 1                   |
+| `floor(x)`             | Round down                                                                                     | 1                   |
+| `round(x)`             | Round to nearest integer                                                                       | 1                   |
+| `abs(x)`               | Absolute value                                                                                 | 1                   |
+| `fmod(x, y)`           | Floating-point remainder                                                                       | 2                   |
 | `random(min=0, max=1)` | Returns a random floating-point number in the range**[min, max)**. Default range is:**[0, 1)** | 0 or 2              |
 
 ---
 
 ### Mathematical Constants
 
-| Constant  | Value             | Description        |
-| --------- | ----------------- | ------------------ |
-| `m_pi`  | 3.141592653589793 | π (Pi)            |
-| `m_e`   | 2.718281828459045 | e (Euler's number) |
-| `m_max` | 1.79769e+308      | The Maximum Number |
-| `m_inf` | inf               | The Infinity       |
+
+| Constant | Value             | Description        |
+| ---------- | ------------------- | -------------------- |
+| `m_pi`   | 3.141592653589793 | π (Pi)            |
+| `m_e`    | 2.718281828459045 | e (Euler's number) |
+| `m_max`  | 1.79769e+308      | The Maximum Number |
+| `m_inf`  | inf               | The Infinity       |
 
 > **Note:** Trigonometric functions use radians by default.
 > For degrees use this formula: `argument*m_pi/180`. E.g. `sin(60*m_pi/180)`.
@@ -1037,11 +1052,12 @@ switch(x) {
 
 - `input(prompt1, prompt2, ...)` - User Input.
 
-  | Input                                                   | Type       | Description                          |
-  | ------------------------------------------------------- | ---------- | ------------------------------------ |
-  | `"123"` or `'123'`                                  | `string` | Will return`123` as string         |
-  | `123`                                                 | `number` | Will return`123` as number         |
-  | Empty input                                             | `none`   | Will return`none` (std::monostate) |
+
+  | Input                                             | Type     | Description                        |
+  | --------------------------------------------------- | ---------- | ------------------------------------ |
+  | `"123"` or `'123'`                                | `string` | Will return`123` as string         |
+  | `123`                                             | `number` | Will return`123` as number         |
+  | Empty input                                       | `none`   | Will return`none` (std::monostate) |
   | `Hello World`, `"Hello World"` or `'Hello World'` | `string` | Will return`Hello World`           |
 
 
@@ -1069,13 +1085,14 @@ switch(x) {
 
 ### The syntax of number types.
 
-| Syntax            | Example            | Will understand as   |
-| ----------------- | ------------------ | -------------------- |
-| `0b`, `0B`    | `0b1100`         | BIN                  |
-| `0o`, `0O`    | `0o45`           | OCT                  |
-| `0x`, `0X`    | `0xff`           | HEX                  |
-| `_` separator   | `1_000_000`      | `1000000`          |
-| `e±N` `E±N` | `2e+3`, `3E-4` | `2000`, `0.0003` |
+
+| Syntax        | Example        | Will understand as |
+| --------------- | ---------------- | -------------------- |
+| `0b`, `0B`    | `0b1100`       | BIN                |
+| `0o`, `0O`    | `0o45`         | OCT                |
+| `0x`, `0X`    | `0xff`         | HEX                |
+| `_` separator | `1_000_000`    | `1000000`          |
+| `e±N` `E±N` | `2e+3`, `3E-4` | `2000`, `0.0003`   |
 
 > **Note** Implicit multiplication (`3x` as `3*x`) won't work for variables named `e` and `E`, as `3e4` will always be parsed as `3×10⁴ = 30000`.
 
@@ -1156,14 +1173,15 @@ switch(x) {
 - Throws a descriptive `std::runtime_error` for duplicate function definitions, unresolved calls, missing `main`, or global slot overflow (> 255).
 - Array opcodes (`ARRAY_NEW`, `ARRAY_LIT`, `ARRAY_PUSH`, `ARRAY_POP`, `ARRAY_INSERT`, `ARRAY_REMOVE`) carry only register operands — they don't reference the constant, string, or global pools — so linking requires no special handling for them.
 
-| Step                | What happens                                                                                         |
-| ------------------- | ---------------------------------------------------------------------------------------------------- |
+
+| Step                | What happens                                                                                 |
+| --------------------- | ---------------------------------------------------------------------------------------------- |
 | Address rebasing    | Each unit's`JMP`/`JZ`/`JNZ`/`CALL` targets are shifted by the unit's instruction base offset |
-| Constant pool merge | Identical`double` constants deduplicated; `LOAD_CONST` indices remapped                          |
-| String pool merge   | Identical string literals deduplicated;`LOAD_STR`/`PRINT_STR` indices remapped                   |
-| Global slot merge   | Globals unified by name;`LOAD_VAR`/`STORE_VAR` addresses remapped                                |
-| Call resolution     | Unresolved cross-unit calls patched with target's absolute address                                   |
-| `main` epilogue   | `CALL main` appended after all units, same as single-file `compile`                              |
+| Constant pool merge | Identical`double` constants deduplicated; `LOAD_CONST` indices remapped                      |
+| String pool merge   | Identical string literals deduplicated;`LOAD_STR`/`PRINT_STR` indices remapped               |
+| Global slot merge   | Globals unified by name;`LOAD_VAR`/`STORE_VAR` addresses remapped                            |
+| Call resolution     | Unresolved cross-unit calls patched with target's absolute address                           |
+| `main` epilogue     | `CALL main` appended after all units, same as single-file `compile`                          |
 
 ---
 
@@ -1213,13 +1231,14 @@ It contains all inforamtion needed to execute the program without re-parsing the
 
 #### Header Fields
 
-| Offset | Field              | Size    | Description                                     |
-| ------ | ------------------ | ------- | ----------------------------------------------- |
-| 0      | Magic              | 4 bytes | File identifier:`'V'` `'H'` `'B'` `'1'` |
-| 4      | Instruction Count  | 4 bytes | Number of bytecode instructions (M)             |
-| 8      | Constant Count     | 4 bytes | Number of floating‑point constants (C)         |
-| 12     | String Count       | 4 bytes | Number of string literals (S)                   |
-| 16     | Line Numbers Count | 4 bytes | Number of line number entries (must equal M)    |
+
+| Offset | Field              | Size    | Description                                  |
+| -------- | -------------------- | --------- | ---------------------------------------------- |
+| 0      | Magic              | 4 bytes | File identifier:`'V'` `'H'` `'B'` `'1'`      |
+| 4      | Instruction Count  | 4 bytes | Number of bytecode instructions (M)          |
+| 8      | Constant Count     | 4 bytes | Number of floating‑point constants (C)      |
+| 12     | String Count       | 4 bytes | Number of string literals (S)                |
+| 16     | Line Numbers Count | 4 bytes | Number of line number entries (must equal M) |
 
 #### Line Numbers Table
 
@@ -1252,8 +1271,9 @@ struct Instruction {
 
 Array instructions reuse this same 3‑operand shape:
 
-| Opcode              | `dst`                                  | `left`                                    | `right`      |
-| ------------------- | ---------------------------------------- | ------------------------------------------- | -------------- |
+
+| Opcode            | `dst`                                    | `left`                                      | `right`        |
+| ------------------- | ------------------------------------------ | --------------------------------------------- | ---------------- |
 | `ARRAY_NEW`       | result register (new array)              | size register                               | —             |
 | `ARRAY_LIT`       | result register (new empty array)        | —                                          | —             |
 | `ARRAY_PUSH`      | result register (new length)             | array register                              | value register |
@@ -1461,19 +1481,20 @@ The debugger provides interactive control over program execution with the follow
 
 #### Debugger Commands
 
-| Command              | Aliases            | Description                                   |
-| -------------------- | ------------------ | --------------------------------------------- |
-| `Enter` / `step` | `si`             | Execute next instruction (step into)          |
-| `over`             | `so`             | Step over function calls                      |
-| `out`              | `su`             | Step out of current function                  |
-| `go` / `c`       | `continue`       | Continue execution until next breakpoint      |
-| `br.add <addr>`    |                    | Set breakpoint at instruction address         |
-| `br.rem <addr>`    |                    | Remove breakpoint at address                  |
-| `br`               | `br.list`        | List all breakpoints                          |
-| `r<n>`             | `reg <n>`        | Show register value (e.g.,`r0`, `r3`)     |
-| `m<addr>`          | `mem <addr>`     | Show memory value (e.g.,`m100`, `m10000`) |
-| `h`                | `help`           | Open Commands Menu                            |
-| `q`                | `quit`, `exit` | Quit debugger                                 |
+
+| Command          | Aliases        | Description                               |
+| ------------------ | ---------------- | ------------------------------------------- |
+| `Enter` / `step` | `si`           | Execute next instruction (step into)      |
+| `over`           | `so`           | Step over function calls                  |
+| `out`            | `su`           | Step out of current function              |
+| `go` / `c`       | `continue`     | Continue execution until next breakpoint  |
+| `br.add <addr>`  |                | Set breakpoint at instruction address     |
+| `br.rem <addr>`  |                | Remove breakpoint at address              |
+| `br`             | `br.list`      | List all breakpoints                      |
+| `r<n>`           | `reg <n>`      | Show register value (e.g.,`r0`, `r3`)     |
+| `m<addr>`        | `mem <addr>`   | Show memory value (e.g.,`m100`, `m10000`) |
+| `h`              | `help`         | Open Commands Menu                        |
+| `q`              | `quit`, `exit` | Quit debugger                             |
 
 #### Debugger Features
 
