@@ -341,3 +341,11 @@ function determinant_lu(mat) {
     
     return det;
 }
+
+function to_degree(radians) {
+    return radians * m_pi / 180;
+}
+
+function to_bool(expr) {
+    return expr ? "true" : "false";
+}
